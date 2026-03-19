@@ -1,4 +1,4 @@
-﻿namespace PromptEngineering.LLM.Models;
+namespace PromptEngineering.LLM.Models;
 
 public record AiServiceSettings
 {
@@ -44,4 +44,22 @@ public record AiServiceSettings
     /// Array of instances that can be used to connect to the OpenAI service.
     /// </summary>
     public required List<InstanceSettings> Instances { get; set; }
+
+    /// <summary>
+    /// Retry settings for HttpClient calls.
+    /// </summary>
+    public AiRetrySettings Retry { get; set; } = new();
+}
+
+public record AiRetrySettings
+{
+    /// <summary>
+    /// Number of retry attempts for transient failures.
+    /// </summary>
+    public int RetryCount { get; set; } = 3;
+
+    /// <summary>
+    /// Exponential backoff base. For base=2 and 3 retries: 2s, 4s, 8s.
+    /// </summary>
+    public double BackoffBase { get; set; } = 2;
 }

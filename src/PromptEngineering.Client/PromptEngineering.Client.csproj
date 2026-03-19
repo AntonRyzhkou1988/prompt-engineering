@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PromptEngineering.LLM\PromptEngineering.LLM.csproj" />
+    <ProjectReference Include="..\PromptEngineering.Services\PromptEngineering.Services.csproj" />
   </ItemGroup>
 
   <ItemGroup>

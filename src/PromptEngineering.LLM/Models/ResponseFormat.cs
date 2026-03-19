@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
 namespace PromptEngineering.LLM.Models
 {
@@ -9,7 +9,7 @@ namespace PromptEngineering.LLM.Models
         /// <remarks>using to set completion format type</remarks>
         /// </summary>
         [JsonPropertyName("type")]
-        public string Value { get; set; }
+        public string Value { get; set; } = null!;
 
         /// <summary>
         /// JSON schema of the response.
