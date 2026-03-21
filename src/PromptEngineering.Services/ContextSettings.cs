@@ -13,6 +13,4 @@ public sealed record ContextSettings
     public string DatasetPath { get; init; } = "dataset/attacks.csv";
 
     public string OutputDirectory { get; init; } = "output";
-
-    public int MaxDatasetRowsInPrompt { get; init; } = 30;
 }

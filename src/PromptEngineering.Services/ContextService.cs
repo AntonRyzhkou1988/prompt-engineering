@@ -15,6 +15,11 @@ namespace PromptEngineering.Services;
 public sealed class ContextService : IContextService
 {
     private const string RequestMediaType = "application/json";
+    private static readonly JsonSerializerOptions DefaultJsonOptions = new(JsonSerializerDefaults.General);
+    private static readonly JsonSerializerOptions OutputJsonOptions = new(JsonSerializerDefaults.General)
+    {
+        WriteIndented = true
+    };
     private readonly ContextSettings _contextSettings;
     private readonly IAiService _aiService;
 
@@ -36,18 +41,17 @@ public sealed class ContextService : IContextService
         var datasetPath = ResolveExistingFilePath(_contextSettings.DatasetPath);
         var outputDirectoryPath = ResolveDirectoryPath(_contextSettings.OutputDirectory);
 
-        var datasetExcerpt = await LoadDatasetExcerptAsync(
+        var datasetSnapshot = await LoadDatasetAsync(
             datasetPath,
-            _contextSettings.MaxDatasetRowsInPrompt,
             cancellationToken);
 
-        var chatRequest = BuildChatRequest(datasetExcerpt);
+        var chatRequest = BuildChatRequest(datasetSnapshot);
 
         var completion = await _aiService.CompleteChatAsync(
             _contextSettings.AiInstanceName,
             chatRequest,
             new MediaTypeHeaderValue(RequestMediaType),
-            new JsonSerializerOptions(JsonSerializerDefaults.General),
+            DefaultJsonOptions,
             cancellationToken);
 
         if (completion == null)
@@ -56,23 +60,23 @@ public sealed class ContextService : IContextService
         }
 
         Directory.CreateDirectory(outputDirectoryPath);
+        var safeInstanceName = string.Concat(
+            _contextSettings.AiInstanceName.Select(ch => Path.GetInvalidFileNameChars().Contains(ch) ? '_' : ch));
         var outputPath = Path.Combine(
             outputDirectoryPath,
-            $"completion_{DateTime.UtcNow:yyyyMMdd_HHmmss_fff}.json");
+            $"completion_{safeInstanceName}_{DateTime.UtcNow:yyyyMMdd_HHmmss_fff}.json");
 
-        var completionJson = JsonSerializer.Serialize(
-            completion,
-            new JsonSerializerOptions(JsonSerializerDefaults.General) { WriteIndented = true });
+        var completionJson = JsonSerializer.Serialize(completion, OutputJsonOptions);
         await File.WriteAllTextAsync(outputPath, completionJson, cancellationToken);
 
         return new ContextPipelineResult(outputPath, completion);
     }
 
-    private ChatRequest BuildChatRequest(string datasetExcerpt)
+    private ChatRequest BuildChatRequest(DatasetSnapshot datasetSnapshot)
     {
         var datasetSection = $"""
-                              Dataset excerpt (header and first {_contextSettings.MaxDatasetRowsInPrompt} rows):
-                              {datasetExcerpt}
+                              Full dataset content loaded from file (header and all {datasetSnapshot.DataRowsCount} rows):
+                              {datasetSnapshot.Content}
                               """;
 
         var userPrompt = new StringBuilder(_contextSettings.DefaultUserPrompt)
@@ -91,17 +95,11 @@ public sealed class ContextService : IContextService
         return chatRequest;
     }
 
-    private static async Task<string> LoadDatasetExcerptAsync(
+    private static async Task<DatasetSnapshot> LoadDatasetAsync(
         string datasetPath,
-        int maxRows,
         CancellationToken cancellationToken)
     {
-        if (maxRows < 1)
-        {
-            throw new ArgumentOutOfRangeException(nameof(maxRows), "Max dataset rows should be greater than zero.");
-        }
-
-        var lines = new List<string>(maxRows + 1);
+        var lines = new List<string>();
 
         await using var stream = new FileStream(
             datasetPath,
@@ -110,7 +108,7 @@ public sealed class ContextService : IContextService
             FileShare.Read);
         using var reader = new StreamReader(stream);
 
-        while (!reader.EndOfStream && lines.Count <= maxRows)
+        while (!reader.EndOfStream)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var line = await reader.ReadLineAsync(cancellationToken);
@@ -125,32 +123,28 @@ public sealed class ContextService : IContextService
             throw new InvalidOperationException($"Dataset file '{datasetPath}' is empty.");
         }
 
-        return string.Join(Environment.NewLine, lines);
+        var dataRowsCount = Math.Max(0, lines.Count - 1);
+        return new DatasetSnapshot(string.Join(Environment.NewLine, lines), dataRowsCount);
     }
 
     private static string ResolveExistingFilePath(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        if (Path.IsPathRooted(path))
+        if (!Path.IsPathRooted(path))
         {
-            if (!File.Exists(path))
-            {
-                throw new FileNotFoundException("Dataset file was not found.", path);
-            }
-
-            return path;
+            throw new ArgumentException(
+                $"DatasetPath must be an absolute path, but '{path}' is relative.",
+                nameof(path));
         }
 
-        var resolvedPath = ResolvePathFromCurrentOrParents(path);
-        if (resolvedPath == null || !File.Exists(resolvedPath))
+        var absolutePath = Path.GetFullPath(path);
+        if (!File.Exists(absolutePath))
         {
-            throw new FileNotFoundException(
-                $"Dataset file '{path}' was not found relative to current directory or its parents.",
-                path);
+            throw new FileNotFoundException("Dataset file was not found.", absolutePath);
         }
 
-        return resolvedPath;
+        return absolutePath;
     }
 
     private static string ResolveDirectoryPath(string path)
@@ -159,7 +153,7 @@ public sealed class ContextService : IContextService
 
         if (Path.IsPathRooted(path))
         {
-            return path;
+            return Path.GetFullPath(path);
         }
 
         var resolvedPath = ResolvePathFromCurrentOrParents(path);
@@ -182,4 +176,6 @@ public sealed class ContextService : IContextService
 
         return null;
     }
+
+    private sealed record DatasetSnapshot(string Content, int DataRowsCount);
 }
