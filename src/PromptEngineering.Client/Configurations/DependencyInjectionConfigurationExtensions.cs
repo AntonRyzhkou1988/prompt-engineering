@@ -26,7 +26,6 @@ public static class DependencyInjectionConfigurationExtensions
         services.AddPromptEngineeringServices(configuration);
         services.AddGenAi(configuration);
         services.AddSingleton<IContextService, ContextService>();
-        services.AddSingleton<IPromptService, PromptService>();
 
         return services;
     }

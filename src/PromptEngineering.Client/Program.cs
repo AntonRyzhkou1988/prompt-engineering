@@ -1,9 +1,5 @@
-using System.Net.Http.Headers;
-using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using PromptEngineering.Client.Configurations;
-using PromptEngineering.LLM;
-using PromptEngineering.LLM.Exceptions;
 using PromptEngineering.Services;
 
 namespace PromptEngineering.Client;
@@ -14,30 +10,24 @@ internal class Program
     {
         // Configuration
         await using var provider = new ServiceCollection().BuildPromptEngineeringClientServiceProvider();
-        var aiService = provider.GetRequiredService<IAiService>();
-        var promptService = provider.GetRequiredService<IPromptService>();
+        var contextService = provider.GetRequiredService<IContextService>();
 
-        // Prompt generation
-        var chatRequest = await promptService.BuildAsync(CancellationToken.None);
+        var pipelineResult = await contextService.RunAsync(CancellationToken.None);
+        var completion = pipelineResult.Completion;
 
-        // Completion
-        var completion = await aiService.CompleteChatAsync("AIArchitect.PromptEngineering",
-            chatRequest,
-            new MediaTypeHeaderValue("application/json"),
-            new JsonSerializerOptions(JsonSerializerDefaults.General),
-            CancellationToken.None);
-        if (completion == null) throw new OpenAiException("Completion is null.");
+        if (completion.Choices == null || !completion.Choices.Any())
+        {
+            Console.WriteLine($"Completion saved to {pipelineResult.OutputPath}, but no choices were returned.");
+            return;
+        }
 
-        if (completion.Usage == null) throw new OpenAiException("Completion usage is null.");
+        var choice = completion.Choices.First();
+        var messageContent = choice?.Message?.Content;
 
-        if (completion.Choices == null) throw new OpenAiException("Completion choices is null.");
-
-        // Output
-        var choice = completion.Choices.FirstOrDefault();
-        if (choice == null) throw new OpenAiException("Completion first choice is null");
-
-        if (choice.Message == null) throw new OpenAiException("Completion first choice message is null");
-
-        Console.WriteLine($"{choice.Message.Content}");
+        if (!string.IsNullOrWhiteSpace(messageContent))
+        {
+            Console.WriteLine(messageContent);
+        }
+        Console.WriteLine($"Saved completion JSON: {pipelineResult.OutputPath}");
     }
 }

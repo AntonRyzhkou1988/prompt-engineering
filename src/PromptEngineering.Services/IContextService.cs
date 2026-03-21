@@ -1,14 +1,11 @@
-using PromptEngineering.Model;
-
 namespace PromptEngineering.Services;
 
+/// <summary>
+/// Executes the prompt-engineering pipeline:
+/// dataset loading, prompt construction, LLM completion, and completion persistence.
+/// </summary>
 public interface IContextService
 {
-    Task<IReadOnlyCollection<Context>> GetAllAsync(CancellationToken cancellationToken = default);
-
-    Task<Context?> GetByKeyAsync(string key, CancellationToken cancellationToken = default);
-
-    Task<Context> UpsertAsync(Context context, CancellationToken cancellationToken = default);
-
-    Task<bool> RemoveAsync(string key, CancellationToken cancellationToken = default);
+    /// <summary>Runs the full pipeline and returns completion details with output artifact path.</summary>
+    Task<ContextPipelineResult> RunAsync(CancellationToken cancellationToken = default);
 }
