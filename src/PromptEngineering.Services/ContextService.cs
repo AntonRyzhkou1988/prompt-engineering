@@ -130,7 +130,8 @@ public sealed class ContextService : IContextService
         }
 
 
-        var fileName = $"completion_{DateTime.UtcNow:yyyyMMdd_HHmmss_fff}.md";
+        var promptStem = string.IsNullOrWhiteSpace(outputFileStem) ? "prompt" : outputFileStem;
+        var fileName = $"completion_{promptStem}_{DateTime.UtcNow:yyyyMMdd_HHmmss_fff}.md";
         var outputPath = Path.Combine(_contextSettings.OutputDirectory, fileName);
 
         var firstChoice = completion.Choices?.FirstOrDefault();
