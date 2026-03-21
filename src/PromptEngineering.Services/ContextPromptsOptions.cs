@@ -1,7 +1,7 @@
 namespace PromptEngineering.Services;
 
 /// <summary>
-/// Assistant and user prompt segments loaded from the JSON file at <see cref="ContextSettings.DefaultPromptsJsonPath"/>.
+/// Assistant and user prompt segments loaded from the JSON file at <see cref="ContextSettings.PromptPath"/>.
 /// </summary>
 public sealed class ContextPromptsOptions
 {

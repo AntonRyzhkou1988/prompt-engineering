@@ -8,33 +8,22 @@ internal class Program
 {
     private static async Task Main(string[] args)
     {
-        // Configuration
         await using var provider = new ServiceCollection().BuildPromptEngineeringClientServiceProvider();
         var contextService = provider.GetRequiredService<IContextService>();
 
-        var promptPaths = PromptJsonDiscovery.GetOrderedPromptJsonFullPaths();
-        foreach (var promptPath in promptPaths)
-        {
-            Console.WriteLine($"Running pipeline for {promptPath}...");
+        var runs = await contextService.RunReActAsync(cancellationToken: CancellationToken.None);
 
-            var pipelineResult = await contextService.RunAsync(promptPath, CancellationToken.None);
-            var completion = pipelineResult.Completion;
-
-            if (completion.Choices == null || !completion.Choices.Any())
+        var separator = $"{Environment.NewLine}{Environment.NewLine}---{Environment.NewLine}{Environment.NewLine}";
+        var resultsText = string.Join(
+            separator,
+            runs.Select(run =>
             {
-                Console.WriteLine($"First choice saved to {pipelineResult.OutputPath} (no choices returned).");
-                continue;
-            }
+                var content = run.Completion.Choices?.FirstOrDefault()?.Message?.Content;
+                return string.IsNullOrWhiteSpace(content)
+                    ? $"(no assistant content) — saved: {run.OutputPath}"
+                    : content;
+            }));
 
-            var choice = completion.Choices.First();
-            var messageContent = choice?.Message?.Content;
-
-            if (!string.IsNullOrWhiteSpace(messageContent))
-            {
-                Console.WriteLine(messageContent);
-            }
-
-            Console.WriteLine($"Saved assistant Markdown: {pipelineResult.OutputPath}");
-        }
+        await File.WriteAllTextAsync("results.txt", resultsText);
     }
 }

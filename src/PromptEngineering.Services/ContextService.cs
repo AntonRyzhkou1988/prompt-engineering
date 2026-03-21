@@ -26,10 +26,9 @@ public sealed class ContextService : IContextService
     private const string AgeHeader = "Age";
     private const string TimeHeader = "Time";
     private static readonly JsonSerializerOptions DefaultJsonOptions = new(JsonSerializerDefaults.General);
+    private readonly SystemSettings _systemSettings;
     private readonly ContextSettings _contextSettings;
-    private readonly ContextPromptsOptions _prompts;
     private readonly string _instanceName;
-    private readonly int _maximumDatasetRecordCount;
     private readonly IAiService _aiService;
 
     public ContextService(
@@ -47,22 +46,57 @@ public sealed class ContextService : IContextService
             throw new ArgumentException("AiServiceSettings instance count is 0.");
 
         _contextSettings = contextSettings.Value;
-        _prompts = prompts.Value;
         _instanceName = systemSettings.Value.AiServiceSettings.Instances.First().Name;
-        _maximumDatasetRecordCount = systemSettings.Value.MaximumDatasetRecordCount;
+        _systemSettings = systemSettings.Value;
         _aiService = aiService;
     }
 
-    public Task<ContextPipelineResult> RunAsync(CancellationToken cancellationToken = default)
-        => RunCoreAsync(_prompts, outputFileStem: null, cancellationToken);
-
-    public Task<ContextPipelineResult> RunAsync(string promptsJsonRelativeOrAbsolutePath, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ContextPipelineResult>> RunReActAsync(CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(promptsJsonRelativeOrAbsolutePath);
+        var promptPaths = PromptJsonDiscovery.GetOrderedPromptJsonFullPaths(_contextSettings.PromptPath);
 
-        var resolved = ContextSettingsPromptPathResolver.ResolveExistingFilePath(promptsJsonRelativeOrAbsolutePath)
+        var results = new List<ContextPipelineResult>(promptPaths.Count);
+
+        foreach (var promptFilePath in promptPaths)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Console.WriteLine($"Running pipeline for {promptFilePath}...");
+
+            var pipelineResult = await RunFromPromptPathAsync(promptFilePath, cancellationToken);
+            results.Add(pipelineResult);
+
+            var completion = pipelineResult.Completion;
+
+            if (completion.Choices == null || !completion.Choices.Any())
+            {
+                Console.WriteLine($"First choice saved to {pipelineResult.OutputPath} (no choices returned).");
+                continue;
+            }
+
+            var choice = completion.Choices.First();
+            var messageContent = choice?.Message?.Content;
+
+            if (!string.IsNullOrWhiteSpace(messageContent))
+            {
+                Console.WriteLine(messageContent);
+            }
+
+            Console.WriteLine($"Saved assistant Markdown: {pipelineResult.OutputPath}");
+        }
+
+        return results;
+    }
+
+
+    private Task<ContextPipelineResult> RunFromPromptPathAsync(
+        string promptPath,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(promptPath);
+
+        var resolved = ContextSettingsPromptPathResolver.ResolveExistingFilePath(promptPath)
             ?? throw new InvalidOperationException(
-                $"Context prompts JSON was not found. Tried path '{promptsJsonRelativeOrAbsolutePath}' (resolved from app base and parent directories).");
+                $"Context prompts JSON was not found. Tried path '{promptPath}' (resolved from app base and parent directories).");
 
         var loaded = ContextPromptsJsonLoader.LoadFromResolvedPath(resolved);
         var stem = Path.GetFileNameWithoutExtension(resolved);
@@ -76,12 +110,9 @@ public sealed class ContextService : IContextService
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var datasetPath = ResolveExistingFilePath(_contextSettings.DatasetPath);
-        var outputDirectoryPath = ResolveDirectoryPath(_contextSettings.OutputDirectory);
-
         var datasetSnapshot = await LoadDatasetAsync(
-            datasetPath,
-            _maximumDatasetRecordCount,
+            _contextSettings.DatasetPath,
+            _systemSettings.MaximumDatasetRecordCount,
             cancellationToken);
 
         var chatRequest = BuildChatRequest(datasetSnapshot, prompts, _contextSettings.Temperature);
@@ -98,9 +129,9 @@ public sealed class ContextService : IContextService
             throw new InvalidOperationException("Completion is null.");
         }
 
-        Directory.CreateDirectory(outputDirectoryPath);
+
         var fileName = $"completion_{DateTime.UtcNow:yyyyMMdd_HHmmss_fff}.md";
-        var outputPath = Path.Combine(outputDirectoryPath, fileName);
+        var outputPath = Path.Combine(_contextSettings.OutputDirectory, fileName);
 
         var firstChoice = completion.Choices?.FirstOrDefault();
         var markdown = BuildFirstChoiceAssistantMarkdown(firstChoice);
@@ -183,56 +214,6 @@ public sealed class ContextService : IContextService
         }
 
         return new DatasetSnapshot(records, records.Count);
-    }
-
-    private static string ResolveExistingFilePath(string path)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-
-        if (!Path.IsPathRooted(path))
-        {
-            throw new ArgumentException(
-                $"DatasetPath must be an absolute path, but '{path}' is relative.",
-                nameof(path));
-        }
-
-        var absolutePath = Path.GetFullPath(path);
-        if (!File.Exists(absolutePath))
-        {
-            throw new FileNotFoundException("Dataset file was not found.", absolutePath);
-        }
-
-        return absolutePath;
-    }
-
-    private static string ResolveDirectoryPath(string path)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-
-        if (Path.IsPathRooted(path))
-        {
-            return Path.GetFullPath(path);
-        }
-
-        var resolvedPath = ResolvePathFromCurrentOrParents(path);
-        return resolvedPath ?? Path.GetFullPath(path, Directory.GetCurrentDirectory());
-    }
-
-    private static string? ResolvePathFromCurrentOrParents(string relativePath)
-    {
-        var current = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (current != null)
-        {
-            var candidate = Path.GetFullPath(relativePath, current.FullName);
-            if (File.Exists(candidate) || Directory.Exists(candidate))
-            {
-                return candidate;
-            }
-
-            current = current.Parent;
-        }
-
-        return null;
     }
 
     private static Dictionary<string, int> BuildHeaderIndexLookup(string[] headers)

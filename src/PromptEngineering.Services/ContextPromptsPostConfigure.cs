@@ -3,17 +3,11 @@ using Microsoft.Extensions.Options;
 namespace PromptEngineering.Services;
 
 /// <summary>
-/// Loads <see cref="ContextPromptsOptions"/> from the JSON file at <see cref="ContextSettings.DefaultPromptsJsonPath"/> (sole source at runtime).
+/// Loads <see cref="ContextPromptsOptions"/> from the JSON file at <see cref="ContextSettings.PromptPath"/> (sole source at runtime).
 /// </summary>
-internal sealed class ContextPromptsPostConfigure : IPostConfigureOptions<ContextPromptsOptions>
+internal sealed class ContextPromptsPostConfigure(IOptions<ContextSettings> contextSettings)
+    : IPostConfigureOptions<ContextPromptsOptions>
 {
-    private readonly IOptions<ContextSettings> _contextSettings;
-
-    public ContextPromptsPostConfigure(IOptions<ContextSettings> contextSettings)
-    {
-        _contextSettings = contextSettings;
-    }
-
     public void PostConfigure(string? name, ContextPromptsOptions options)
     {
         if (name is not null && !string.Equals(name, Options.DefaultName, StringComparison.Ordinal))
@@ -23,14 +17,21 @@ internal sealed class ContextPromptsPostConfigure : IPostConfigureOptions<Contex
 
         ArgumentNullException.ThrowIfNull(options);
 
-        var relativeOrAbsolute = _contextSettings.Value.DefaultPromptsJsonPath;
-        ArgumentException.ThrowIfNullOrWhiteSpace(relativeOrAbsolute);
+        var promptPath = contextSettings.Value.PromptPath;
+        ArgumentException.ThrowIfNullOrWhiteSpace(promptPath);
 
-        var resolvedPath = ContextSettingsPromptPathResolver.ResolveExistingFilePath(relativeOrAbsolute)
-            ?? throw new InvalidOperationException(
-                $"Context prompts JSON was not found. Tried path '{relativeOrAbsolute}' (resolved from app base and parent directories).");
+        if (!Path.IsPathRooted(promptPath))
+        {
+            throw new InvalidOperationException(
+                $"ContextSettings.PromptPath must be an absolute path, but '{promptPath}' is relative.");
+        }
 
-        var loaded = ContextPromptsJsonLoader.LoadFromResolvedPath(resolvedPath);
+        if (!Directory.Exists(promptPath))
+        {
+            throw new InvalidOperationException($"Context prompts directory is not found.");
+        }
+
+        var loaded = ContextPromptsJsonLoader.LoadFromResolvedPath(promptPath);
         options.DefaultAssistantRole = loaded.DefaultAssistantRole;
         options.DefaultUserPrompt = loaded.DefaultUserPrompt;
     }

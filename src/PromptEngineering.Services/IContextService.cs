@@ -1,17 +1,18 @@
 namespace PromptEngineering.Services;
 
 /// <summary>
-/// Executes the prompt-engineering pipeline:
-/// dataset loading, prompt construction, LLM completion, and persisting the first choice assistant message as Markdown.
+/// Executes the prompt-engineering (ReAct) pipeline:
+/// dataset load, prompt construction, LLM completion, and persisting the first choice assistant message as Markdown.
 /// </summary>
 public interface IContextService
 {
-    /// <summary>Runs the full pipeline and returns the completion with the path to the saved assistant Markdown (first choice body only).</summary>
-    Task<ContextPipelineResult> RunAsync(CancellationToken cancellationToken = default);
-
     /// <summary>
-    /// Runs the full pipeline using prompts loaded from the given JSON path (relative to app base / repo walk, or absolute).
-    /// The saved Markdown file name includes the prompt file stem (e.g. v2) for easier identification.
+    /// Runs the ReAct pipeline. <paramref /> resolution: <c>null</c> or whitespace runs once using prompts
+    /// already loaded from <see cref="ContextSettings.PromptPath"/> (must be an absolute JSON file path in configuration).
+    /// Otherwise resolves to an existing path: if it is a JSON file, runs once for that file; if it is a directory,
+    /// discovers all <c>*.json</c> there and runs each in file-name order with console progress. Default <c>prompts</c>
+    /// targets the prompts folder next to the app / repo layout.
     /// </summary>
-    Task<ContextPipelineResult> RunAsync(string promptsJsonRelativeOrAbsolutePath, CancellationToken cancellationToken = default);
+    /// <returns>One <see cref="ContextPipelineResult"/> per execution (always at least one item when successful).</returns>
+    Task<IReadOnlyList<ContextPipelineResult>> RunReActAsync(CancellationToken cancellationToken = default);
 }
