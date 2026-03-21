@@ -10,7 +10,7 @@ namespace PromptEngineering.Services;
 
 /// <summary>
 /// Orchestrates prompt-engineering workflow:
-/// dataset load, prompt construction, completion call, and completion persistence.
+/// dataset load, prompt construction, completion call, and persisting the first choice assistant message as Markdown.
 /// </summary>
 public sealed class ContextService : IContextService
 {
@@ -26,10 +26,6 @@ public sealed class ContextService : IContextService
     private const string AgeHeader = "Age";
     private const string TimeHeader = "Time";
     private static readonly JsonSerializerOptions DefaultJsonOptions = new(JsonSerializerDefaults.General);
-    private static readonly JsonSerializerOptions OutputJsonOptions = new(JsonSerializerDefaults.General)
-    {
-        WriteIndented = true
-    };
     private readonly ContextSettings _contextSettings;
     private readonly IAiService _aiService;
 
@@ -74,19 +70,29 @@ public sealed class ContextService : IContextService
             _contextSettings.AiInstanceName.Select(ch => Path.GetInvalidFileNameChars().Contains(ch) ? '_' : ch));
         var outputPath = Path.Combine(
             outputDirectoryPath,
-            $"completion_{safeInstanceName}_{DateTime.UtcNow:yyyyMMdd_HHmmss_fff}.json");
+            $"completion_{safeInstanceName}_{DateTime.UtcNow:yyyyMMdd_HHmmss_fff}.md");
 
-        var completionJson = JsonSerializer.Serialize(completion, OutputJsonOptions);
-        await File.WriteAllTextAsync(outputPath, completionJson, cancellationToken);
+        var firstChoice = completion.Choices?.FirstOrDefault();
+        var markdown = BuildFirstChoiceAssistantMarkdown(firstChoice);
+        await File.WriteAllTextAsync(outputPath, markdown, cancellationToken);
 
         return new ContextPipelineResult(outputPath, completion);
+    }
+
+    /// <summary>
+    /// Returns only the first choice assistant <see cref="ChatMessage.Content"/> (Markdown as returned by the model).
+    /// </summary>
+    private static string BuildFirstChoiceAssistantMarkdown(ChatCompletionChoice? firstChoice)
+    {
+        var content = firstChoice?.Message?.Content;
+        return string.IsNullOrWhiteSpace(content) ? string.Empty : content;
     }
 
     private ChatRequest BuildChatRequest(DatasetSnapshot datasetSnapshot)
     {
         var assistantRole = JoinSentences(_contextSettings.DefaultAssistantRole);
         var baseUserPrompt = JoinSentences(_contextSettings.DefaultUserPrompt);
-        var recordsMarkup = BuildDataListMarkup(datasetSnapshot.Records);
+        var recordsMarkup = BuildDataXmlMarkup(datasetSnapshot.Records);
         var userPrompt = InjectDataMarkup(baseUserPrompt, recordsMarkup);
 
         var chatRequest = new ChatRequest
@@ -350,29 +356,95 @@ public sealed class ContextService : IContextService
         return fields.ToArray();
     }
 
-    private static string BuildDataListMarkup(IReadOnlyList<AttackRecord> records)
+    /// <summary>
+    /// Builds XML for all dataset rows injected between the user prompt's &lt;data&gt; and &lt;/data&gt; tags.
+    /// Concatenates one &lt;record&gt;...&lt;/record&gt; element per CSV data row (child element names match configuration).
+    /// </summary>
+    private static string BuildDataXmlMarkup(IReadOnlyList<AttackRecord> records)
     {
         if (records.Count == 0)
         {
-            return "- (no records)";
+            return string.Empty;
         }
 
-        var builder = new StringBuilder(records.Count * 80);
+        var builder = new StringBuilder(records.Count * 120);
         foreach (var record in records)
         {
-            builder
-                .Append("- Year: ").Append(FormatDataValue(record.Year))
-                .Append("; Country: ").Append(FormatDataValue(record.Country))
-                .Append("; Type: ").Append(FormatDataValue(record.Type))
-                .Append("; Activity: ").Append(FormatDataValue(record.Activity))
-                .Append("; Injury: ").Append(FormatDataValue(record.Injury))
-                .Append("; Fatal (Y/N): ").Append(FormatDataValue(record.FatalYn))
-                .Append("; Age: ").Append(FormatDataValue(record.Age))
-                .Append("; Time: ").Append(FormatDataValue(record.Time))
-                .AppendLine();
+            builder.Append("<record>");
+            AppendXmlElement(builder, "Year", record.Year);
+            AppendXmlElement(builder, "Country", record.Country);
+            AppendXmlElement(builder, "Type", record.Type);
+            AppendXmlElement(builder, "Activity", record.Activity);
+            AppendXmlElement(builder, "Injury", record.Injury);
+            AppendXmlElement(builder, "FatalYN", record.FatalYn);
+            AppendXmlElement(builder, "Age", record.Age);
+            AppendXmlElement(builder, "Time", record.Time);
+            builder.Append("</record>");
         }
 
-        return builder.ToString().TrimEnd();
+        return builder.ToString();
+    }
+
+    private static void AppendXmlElement(StringBuilder builder, string elementName, string? value)
+    {
+        builder.Append('<').Append(elementName).Append('>');
+        builder.Append(EscapeXmlText(value));
+        builder.Append("</").Append(elementName).Append('>');
+    }
+
+    /// <summary>
+    /// Escapes text for use as XML element character data.
+    /// </summary>
+    private static string EscapeXmlText(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return string.Empty;
+        }
+
+        ReadOnlySpan<char> span = value.AsSpan();
+        var needsEscape = false;
+        foreach (var ch in span)
+        {
+            if (ch is '<' or '>' or '&' or '"' or '\'')
+            {
+                needsEscape = true;
+                break;
+            }
+        }
+
+        if (!needsEscape)
+        {
+            return value;
+        }
+
+        var sb = new StringBuilder(value.Length + 8);
+        foreach (var ch in span)
+        {
+            switch (ch)
+            {
+                case '<':
+                    sb.Append("&lt;");
+                    break;
+                case '>':
+                    sb.Append("&gt;");
+                    break;
+                case '&':
+                    sb.Append("&amp;");
+                    break;
+                case '"':
+                    sb.Append("&quot;");
+                    break;
+                case '\'':
+                    sb.Append("&apos;");
+                    break;
+                default:
+                    sb.Append(ch);
+                    break;
+            }
+        }
+
+        return sb.ToString();
     }
 
     private static string InjectDataMarkup(string baseUserPrompt, string dataListMarkup)
@@ -404,9 +476,6 @@ public sealed class ContextService : IContextService
     }
 
     private static string NormalizeField(string? value) => value?.Trim() ?? string.Empty;
-
-    private static string FormatDataValue(string? value) =>
-        string.IsNullOrWhiteSpace(value) ? "N/A" : value.Trim();
 
     private sealed record DatasetSnapshot(IReadOnlyList<AttackRecord> Records, int DataRowsCount);
 

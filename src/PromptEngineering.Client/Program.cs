@@ -17,7 +17,7 @@ internal class Program
 
         if (completion.Choices == null || !completion.Choices.Any())
         {
-            Console.WriteLine($"Completion saved to {pipelineResult.OutputPath}, but no choices were returned.");
+            Console.WriteLine($"First choice saved to {pipelineResult.OutputPath} (no choices returned).");
             return;
         }
 
@@ -28,6 +28,6 @@ internal class Program
         {
             Console.WriteLine(messageContent);
         }
-        Console.WriteLine($"Saved completion JSON: {pipelineResult.OutputPath}");
+        Console.WriteLine($"Saved assistant Markdown: {pipelineResult.OutputPath}");
     }
 }
