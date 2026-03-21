@@ -27,6 +27,8 @@
         "Q1: How do incident counts and fatality outcomes vary by Country and Year, and how does restricting or stratifying by Type change trend interpretation?",
         "Q2: How do Activity and demographics relate to FatalYN and Injury—and where is evidence too sparse?",
         "Q3: How do Species and Time relate to Type, FatalYN, and Country—what caps confidence?",
+        "## ReAct note",
+        "This prompt uses implicit structured reasoning, not mandatory Thought/Action/Observation labels. See README.md for the canonical ReAct pattern and repo mapping; prompts/v3.json requires internal Thought/Action/Observation before Sections A–E.",
         "## Output structure",
         "Use these section headings in order: Q1 findings; Q2 findings; Q3 findings; Data quality; Follow-up analyses. Bullets only; each substantive bullet ends with (Confidence: High|Medium|Low).",
         "<data>",

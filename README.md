@@ -38,11 +38,35 @@ The raw CSV has additional columns (e.g. Case Number, Date, links). They are **n
 
 ## ReAct prompt standard (repository rule)
 
-Production-ready prompts here should enforce:
+### Canonical ReAct (Reasoning + Acting)
+
+In the general pattern, the model repeats a loop until it can answer:
+
+1. **Thought** — Analyze the situation, decompose the problem, plan the next step.
+2. **Action** — Choose and execute a tool (for example `Search[query]`, `Calculator[expression]`, or an API call).
+3. **Observation** — The environment returns tool output; the model uses it in the next Thought.
+
+**Prompt ingredients** for agentic ReAct: **system instructions** that require Thought/Action/Observation formatting, **defined tools**, and often **few-shot** examples of correct tool use.
+
+Compared with linear chain-of-thought, ReAct is **adaptive** (the path changes from observations), encourages **stepwise** answers, and can ground claims in **external** knowledge when real tools are wired in.
+
+### ReAct in this repository
+
+The client sends **one** system message plus **one** user message (with injected `<data>`) and receives **one** completion ([`ContextService`](src/PromptEngineering.Services/ContextService.cs)). There is **no** host-driven multi-turn tool loop.
+
+Here, **Observation** means what the model **reads** from `<record>` elements (patterns, gaps, contradictions)—not a separate HTTP round-trip. **Action** means deliberate **analytical moves** on that evidence (for example stratifying by `Country` and `FatalYN`, scanning missingness)—carried out in the model’s **internal** reasoning, not executed by the app. **v3** requires that internal Thought/Action/Observation cycle before the visible Sections A–E; the final reply does **not** include a separate trace section.
+
+**Illustrative single cycle** (format only; not a second API call):
+
+- **Thought:** I need a defensible read on geography and fatality before Q1 bullets.
+- **Action:** `ReviewElements[Country, Year, FatalYN, Type]` — scan `<record>` values and missing tags.
+- **Observation:** Several countries dominate volume; `FatalYN` is often present but not always; `Type` mixes comparable and noisy labels—trends should be qualified.
+
+Production-ready prompts here should also enforce:
 
 1. **Role first** — domain-relevant analyst, not a generic assistant.
 2. **Explicit scope** — which fields and which questions (see **Q1–Q3** below).
-3. **ReAct flow** — field selection → data-quality check → evidence-based findings → **self-critique** → **claim revision** before the final answer.
+3. **ReAct flow** — field selection → data-quality check → evidence-based findings → **self-critique** → **claim revision** before the final answer (mapped to Thought/Action/Observation internally in **v3**; see [.cursor/rules/project-rules.mdc](.cursor/rules/project-rules.mdc)).
 4. **Strict response schema** — section headings and **bullet limits** (see **v3**).
 5. **Safety** — no fabricated metrics; disclose partial evidence; **High / Medium / Low** confidence on substantive claims.
 
@@ -66,9 +90,9 @@ All three prompt versions target the same analytical frame:
 
 | Version | File | Intent | ReAct |
 |---------|------|--------|--------|
-| **v1** | [`prompts/v1.json`](prompts/v1.json) | Baseline: same Q1–Q3, minimal scaffolding; notes that v2/v3 add formal checks | Not required (direct answers still must cite `<record>` evidence) |
-| **v2** | [`prompts/v2.json`](prompts/v2.json) | **Numbered outcomes**, field hints per question, fixed **section headings**, confidence on substantive bullets | Implicit (quality + follow-ups explicit; no mandatory 5-step loop) |
-| **v3** | [`prompts/v3.json`](prompts/v3.json) | **Canonical**: full **5-step** ReAct + self-reflection; **strict** Sections A–E and bullet caps | **Mandatory** |
+| **v1** | [`prompts/v1.json`](prompts/v1.json) | Baseline: same Q1–Q3, minimal scaffolding; notes that v2/v3 add formal checks | Implicit only (no mandatory Thought/Action/Observation or 5-step loop; still cite `<record>` evidence) |
+| **v2** | [`prompts/v2.json`](prompts/v2.json) | **Numbered outcomes**, field hints per question, fixed **section headings**, confidence on substantive bullets | Implicit structured reasoning (quality + follow-ups explicit; no mandatory ToA vocabulary or 5-step loop) |
+| **v3** | [`prompts/v3.json`](prompts/v3.json) | **Canonical**: mandatory internal **Thought/Action/Observation** on `<record>` data plus 5-step self-reflection; **strict** Sections A–E and bullet caps | **Mandatory** (internal ToA + steps; visible output remains A–E only) |
 
 **Gaps each step fixes:** v1 → v2 adds structure and confidence discipline; v2 → v3 adds mandatory self-critique, claim revision, and a rigid schema for cross-run comparison.
 

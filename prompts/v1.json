@@ -19,7 +19,7 @@
         "Q2 — Activity, demographics, harm: How do Activity, Sex, and Age relate to FatalYN and Injury text? Where is the evidence too thin for strong claims?",
         "Q3 — Species and time-of-day: How do Species and Time relate to Type, FatalYN, and Country? What limits confidence (free text, missing IDs, inconsistent times)?",
         "## Note (baseline prompt)",
-        "This version does not require an explicit ReAct step list; v2/v3 add structure and self-checks. Still ground every bullet in observable <record> content.",
+        "This version does not require an explicit ReAct step list; v2/v3 add structure and self-checks. Still ground every bullet in observable <record> content. For canonical Thought/Action/Observation wording and how this repo maps them in a single-turn client, see README.md; for mandatory internal ReAct on the data, use prompts/v3.json.",
         "<data>",
         "<!-- Runtime replaces this inner region with concatenated <record>...</record> elements. -->",
         "</data>"

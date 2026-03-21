@@ -17,6 +17,18 @@ Use this rule for prompt creation, revision, and review in this repository.
 
 ## ReAct and Self-Reflection Cycle
 
+Canonical ReAct interleaves **Thought** (reason and plan), **Action** (invoke a tool or step), and **Observation** (environment feedback), repeating until a final answer.
+
+**Mapping (this repository):** The five steps below are the minimum analytical flow. Relate them to Thought/Action/Observation as follows:
+
+| Step | Typical ReAct role |
+|------|-------------------|
+| 1. Select fields and justify relevance | **Thought** (plan scope). |
+| 2. Identify data quality risks | **Thought** then **Action** (inspect records/missingness) → **Observation** (what the data supports or withholds). |
+| 3. Derive findings from evidence | **Action** (stratify, compare patterns on provided records) → **Observation** (evidence-backed summaries). |
+| 4. Self-critique each finding | **Thought** on support strength and bias risk. |
+| 5. Revise or remove weak claims | **Thought** leading to a tightened final answer. |
+
 Every refined prompt should require this minimum flow:
 
 1. Select fields and justify why they are relevant.
@@ -24,6 +36,8 @@ Every refined prompt should require this minimum flow:
 3. Derive findings from evidence tied to known columns.
 4. Self-critique each finding for support strength and bias risk.
 5. Revise or remove weak claims before final output.
+
+**Single-turn default:** The standard client sends one user message with embedded records (for example XML `<record>` elements). There is no host-executed tool loop—**do not fabricate tool results**. **Action** means analytical moves the model applies to the provided data in internal reasoning. If a future pipeline adds real tools (search, calculators, APIs), prompts must define those tools explicitly and include few-shot examples of correct use.
 
 ## Evidence and Safety Rules
 
@@ -66,7 +80,8 @@ Use this skeleton when drafting a new analysis prompt:
 ```text
 Act as a senior incident data analyst.
 Analyze dataset/attacks.csv using Year, Country, Type, Activity, Injury, and Fatal (Y/N).
-Follow steps: field selection -> data quality check -> trend extraction -> self-critique -> claim revision.
+Internally use Thought -> Action (analytical steps on the provided records only) -> Observation (what the records show or lack), repeating until claims are stable.
+Then: field selection -> data quality check -> trend extraction -> self-critique -> claim revision.
 Return sections: Key insights, Data quality caveats, Next analyses, Executive summary.
-Rules: no fabricated metrics, include confidence labels, disclose uncertainty.
+Rules: no fabricated metrics, no fabricated tool output, include confidence labels, disclose uncertainty.
 ```
