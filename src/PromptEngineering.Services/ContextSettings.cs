@@ -1,12 +1,14 @@
 namespace PromptEngineering.Services;
 
 /// <summary>
-/// Options for the prompt-engineering pipeline. Prompt text is loaded from <see cref="PromptPath"/> into <see cref="ContextPromptsOptions"/>.
+/// Options for the prompt-engineering pipeline.
 /// </summary>
 public sealed class ContextSettings
 {
     /// <summary>
-    /// Absolute path to JSON containing <c>DefaultAssistantRole</c> and <c>DefaultUserPrompt</c> string arrays.
+    /// Path to the prompts directory containing versioned JSON files (for example v1.json, v2.json, v3.json).
+    /// The runtime discovers all <c>*.json</c> files there and executes them in file-name order.
+    /// Absolute and repository-relative paths are supported.
     /// </summary>
     public string PromptPath { get; set; } = string.Empty;
 

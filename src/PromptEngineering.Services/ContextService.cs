@@ -38,12 +38,10 @@ public sealed class ContextService : IContextService
     public ContextService(
         IOptions<SystemSettings> systemSettings,
         IOptions<ContextSettings> contextSettings,
-        IOptions<ContextPromptsOptions> prompts,
         IAiService aiService)
     {
         ArgumentNullException.ThrowIfNull(systemSettings);
         ArgumentNullException.ThrowIfNull(contextSettings);
-        ArgumentNullException.ThrowIfNull(prompts);
         ArgumentNullException.ThrowIfNull(aiService);
 
         if (systemSettings.Value.AiServiceSettings.Instances.Count == 0)
