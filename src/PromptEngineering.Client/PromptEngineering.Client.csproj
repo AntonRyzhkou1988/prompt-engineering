@@ -24,8 +24,6 @@
     <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <Folder Include="Documents\" />
-    <Folder Include="Prompts\" />
   </ItemGroup>
 
 </Project>

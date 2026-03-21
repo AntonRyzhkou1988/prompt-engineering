@@ -1,27 +1,30 @@
 using PromptEngineering.LLM.Extensions;
 using PromptEngineering.LLM.Models;
 using PromptEngineering.Model;
-using PromptEngineering.Services;
 
-namespace PromptEngineering.Client.Prompts;
+namespace PromptEngineering.Services;
 
-internal static class PromptBuilder
+public sealed class PromptService : IPromptService
 {
     private const string AssistantRoleKey = "assistant.role";
     private const string DefaultAssistantRole = "You are software developer assistant.";
     private const string UserPrompt = "What is a GC in .NET?";
 
-    public static async Task<ChatRequest> BuildAsync(
-        IContextService contextService,
-        CancellationToken cancellationToken = default)
+    private readonly IContextService _contextService;
+
+    public PromptService(IContextService contextService)
     {
         ArgumentNullException.ThrowIfNull(contextService);
+        _contextService = contextService;
+    }
 
-        await contextService.UpsertAsync(
+    public async Task<ChatRequest> BuildAsync(CancellationToken cancellationToken = default)
+    {
+        await _contextService.UpsertAsync(
             new Context(AssistantRoleKey, DefaultAssistantRole),
             cancellationToken);
 
-        var assistantRole = await contextService.GetByKeyAsync(AssistantRoleKey, cancellationToken);
+        var assistantRole = await _contextService.GetByKeyAsync(AssistantRoleKey, cancellationToken);
 
         var chatRequest = new ChatRequest
         {

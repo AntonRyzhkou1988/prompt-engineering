@@ -2,7 +2,6 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using PromptEngineering.Client.Configurations;
-using PromptEngineering.Client.Prompts;
 using PromptEngineering.LLM;
 using PromptEngineering.LLM.Exceptions;
 using PromptEngineering.Services;
@@ -16,10 +15,10 @@ internal class Program
         // Configuration
         await using var provider = new ServiceCollection().BuildPromptEngineeringClientServiceProvider();
         var aiService = provider.GetRequiredService<IAiService>();
-        var contextService = provider.GetRequiredService<IContextService>();
+        var promptService = provider.GetRequiredService<IPromptService>();
 
         // Prompt generation
-        var chatRequest = await PromptBuilder.BuildAsync(contextService, CancellationToken.None);
+        var chatRequest = await promptService.BuildAsync(CancellationToken.None);
 
         // Completion
         var completion = await aiService.CompleteChatAsync("AIArchitect.PromptEngineering",

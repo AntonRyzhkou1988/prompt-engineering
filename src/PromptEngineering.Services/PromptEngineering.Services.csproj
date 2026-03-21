@@ -11,6 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\PromptEngineering.LLM\PromptEngineering.LLM.csproj" />
     <ProjectReference Include="..\PromptEngineering.Model\PromptEngineering.Model.csproj" />
   </ItemGroup>
 
