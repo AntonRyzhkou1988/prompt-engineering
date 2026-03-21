@@ -12,22 +12,29 @@ internal class Program
         await using var provider = new ServiceCollection().BuildPromptEngineeringClientServiceProvider();
         var contextService = provider.GetRequiredService<IContextService>();
 
-        var pipelineResult = await contextService.RunAsync(CancellationToken.None);
-        var completion = pipelineResult.Completion;
-
-        if (completion.Choices == null || !completion.Choices.Any())
+        var promptPaths = PromptJsonDiscovery.GetOrderedPromptJsonFullPaths();
+        foreach (var promptPath in promptPaths)
         {
-            Console.WriteLine($"First choice saved to {pipelineResult.OutputPath} (no choices returned).");
-            return;
-        }
+            Console.WriteLine($"Running pipeline for {promptPath}...");
 
-        var choice = completion.Choices.First();
-        var messageContent = choice?.Message?.Content;
+            var pipelineResult = await contextService.RunAsync(promptPath, CancellationToken.None);
+            var completion = pipelineResult.Completion;
 
-        if (!string.IsNullOrWhiteSpace(messageContent))
-        {
-            Console.WriteLine(messageContent);
+            if (completion.Choices == null || !completion.Choices.Any())
+            {
+                Console.WriteLine($"First choice saved to {pipelineResult.OutputPath} (no choices returned).");
+                continue;
+            }
+
+            var choice = completion.Choices.First();
+            var messageContent = choice?.Message?.Content;
+
+            if (!string.IsNullOrWhiteSpace(messageContent))
+            {
+                Console.WriteLine(messageContent);
+            }
+
+            Console.WriteLine($"Saved assistant Markdown: {pipelineResult.OutputPath}");
         }
-        Console.WriteLine($"Saved assistant Markdown: {pipelineResult.OutputPath}");
     }
 }

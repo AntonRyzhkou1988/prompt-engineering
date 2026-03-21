@@ -28,23 +28,49 @@ public sealed class ContextService : IContextService
     private static readonly JsonSerializerOptions DefaultJsonOptions = new(JsonSerializerDefaults.General);
     private readonly ContextSettings _contextSettings;
     private readonly ContextPromptsOptions _prompts;
+    private readonly string _instanceName;
     private readonly IAiService _aiService;
 
     public ContextService(
+        IOptions<SystemSettings> systemSettings,
         IOptions<ContextSettings> contextSettings,
         IOptions<ContextPromptsOptions> prompts,
         IAiService aiService)
     {
+        ArgumentNullException.ThrowIfNull(systemSettings);
         ArgumentNullException.ThrowIfNull(contextSettings);
         ArgumentNullException.ThrowIfNull(prompts);
         ArgumentNullException.ThrowIfNull(aiService);
 
+        if (systemSettings.Value.AiServiceSettings.Instances.Count == 0)
+            throw new ArgumentException("AiServiceSettings instance count is 0.");
+
         _contextSettings = contextSettings.Value;
         _prompts = prompts.Value;
+        _instanceName = systemSettings.Value.AiServiceSettings.Instances.First().Name;
         _aiService = aiService;
     }
 
-    public async Task<ContextPipelineResult> RunAsync(CancellationToken cancellationToken = default)
+    public Task<ContextPipelineResult> RunAsync(CancellationToken cancellationToken = default)
+        => RunCoreAsync(_prompts, outputFileStem: null, cancellationToken);
+
+    public Task<ContextPipelineResult> RunAsync(string promptsJsonRelativeOrAbsolutePath, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(promptsJsonRelativeOrAbsolutePath);
+
+        var resolved = ContextSettingsPromptPathResolver.ResolveExistingFilePath(promptsJsonRelativeOrAbsolutePath)
+            ?? throw new InvalidOperationException(
+                $"Context prompts JSON was not found. Tried path '{promptsJsonRelativeOrAbsolutePath}' (resolved from app base and parent directories).");
+
+        var loaded = ContextPromptsJsonLoader.LoadFromResolvedPath(resolved);
+        var stem = Path.GetFileNameWithoutExtension(resolved);
+        return RunCoreAsync(loaded, stem, cancellationToken);
+    }
+
+    private async Task<ContextPipelineResult> RunCoreAsync(
+        ContextPromptsOptions prompts,
+        string? outputFileStem,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -55,10 +81,10 @@ public sealed class ContextService : IContextService
             datasetPath,
             cancellationToken);
 
-        var chatRequest = BuildChatRequest(datasetSnapshot);
+        var chatRequest = BuildChatRequest(datasetSnapshot, prompts, _contextSettings.Temperature);
 
         var completion = await _aiService.CompleteChatAsync(
-            _contextSettings.AiInstanceName,
+            _instanceName,
             chatRequest,
             new MediaTypeHeaderValue(RequestMediaType),
             DefaultJsonOptions,
@@ -70,11 +96,8 @@ public sealed class ContextService : IContextService
         }
 
         Directory.CreateDirectory(outputDirectoryPath);
-        var safeInstanceName = string.Concat(
-            _contextSettings.AiInstanceName.Select(ch => Path.GetInvalidFileNameChars().Contains(ch) ? '_' : ch));
-        var outputPath = Path.Combine(
-            outputDirectoryPath,
-            $"completion_{safeInstanceName}_{DateTime.UtcNow:yyyyMMdd_HHmmss_fff}.md");
+        var fileName = $"completion_{DateTime.UtcNow:yyyyMMdd_HHmmss_fff}.md";
+        var outputPath = Path.Combine(outputDirectoryPath, fileName);
 
         var firstChoice = completion.Choices?.FirstOrDefault();
         var markdown = BuildFirstChoiceAssistantMarkdown(firstChoice);
@@ -92,16 +115,19 @@ public sealed class ContextService : IContextService
         return string.IsNullOrWhiteSpace(content) ? string.Empty : content;
     }
 
-    private ChatRequest BuildChatRequest(DatasetSnapshot datasetSnapshot)
+    private static ChatRequest BuildChatRequest(
+        DatasetSnapshot datasetSnapshot,
+        ContextPromptsOptions prompts,
+        float temperature)
     {
-        var assistantRole = JoinSentences(_prompts.DefaultAssistantRole);
-        var baseUserPrompt = JoinSentences(_prompts.DefaultUserPrompt);
+        var assistantRole = JoinSentences(prompts.DefaultAssistantRole);
+        var baseUserPrompt = JoinSentences(prompts.DefaultUserPrompt);
         var recordsMarkup = BuildDataXmlMarkup(datasetSnapshot.Records);
         var userPrompt = InjectDataMarkup(baseUserPrompt, recordsMarkup);
 
         var chatRequest = new ChatRequest
         {
-            Temperature = _contextSettings.Temperature
+            Temperature = temperature
         };
         chatRequest.AddSystemMessage(assistantRole);
         chatRequest.AddUserMessage(userPrompt);

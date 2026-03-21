@@ -5,8 +5,6 @@ namespace PromptEngineering.Services;
 /// </summary>
 public sealed class ContextSettings
 {
-    public string AiInstanceName { get; set; } = "AIArchitect.PromptEngineering";
-
     /// <summary>
     /// Path to JSON containing <c>DefaultAssistantRole</c> and <c>DefaultUserPrompt</c> string arrays (relative to app base or repo search, or absolute).
     /// </summary>
