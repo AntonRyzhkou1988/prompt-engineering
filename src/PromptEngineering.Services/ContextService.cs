@@ -113,10 +113,12 @@ public sealed class ContextService : IContextService
             ReActRunsSummarySeparator,
             runs.Select(run =>
             {
+                var header =
+                    $"## Run: {run.PromptStem}{Environment.NewLine}Output: {run.OutputPath}{Environment.NewLine}{Environment.NewLine}";
                 var content = run.Completion.Choices?.FirstOrDefault()?.Message?.Content;
                 return string.IsNullOrWhiteSpace(content)
-                    ? $"(no assistant content) — saved: {run.OutputPath}"
-                    : content;
+                    ? $"{header}(no assistant content) — saved: {run.OutputPath}"
+                    : $"{header}{content}";
             }));
 
     private Task<ContextPipelineResult> RunFromPromptPathAsync(
@@ -162,7 +164,7 @@ public sealed class ContextService : IContextService
         var markdown = BuildFirstChoiceAssistantMarkdown(firstChoice);
         await File.WriteAllTextAsync(outputPath, markdown, cancellationToken);
 
-        return new ContextPipelineResult(outputPath, completion);
+        return new ContextPipelineResult(outputPath, promptStem, completion);
     }
 
     /// <summary>

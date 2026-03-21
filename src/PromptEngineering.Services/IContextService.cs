@@ -17,7 +17,8 @@ public interface IContextService
 
     /// <summary>
     /// Writes a single text file aggregating the first-choice assistant <c>Message.Content</c> from each
-    /// <see cref="ContextPipelineResult"/> in <paramref name="runs"/> order, separated by a fixed <c>---</c> block.
+    /// <see cref="ContextPipelineResult"/> in <paramref name="runs"/> order. Each run is prefixed with a compact header
+    /// (<c>## Run: {PromptStem}</c> and <c>Output: {OutputPath}</c>); runs are separated by a fixed <c>---</c> block.
     /// Runs with empty content are represented as an explicit placeholder referencing <see cref="ContextPipelineResult.OutputPath"/>.
     /// </summary>
     /// <remarks>

@@ -10,7 +10,7 @@ This repository practices **ReAct-style prompt design** for reliable analysis of
 - Each file defines two string arrays: `DefaultAssistantRole` (system) and `DefaultUserPrompt` (user). The client **joins array entries with newlines** into the messages sent to the model.
 - The user prompt must contain a `<data>...</data>` region. At runtime, the app **replaces the inner part** with one `<record>...</record>` per loaded CSV row (see [Injected XML](#injected-xml-one-record-per-row)).
 - Paths for prompts, dataset, and output are configured under `ContextSettings` in [`src/PromptEngineering.Client/appsettings.json`](src/PromptEngineering.Client/appsettings.json).
-- When every prompt file has finished, [`IContextService.SummarizeAsync`](src/PromptEngineering.Services/IContextService.cs) (see [`ContextService`](src/PromptEngineering.Services/ContextService.cs)) writes a default **`results.txt`** (cwd-relative path unless overridden): first-choice assistant text per run, separated by a `---` block, with an explicit placeholder when a run has no assistant content. This is **host-side formatting only**—no second LLM call—so you can compare v1/v2/v3 side by side.
+- When every prompt file has finished, [`IContextService.SummarizeAsync`](src/PromptEngineering.Services/IContextService.cs) (see [`ContextService`](src/PromptEngineering.Services/ContextService.cs)) writes a default **`results.txt`** (cwd-relative path unless overridden): for each run, a compact header (`## Run: {prompt stem}` and `Output: {path}`) followed by verbatim first-choice assistant text; runs are separated by a `---` block. Empty completions use an explicit placeholder referencing the output path. This is **host-side formatting only**—no second LLM call—so you can compare v1/v2/v3 side by side.
 
 ---
 
@@ -55,35 +55,31 @@ Compared with linear chain-of-thought, ReAct is **adaptive** (the path changes f
 
 The client sends **one** system message plus **one** user message (with injected `<data>`) and receives **one** completion ([`ContextService`](src/PromptEngineering.Services/ContextService.cs)). There is **no** host-driven multi-turn tool loop.
 
-Here, **Observation** means what the model **reads** from `<record>` elements (patterns, gaps, contradictions)—not a separate HTTP round-trip. **Action** means deliberate **analytical moves** on that evidence (for example stratifying by `Country` and `FatalYN`, scanning missingness)—carried out in the model’s **internal** reasoning, not executed by the app. **v3** requires that internal Thought/Action/Observation cycle before the visible Sections A–E; the final reply does **not** include a separate trace section.
+Here, **Observation** means what the model **reads** from `<record>` elements (patterns, gaps, contradictions)—not a separate HTTP round-trip. **Action** means deliberate **analytical moves** on that evidence (for example stratifying by `Country` and `FatalYN`, scanning missingness)—carried out in the model’s **internal** reasoning, not executed by the app. **v3** requires that internal Thought/Action/Observation cycle before the visible Sections A–D; the final reply does **not** include a separate trace section.
 
 **Illustrative single cycle** (format only; not a second API call):
 
-- **Thought:** I need a defensible read on geography and fatality before Q1 bullets.
-- **Action:** `ReviewElements[Country, Year, FatalYN, Type]` — scan `<record>` values and missing tags.
-- **Observation:** Several countries dominate volume; `FatalYN` is often present but not always; `Type` mixes comparable and noisy labels—trends should be qualified.
+- **Thought:** I need Activity and Type vs outcomes before writing Section A bullets.
+- **Action:** `ReviewElements[Activity, Type, FatalYN, Injury]` — scan `<record>` values and missing tags.
+- **Observation:** Several activities recur; `Type` mixes Unprovoked, Provoked, Invalid; `Injury` is heterogeneous text—claims should be qualified.
 
 Production-ready prompts here should also enforce:
 
 1. **Role first** — domain-relevant analyst, not a generic assistant.
-2. **Explicit scope** — which fields and which questions (see **Q1–Q3** below).
+2. **Explicit scope** — which fields and the research question (see below).
 3. **ReAct flow** — field selection → data-quality check → evidence-based findings → **self-critique** → **claim revision** before the final answer (mapped to Thought/Action/Observation internally in **v3**; see [.cursor/rules/project-rules.mdc](.cursor/rules/project-rules.mdc)).
 4. **Strict response schema** — section headings and **bullet limits** (see **v3**).
 5. **Safety** — no fabricated metrics; disclose partial evidence; **High / Medium / Low** confidence on substantive claims.
 
 ---
 
-## Research questions (Q1–Q3)
+## Research question (shared across v1–v3)
 
-All three prompt versions target the same analytical frame:
+All three prompt versions target one thread:
 
-| ID | Theme | Core elements |
-|----|--------|----------------|
-| **Q1** | Geography, time, encounter classification | Year, Country, Area, Type, FatalYN |
-| **Q2** | Activity, demographics, harm | Activity, Sex, Age, Injury, FatalYN |
-| **Q3** | Species and time-of-day | Species, Time, Type, FatalYN, Country (optional: InvestigatorSource) |
+**Question:** In the provided `<record>` rows from `dataset/attacks.csv`, how do **Activity** and encounter **Type** relate to harm outcomes (**FatalYN** and **Injury**), and which **data-quality** issues most limit how strong those conclusions can be?
 
-**Ordering:** Prefer **Q1** and **Q2** (cleaner dimensions) before **Q3** (noisier free text and sparse `Time`).
+**Primary elements:** Type, Activity, Injury, FatalYN. **Context as needed:** Year, Country, Area (and other injected elements only for supporting detail).
 
 ---
 
@@ -91,9 +87,9 @@ All three prompt versions target the same analytical frame:
 
 | Version | File | Intent | ReAct |
 |---------|------|--------|--------|
-| **v1** | [`prompts/v1.json`](prompts/v1.json) | Baseline: same Q1–Q3, minimal scaffolding; notes that v2/v3 add formal checks | Implicit only (no mandatory Thought/Action/Observation or 5-step loop; still cite `<record>` evidence) |
-| **v2** | [`prompts/v2.json`](prompts/v2.json) | **Numbered outcomes**, field hints per question, fixed **section headings**, confidence on substantive bullets | Implicit structured reasoning (quality + follow-ups explicit; no mandatory ToA vocabulary or 5-step loop) |
-| **v3** | [`prompts/v3.json`](prompts/v3.json) | **Canonical**: mandatory internal **Thought/Action/Observation** on `<record>` data plus 5-step self-reflection; **strict** Sections A–E and bullet caps | **Mandatory** (internal ToA + steps; visible output remains A–E only) |
+| **v1** | [`prompts/v1.json`](prompts/v1.json) | Baseline: same research question, minimal scaffolding; internal analytical flow; points to v3 for strict ReAct | Implicit only (no mandatory Thought/Action/Observation or 5-step loop; still cite `<record>` evidence) |
+| **v2** | [`prompts/v2.json`](prompts/v2.json) | **Numbered outcomes**, field focus, fixed **section headings**, confidence on substantive bullets | Implicit structured reasoning (quality + follow-ups explicit; no mandatory ToA vocabulary or 5-step loop) |
+| **v3** | [`prompts/v3.json`](prompts/v3.json) | **Canonical**: mandatory internal **Thought/Action/Observation** on `<record>` data plus 5-step self-reflection; **strict** Sections A–D and bullet caps | **Mandatory** (internal ToA + steps; visible output remains A–D only) |
 
 **Gaps each step fixes:** v1 → v2 adds structure and confidence discipline; v2 → v3 adds mandatory self-critique, claim revision, and a rigid schema for cross-run comparison.
 
@@ -103,11 +99,10 @@ All three prompt versions target the same analytical frame:
 
 Section titles and limits match [`prompts/v3.json`](prompts/v3.json):
 
-- **Section A — Q1 findings:** 3–5 bullets (insight; supporting elements; Confidence: High | Medium | Low).
-- **Section B — Q2 findings:** same.
-- **Section C — Q3 findings:** same; call out Species/Time limits where needed.
-- **Section D — Data quality caveats:** 3–5 bullets (each ties a risk to interpretation).
-- **Section E — Executive summary:** ≤5 lines; no new unsupported claims.
+- **Section A — Findings:** 3–5 bullets (insight; supporting elements; Confidence: High | Medium | Low).
+- **Section B — Data quality caveats:** 3–5 bullets (each ties a risk to interpretation).
+- **Section C — Next analyses:** at most 3 bullets (feasible on the same fields).
+- **Section D — Executive summary:** at most 3 short bullets; no new unsupported claims.
 
 ---
 
