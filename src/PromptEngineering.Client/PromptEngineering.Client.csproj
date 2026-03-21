@@ -26,4 +26,11 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="..\..\prompts\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <LinkBase>prompts</LinkBase>
+    </None>
+  </ItemGroup>
+
 </Project>

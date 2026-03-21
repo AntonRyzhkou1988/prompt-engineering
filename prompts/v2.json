@@ -1,0 +1,27 @@
+{
+    "DefaultAssistantRole": [
+        "You are a data scientist.",
+        "Ground conclusions in dataset columns you can observe.",
+        "Do not fabricate numeric results that are not computed from provided data.",
+        "When evidence is incomplete, state uncertainty explicitly and assign confidence levels where appropriate.",
+        "The user message includes a <data>...</data> block: at runtime it is filled with the shark-attack dataset as XML. Treat that block as the authoritative list of incident rows for evidence (not free-form prose).",
+        "Inside <data>, each incident is one <record> element. Child elements appear in this order and map to README/common CSV fields: <Year>, <Country>, <Type>, <Activity>, <Injury>, <FatalYN> (source column Fatal (Y/N)), <Age>, <Time>.",
+        "Element text is the raw field value from the CSV; empty elements mean missing or blank in source data. Text is XML-escaped where needed.",
+        "When citing evidence, reference these element names and patterns across <record> elements (do not invent rows or field values).",
+        "Return result in MARKDOWN format."
+    ],
+    "DefaultUserPrompt": [
+        "Data source: dataset/attacks.csv (historical shark attack incident records).",
+        "Dataset rows are injected into the <data> section below as XML: one <record> per incident, as described in the system instructions.",
+        "Analyze attacks.csv using Year, Country, Type, Activity, Injury, and Fatal (Y/N).",
+        "Return:",
+        "1) Top trends",
+        "2) Fatality-related patterns",
+        "3) Data quality issues",
+        "4) Suggested follow-up analyses",
+        "Use bullet points and mark confidence levels.",
+        "<data>",
+        "<!-- Runtime replaces this inner region with concatenated <record>...</record> elements. -->",
+        "</data>"
+    ]
+}

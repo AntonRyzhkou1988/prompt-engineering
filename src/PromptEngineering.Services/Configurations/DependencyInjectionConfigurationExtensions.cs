@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using PromptEngineering.Services;
 
 namespace PromptEngineering.Services.Configurations;
 
@@ -11,6 +13,8 @@ public static class DependencyInjectionConfigurationExtensions
         ArgumentNullException.ThrowIfNull(configuration);
 
         services.Configure<ContextSettings>(configuration.GetSection(nameof(ContextSettings)));
+        services.AddOptions<ContextPromptsOptions>();
+        services.AddSingleton<IPostConfigureOptions<ContextPromptsOptions>, ContextPromptsPostConfigure>();
 
         return services;
     }

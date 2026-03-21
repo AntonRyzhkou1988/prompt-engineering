@@ -27,16 +27,20 @@ public sealed class ContextService : IContextService
     private const string TimeHeader = "Time";
     private static readonly JsonSerializerOptions DefaultJsonOptions = new(JsonSerializerDefaults.General);
     private readonly ContextSettings _contextSettings;
+    private readonly ContextPromptsOptions _prompts;
     private readonly IAiService _aiService;
 
     public ContextService(
         IOptions<ContextSettings> contextSettings,
+        IOptions<ContextPromptsOptions> prompts,
         IAiService aiService)
     {
         ArgumentNullException.ThrowIfNull(contextSettings);
+        ArgumentNullException.ThrowIfNull(prompts);
         ArgumentNullException.ThrowIfNull(aiService);
 
         _contextSettings = contextSettings.Value;
+        _prompts = prompts.Value;
         _aiService = aiService;
     }
 
@@ -90,8 +94,8 @@ public sealed class ContextService : IContextService
 
     private ChatRequest BuildChatRequest(DatasetSnapshot datasetSnapshot)
     {
-        var assistantRole = JoinSentences(_contextSettings.DefaultAssistantRole);
-        var baseUserPrompt = JoinSentences(_contextSettings.DefaultUserPrompt);
+        var assistantRole = JoinSentences(_prompts.DefaultAssistantRole);
+        var baseUserPrompt = JoinSentences(_prompts.DefaultUserPrompt);
         var recordsMarkup = BuildDataXmlMarkup(datasetSnapshot.Records);
         var userPrompt = InjectDataMarkup(baseUserPrompt, recordsMarkup);
 

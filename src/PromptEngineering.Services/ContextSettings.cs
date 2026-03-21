@@ -1,28 +1,20 @@
 namespace PromptEngineering.Services;
 
-public sealed record ContextSettings
+/// <summary>
+/// Options for the prompt-engineering pipeline. Prompt text is loaded from <see cref="DefaultPromptsJsonPath"/> into <see cref="ContextPromptsOptions"/>.
+/// </summary>
+public sealed class ContextSettings
 {
-    public string AiInstanceName { get; init; } = "AIArchitect.PromptEngineering";
+    public string AiInstanceName { get; set; } = "AIArchitect.PromptEngineering";
 
-    public string[] DefaultAssistantRole { get; init; } =
-    [
-        "You are a senior incident data analyst for shark-attack CSV data.",
-        "The user message contains <data>...</data> filled at runtime with XML: repeated <record> elements, each with child elements Year, Country, Type, Activity, Injury, FatalYN (from CSV Fatal (Y/N)), Age, Time.",
-        "Use only those <record> elements as row-level evidence; empty element text means missing source data."
-    ];
+    /// <summary>
+    /// Path to JSON containing <c>DefaultAssistantRole</c> and <c>DefaultUserPrompt</c> string arrays (relative to app base or repo search, or absolute).
+    /// </summary>
+    public string DefaultPromptsJsonPath { get; set; } = "prompts/default-prompts.json";
 
-    public string[] DefaultUserPrompt { get; init; } =
-    [
-        "Analyze shark attack incidents from dataset/attacks.csv.",
-        "<data>",
-        "<!-- Runtime injects <record>...</record> XML per row here. -->",
-        "</data>",
-        "Use only the XML inside <data> as evidence."
-    ];
+    public float Temperature { get; set; } = 0.3f;
 
-    public float Temperature { get; init; } = 0.3f;
+    public string DatasetPath { get; set; } = "dataset/attacks.csv";
 
-    public string DatasetPath { get; init; } = "dataset/attacks.csv";
-
-    public string OutputDirectory { get; init; } = "output";
+    public string OutputDirectory { get; set; } = "output";
 }
