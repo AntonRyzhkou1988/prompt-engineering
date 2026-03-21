@@ -29,6 +29,7 @@ public sealed class ContextService : IContextService
     private readonly ContextSettings _contextSettings;
     private readonly ContextPromptsOptions _prompts;
     private readonly string _instanceName;
+    private readonly int _maximumDatasetRecordCount;
     private readonly IAiService _aiService;
 
     public ContextService(
@@ -48,6 +49,7 @@ public sealed class ContextService : IContextService
         _contextSettings = contextSettings.Value;
         _prompts = prompts.Value;
         _instanceName = systemSettings.Value.AiServiceSettings.Instances.First().Name;
+        _maximumDatasetRecordCount = systemSettings.Value.MaximumDatasetRecordCount;
         _aiService = aiService;
     }
 
@@ -79,6 +81,7 @@ public sealed class ContextService : IContextService
 
         var datasetSnapshot = await LoadDatasetAsync(
             datasetPath,
+            _maximumDatasetRecordCount,
             cancellationToken);
 
         var chatRequest = BuildChatRequest(datasetSnapshot, prompts, _contextSettings.Temperature);
@@ -137,6 +140,7 @@ public sealed class ContextService : IContextService
 
     private static async Task<DatasetSnapshot> LoadDatasetAsync(
         string datasetPath,
+        int maximumDatasetRecordCount,
         CancellationToken cancellationToken)
     {
         var records = new List<AttackRecord>();
@@ -171,6 +175,11 @@ public sealed class ContextService : IContextService
             }
 
             records.Add(MapRecord(dataRow, headerIndexLookup));
+
+            if (maximumDatasetRecordCount > 0 && records.Count >= maximumDatasetRecordCount)
+            {
+                break;
+            }
         }
 
         return new DatasetSnapshot(records, records.Count);
