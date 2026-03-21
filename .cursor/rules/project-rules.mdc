@@ -46,6 +46,10 @@ Every refined prompt should require this minimum flow:
 - If evidence is partial, label confidence as `High`, `Medium`, or `Low`.
 - Separate confirmed findings from assumptions or recommendations.
 
+## Pipeline output aggregation
+
+When the host aggregates multiple run results (for example `IContextService.SummarizeAsync` writing `results.txt`), include **only** stored completion text and explicit placeholders when content is missing (referencing the per-run output path). Do **not** fabricate metrics, do **not** paraphrase or synthesize new findings in that step, and do **not** treat the aggregate file as a substitute for the model’s structured sections (for example v3 Sections A–E). The aggregate exists for **human comparison**, not as additional model output.
+
 ## Iterative Optimization Protocol
 
 Use an explicit revision chain when improving prompts:

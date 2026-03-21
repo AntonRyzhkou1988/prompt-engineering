@@ -12,12 +12,12 @@ internal static class ContextPromptsJsonLoader
         AllowTrailingCommas = true
     };
 
-    public static ContextPromptsOptions LoadFromResolvedPath(string resolvedPath)
+    public static ContextPrompt LoadFromResolvedPath(string resolvedPath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(resolvedPath);
 
         var json = File.ReadAllText(resolvedPath, Encoding.UTF8);
-        var document = JsonSerializer.Deserialize<ContextSettingsPromptDocument>(json, JsonOptions)
+        var document = JsonSerializer.Deserialize<ContextPrompt>(json, JsonOptions)
             ?? throw new InvalidOperationException($"Failed to deserialize prompts JSON: '{resolvedPath}'.");
 
         if (document.DefaultAssistantRole == null || document.DefaultAssistantRole.Length == 0)
@@ -32,7 +32,7 @@ internal static class ContextPromptsJsonLoader
                 $"Prompts JSON '{resolvedPath}' must contain a non-empty DefaultUserPrompt array.");
         }
 
-        return new ContextPromptsOptions
+        return new ContextPrompt
         {
             DefaultAssistantRole = document.DefaultAssistantRole,
             DefaultUserPrompt = document.DefaultUserPrompt

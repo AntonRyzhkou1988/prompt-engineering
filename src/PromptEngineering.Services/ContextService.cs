@@ -30,6 +30,8 @@ public sealed class ContextService : IContextService
     private const string SpeciesHeader = "Species";
     private const string InvestigatorSourceHeader = "Investigator or Source";
     private static readonly JsonSerializerOptions DefaultJsonOptions = new(JsonSerializerDefaults.General);
+    private static readonly string ReActRunsSummarySeparator =
+        $"{Environment.NewLine}{Environment.NewLine}---{Environment.NewLine}{Environment.NewLine}";
     private readonly SystemSettings _systemSettings;
     private readonly ContextSettings _contextSettings;
     private readonly string _instanceName;
@@ -59,12 +61,17 @@ public sealed class ContextService : IContextService
 
         var results = new List<ContextPipelineResult>(promptPaths.Count);
 
+        var datasetSnapshot = await LoadDatasetAsync(
+            _contextSettings.DatasetPath,
+            _systemSettings.MaximumDatasetRecordCount,
+            cancellationToken);
+
         foreach (var promptFilePath in promptPaths)
         {
             cancellationToken.ThrowIfCancellationRequested();
             Console.WriteLine($"Running pipeline for {promptFilePath}...");
 
-            var pipelineResult = await RunFromPromptPathAsync(promptFilePath, cancellationToken);
+            var pipelineResult = await RunFromPromptPathAsync(datasetSnapshot, promptFilePath, cancellationToken);
             results.Add(pipelineResult);
 
             var completion = pipelineResult.Completion;
@@ -89,8 +96,31 @@ public sealed class ContextService : IContextService
         return results;
     }
 
+    public async Task SummarizeAsync(
+        IReadOnlyList<ContextPipelineResult> runs,
+        string outputPath = "results.txt",
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(runs);
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
+
+        var text = BuildReActRunsSummaryText(runs);
+        await File.WriteAllTextAsync(outputPath, text, cancellationToken);
+    }
+
+    private static string BuildReActRunsSummaryText(IReadOnlyList<ContextPipelineResult> runs) =>
+        string.Join(
+            ReActRunsSummarySeparator,
+            runs.Select(run =>
+            {
+                var content = run.Completion.Choices?.FirstOrDefault()?.Message?.Content;
+                return string.IsNullOrWhiteSpace(content)
+                    ? $"(no assistant content) — saved: {run.OutputPath}"
+                    : content;
+            }));
 
     private Task<ContextPipelineResult> RunFromPromptPathAsync(
+        DatasetSnapshot datasetSnapshot,
         string promptPath,
         CancellationToken cancellationToken)
     {
@@ -98,20 +128,16 @@ public sealed class ContextService : IContextService
 
         var loaded = ContextPromptsJsonLoader.LoadFromResolvedPath(promptPath);
         var stem = Path.GetFileNameWithoutExtension(promptPath);
-        return RunCoreAsync(loaded, stem, cancellationToken);
+        return RunCoreAsync(datasetSnapshot, loaded, stem, cancellationToken);
     }
 
     private async Task<ContextPipelineResult> RunCoreAsync(
-        ContextPromptsOptions prompts,
+        DatasetSnapshot datasetSnapshot,
+        ContextPrompt prompts,
         string? outputFileStem,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-
-        var datasetSnapshot = await LoadDatasetAsync(
-            _contextSettings.DatasetPath,
-            _systemSettings.MaximumDatasetRecordCount,
-            cancellationToken);
 
         var chatRequest = BuildChatRequest(datasetSnapshot, prompts, _contextSettings.Temperature);
 
@@ -150,7 +176,7 @@ public sealed class ContextService : IContextService
 
     private static ChatRequest BuildChatRequest(
         DatasetSnapshot datasetSnapshot,
-        ContextPromptsOptions prompts,
+        ContextPrompt prompts,
         float temperature)
     {
         var assistantRole = JoinSentences(prompts.DefaultAssistantRole);

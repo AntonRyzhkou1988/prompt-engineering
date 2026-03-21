@@ -10,6 +10,7 @@ internal class Program
 {
     private static async Task Main(string[] args)
     {
+        // Configure
         var configuration = new ConfigurationBuilder()
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
             .AddUserSecrets(Assembly.GetExecutingAssembly(), optional: true)
@@ -21,19 +22,10 @@ internal class Program
 
         var contextService = provider.GetRequiredService<IContextService>();
 
+        // Run
         var runs = await contextService.RunReActAsync(cancellationToken: CancellationToken.None);
 
-        var separator = $"{Environment.NewLine}{Environment.NewLine}---{Environment.NewLine}{Environment.NewLine}";
-        var resultsText = string.Join(
-            separator,
-            runs.Select(run =>
-            {
-                var content = run.Completion.Choices?.FirstOrDefault()?.Message?.Content;
-                return string.IsNullOrWhiteSpace(content)
-                    ? $"(no assistant content) — saved: {run.OutputPath}"
-                    : content;
-            }));
-
-        await File.WriteAllTextAsync("results.txt", resultsText);
+        // Output
+        await contextService.SummarizeAsync(runs, cancellationToken: CancellationToken.None);
     }
 }

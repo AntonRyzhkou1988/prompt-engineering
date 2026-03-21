@@ -10,6 +10,7 @@ This repository practices **ReAct-style prompt design** for reliable analysis of
 - Each file defines two string arrays: `DefaultAssistantRole` (system) and `DefaultUserPrompt` (user). The client **joins array entries with newlines** into the messages sent to the model.
 - The user prompt must contain a `<data>...</data>` region. At runtime, the app **replaces the inner part** with one `<record>...</record>` per loaded CSV row (see [Injected XML](#injected-xml-one-record-per-row)).
 - Paths for prompts, dataset, and output are configured under `ContextSettings` in [`src/PromptEngineering.Client/appsettings.json`](src/PromptEngineering.Client/appsettings.json).
+- When every prompt file has finished, [`IContextService.SummarizeAsync`](src/PromptEngineering.Services/IContextService.cs) (see [`ContextService`](src/PromptEngineering.Services/ContextService.cs)) writes a default **`results.txt`** (cwd-relative path unless overridden): first-choice assistant text per run, separated by a `---` block, with an explicit placeholder when a run has no assistant content. This is **host-side formatting only**—no second LLM call—so you can compare v1/v2/v3 side by side.
 
 ---
 
@@ -145,7 +146,7 @@ Score 1 (weak) to 5 (strong):
 ## Minimal runbook
 
 1. Point `ContextSettings:PromptPath` at the `prompts` folder and `DatasetPath` at `dataset/attacks.csv`.
-2. Run the client pipeline so **v1**, then **v2**, then **v3** execute (or run a single file by using a folder with only that JSON).
-3. Compare outputs using the checklist above.
+2. Run the client pipeline so **v1**, then **v2**, then **v3** execute (or run a single file by using a folder with only that JSON). The client also writes **`results.txt`** via `SummarizeAsync` as a single-file rollup of assistant replies (see [How prompts run](#how-prompts-run)).
+3. Compare outputs using the checklist above (individual Markdown under the configured output directory and/or the consolidated `results.txt`).
 4. If quality stalls, **meta-prompt** the current best version (preserve intent, tighten grounding and schema) and re-run.
 5. Treat **v3** as the default template for new incident-style prompts in this repo.
