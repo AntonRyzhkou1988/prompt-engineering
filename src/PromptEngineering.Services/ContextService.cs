@@ -15,6 +15,16 @@ namespace PromptEngineering.Services;
 public sealed class ContextService : IContextService
 {
     private const string RequestMediaType = "application/json";
+    private const string DataStartTag = "<data>";
+    private const string DataEndTag = "</data>";
+    private const string YearHeader = "Year";
+    private const string CountryHeader = "Country";
+    private const string TypeHeader = "Type";
+    private const string ActivityHeader = "Activity";
+    private const string InjuryHeader = "Injury";
+    private const string FatalYnHeader = "Fatal (Y/N)";
+    private const string AgeHeader = "Age";
+    private const string TimeHeader = "Time";
     private static readonly JsonSerializerOptions DefaultJsonOptions = new(JsonSerializerDefaults.General);
     private static readonly JsonSerializerOptions OutputJsonOptions = new(JsonSerializerDefaults.General)
     {
@@ -76,17 +86,8 @@ public sealed class ContextService : IContextService
     {
         var assistantRole = JoinSentences(_contextSettings.DefaultAssistantRole);
         var baseUserPrompt = JoinSentences(_contextSettings.DefaultUserPrompt);
-
-        var datasetSection = $"""
-                              Full dataset content loaded from file (header and all {datasetSnapshot.DataRowsCount} rows):
-                              {datasetSnapshot.Content}
-                              """;
-
-        var userPrompt = new StringBuilder(baseUserPrompt)
-            .AppendLine()
-            .AppendLine()
-            .Append(datasetSection)
-            .ToString();
+        var recordsMarkup = BuildDataListMarkup(datasetSnapshot.Records);
+        var userPrompt = InjectDataMarkup(baseUserPrompt, recordsMarkup);
 
         var chatRequest = new ChatRequest
         {
@@ -102,7 +103,7 @@ public sealed class ContextService : IContextService
         string datasetPath,
         CancellationToken cancellationToken)
     {
-        var lines = new List<string>();
+        var records = new List<AttackRecord>();
 
         await using var stream = new FileStream(
             datasetPath,
@@ -111,23 +112,32 @@ public sealed class ContextService : IContextService
             FileShare.Read);
         using var reader = new StreamReader(stream);
 
-        while (!reader.EndOfStream)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var line = await reader.ReadLineAsync(cancellationToken);
-            if (line != null)
-            {
-                lines.Add(line);
-            }
-        }
-
-        if (lines.Count == 0)
+        var headerRow = await ReadNextCsvRecordAsync(reader, cancellationToken);
+        if (headerRow == null || headerRow.Length == 0)
         {
             throw new InvalidOperationException($"Dataset file '{datasetPath}' is empty.");
         }
 
-        var dataRowsCount = Math.Max(0, lines.Count - 1);
-        return new DatasetSnapshot(string.Join(Environment.NewLine, lines), dataRowsCount);
+        var headerIndexLookup = BuildHeaderIndexLookup(headerRow);
+
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var dataRow = await ReadNextCsvRecordAsync(reader, cancellationToken);
+            if (dataRow == null)
+            {
+                break;
+            }
+
+            if (dataRow.All(string.IsNullOrWhiteSpace))
+            {
+                continue;
+            }
+
+            records.Add(MapRecord(dataRow, headerIndexLookup));
+        }
+
+        return new DatasetSnapshot(records, records.Count);
     }
 
     private static string ResolveExistingFilePath(string path)
@@ -180,7 +190,225 @@ public sealed class ContextService : IContextService
         return null;
     }
 
-    private sealed record DatasetSnapshot(string Content, int DataRowsCount);
+    private static Dictionary<string, int> BuildHeaderIndexLookup(string[] headers)
+    {
+        var lookup = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        for (var index = 0; index < headers.Length; index++)
+        {
+            var normalizedHeader = NormalizeField(headers[index]);
+            if (!string.IsNullOrWhiteSpace(normalizedHeader) && !lookup.ContainsKey(normalizedHeader))
+            {
+                lookup.Add(normalizedHeader, index);
+            }
+        }
+
+        return lookup;
+    }
+
+    private static AttackRecord MapRecord(
+        string[] row,
+        IReadOnlyDictionary<string, int> headerIndexLookup)
+    {
+        return new AttackRecord
+        {
+            Year = GetFieldValue(row, headerIndexLookup, YearHeader),
+            Country = GetFieldValue(row, headerIndexLookup, CountryHeader),
+            Type = GetFieldValue(row, headerIndexLookup, TypeHeader),
+            Activity = GetFieldValue(row, headerIndexLookup, ActivityHeader),
+            Injury = GetFieldValue(row, headerIndexLookup, InjuryHeader),
+            FatalYn = GetFieldValue(row, headerIndexLookup, FatalYnHeader),
+            Age = GetFieldValue(row, headerIndexLookup, AgeHeader),
+            Time = GetFieldValue(row, headerIndexLookup, TimeHeader)
+        };
+    }
+
+    private static string? GetFieldValue(
+        IReadOnlyList<string> row,
+        IReadOnlyDictionary<string, int> headerIndexLookup,
+        string headerName)
+    {
+        if (!headerIndexLookup.TryGetValue(headerName, out var index))
+        {
+            return null;
+        }
+
+        if (index < 0 || index >= row.Count)
+        {
+            return null;
+        }
+
+        var field = NormalizeField(row[index]);
+        return string.IsNullOrWhiteSpace(field) ? null : field;
+    }
+
+    private static async Task<string[]?> ReadNextCsvRecordAsync(
+        StreamReader reader,
+        CancellationToken cancellationToken)
+    {
+        var rawRecord = await ReadRawCsvRecordAsync(reader, cancellationToken);
+        return rawRecord == null ? null : ParseCsvRecord(rawRecord);
+    }
+
+    private static async Task<string?> ReadRawCsvRecordAsync(
+        StreamReader reader,
+        CancellationToken cancellationToken)
+    {
+        if (reader.EndOfStream)
+        {
+            return null;
+        }
+
+        var buffer = new StringBuilder();
+        var insideQuotes = false;
+
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var line = await reader.ReadLineAsync(cancellationToken);
+            if (line == null)
+            {
+                break;
+            }
+
+            if (buffer.Length > 0)
+            {
+                buffer.Append('\n');
+            }
+
+            buffer.Append(line);
+            insideQuotes = UpdateQuoteState(line, insideQuotes);
+            if (!insideQuotes)
+            {
+                break;
+            }
+        }
+
+        if (insideQuotes)
+        {
+            throw new InvalidOperationException("CSV parsing failed due to unclosed quote sequence.");
+        }
+
+        return buffer.ToString();
+    }
+
+    private static bool UpdateQuoteState(string line, bool insideQuotes)
+    {
+        for (var index = 0; index < line.Length; index++)
+        {
+            if (line[index] != '"')
+            {
+                continue;
+            }
+
+            if (insideQuotes && index + 1 < line.Length && line[index + 1] == '"')
+            {
+                index++;
+                continue;
+            }
+
+            insideQuotes = !insideQuotes;
+        }
+
+        return insideQuotes;
+    }
+
+    private static string[] ParseCsvRecord(string record)
+    {
+        var fields = new List<string>();
+        var currentField = new StringBuilder();
+        var insideQuotes = false;
+
+        for (var index = 0; index < record.Length; index++)
+        {
+            var character = record[index];
+            if (character == '"')
+            {
+                if (insideQuotes && index + 1 < record.Length && record[index + 1] == '"')
+                {
+                    currentField.Append('"');
+                    index++;
+                }
+                else
+                {
+                    insideQuotes = !insideQuotes;
+                }
+
+                continue;
+            }
+
+            if (character == ',' && !insideQuotes)
+            {
+                fields.Add(currentField.ToString());
+                currentField.Clear();
+                continue;
+            }
+
+            currentField.Append(character);
+        }
+
+        fields.Add(currentField.ToString());
+        return fields.ToArray();
+    }
+
+    private static string BuildDataListMarkup(IReadOnlyList<AttackRecord> records)
+    {
+        if (records.Count == 0)
+        {
+            return "- (no records)";
+        }
+
+        var builder = new StringBuilder(records.Count * 80);
+        foreach (var record in records)
+        {
+            builder
+                .Append("- Year: ").Append(FormatDataValue(record.Year))
+                .Append("; Country: ").Append(FormatDataValue(record.Country))
+                .Append("; Type: ").Append(FormatDataValue(record.Type))
+                .Append("; Activity: ").Append(FormatDataValue(record.Activity))
+                .Append("; Injury: ").Append(FormatDataValue(record.Injury))
+                .Append("; Fatal (Y/N): ").Append(FormatDataValue(record.FatalYn))
+                .Append("; Age: ").Append(FormatDataValue(record.Age))
+                .Append("; Time: ").Append(FormatDataValue(record.Time))
+                .AppendLine();
+        }
+
+        return builder.ToString().TrimEnd();
+    }
+
+    private static string InjectDataMarkup(string baseUserPrompt, string dataListMarkup)
+    {
+        var startTagIndex = baseUserPrompt.IndexOf(DataStartTag, StringComparison.OrdinalIgnoreCase);
+        var endTagIndex = baseUserPrompt.IndexOf(DataEndTag, StringComparison.OrdinalIgnoreCase);
+
+        if (startTagIndex < 0 || endTagIndex < 0 || endTagIndex < startTagIndex)
+        {
+            throw new InvalidOperationException(
+                $"User prompt must contain a valid '{DataStartTag}...{DataEndTag}' section.");
+        }
+
+        var contentStartIndex = startTagIndex + DataStartTag.Length;
+        var startContent = baseUserPrompt[..contentStartIndex];
+        var endContent = baseUserPrompt[endTagIndex..];
+        var builder = new StringBuilder(startContent.Length + endContent.Length + dataListMarkup.Length + 8);
+
+        builder.Append(startContent);
+        if (!startContent.EndsWith(Environment.NewLine, StringComparison.Ordinal))
+        {
+            builder.AppendLine();
+        }
+
+        builder.AppendLine(dataListMarkup);
+        builder.Append(endContent);
+
+        return builder.ToString();
+    }
+
+    private static string NormalizeField(string? value) => value?.Trim() ?? string.Empty;
+
+    private static string FormatDataValue(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? "N/A" : value.Trim();
+
+    private sealed record DatasetSnapshot(IReadOnlyList<AttackRecord> Records, int DataRowsCount);
 
     private static string JoinSentences(IEnumerable<string>? sentences)
     {

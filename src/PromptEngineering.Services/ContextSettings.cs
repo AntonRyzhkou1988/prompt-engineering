@@ -6,7 +6,14 @@ public sealed record ContextSettings
 
     public string[] DefaultAssistantRole { get; init; } = ["You are software developer assistant."];
 
-    public string[] DefaultUserPrompt { get; init; } = ["What is a GC in .NET?"];
+    public string[] DefaultUserPrompt { get; init; } =
+    [
+        "Analyze shark attack incidents from dataset/attacks.csv.",
+        "<data>",
+        "- Dataset rows will be injected here at runtime.",
+        "</data>",
+        "Use only the records above as evidence."
+    ];
 
     public float Temperature { get; init; } = 0.3f;
 
