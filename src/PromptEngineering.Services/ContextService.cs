@@ -74,12 +74,15 @@ public sealed class ContextService : IContextService
 
     private ChatRequest BuildChatRequest(DatasetSnapshot datasetSnapshot)
     {
+        var assistantRole = JoinSentences(_contextSettings.DefaultAssistantRole);
+        var baseUserPrompt = JoinSentences(_contextSettings.DefaultUserPrompt);
+
         var datasetSection = $"""
                               Full dataset content loaded from file (header and all {datasetSnapshot.DataRowsCount} rows):
                               {datasetSnapshot.Content}
                               """;
 
-        var userPrompt = new StringBuilder(_contextSettings.DefaultUserPrompt)
+        var userPrompt = new StringBuilder(baseUserPrompt)
             .AppendLine()
             .AppendLine()
             .Append(datasetSection)
@@ -89,7 +92,7 @@ public sealed class ContextService : IContextService
         {
             Temperature = _contextSettings.Temperature
         };
-        chatRequest.AddSystemMessage(_contextSettings.DefaultAssistantRole);
+        chatRequest.AddSystemMessage(assistantRole);
         chatRequest.AddUserMessage(userPrompt);
 
         return chatRequest;
@@ -178,4 +181,16 @@ public sealed class ContextService : IContextService
     }
 
     private sealed record DatasetSnapshot(string Content, int DataRowsCount);
+
+    private static string JoinSentences(IEnumerable<string>? sentences)
+    {
+        if (sentences == null)
+        {
+            return string.Empty;
+        }
+
+        return string.Join(
+            Environment.NewLine,
+            sentences.Where(sentence => !string.IsNullOrWhiteSpace(sentence)));
+    }
 }

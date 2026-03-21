@@ -4,9 +4,9 @@ public sealed record ContextSettings
 {
     public string AiInstanceName { get; init; } = "AIArchitect.PromptEngineering";
 
-    public string DefaultAssistantRole { get; init; } = "You are software developer assistant.";
+    public string[] DefaultAssistantRole { get; init; } = ["You are software developer assistant."];
 
-    public string DefaultUserPrompt { get; init; } = "What is a GC in .NET?";
+    public string[] DefaultUserPrompt { get; init; } = ["What is a GC in .NET?"];
 
     public float Temperature { get; init; } = 0.3f;
 
