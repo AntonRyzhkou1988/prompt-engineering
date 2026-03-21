@@ -1,78 +1,24 @@
 # Prompt Engineering Practice
 
-This repository contains a prompt-engineering exercise based on the dataset at `dataset/attacks.csv`.
-The goal is to design, debug, and improve prompts for extracting reliable insights from a real-world CSV file.
+This repository practices prompt design for reliable CSV analysis on `dataset/attacks.csv`.
+The objective is to produce evidence-grounded insights with explicit uncertainty and a stable output format.
 
-## Dataset
+## Quick Scope
 
-- File: `dataset/attacks.csv`
-- Domain: historical shark attack incidents
-- Example columns used in prompts:
-  - `Year`
-  - `Country`
-  - `Type`
-  - `Activity`
-  - `Fatal (Y/N)`
-  - `Injury`
-  - `Age`
+- **Dataset**: `dataset/attacks.csv`
+- **Common columns**: `Year`, `Country`, `Type`, `Activity`, `Injury`, `Fatal (Y/N)`, `Age`, `Time`
+- **Typical data risks**: missing values, inconsistent labels, noisy text
 
-## 1) Baseline Prompt (Poor Performance)
+## ReAct Prompt Standard
 
-The first prompt is intentionally vague and under-specified.
+Every production-ready prompt in this repository should enforce:
+1. Domain role first (analyst perspective).
+2. Explicit fields and analysis scope.
+3. ReAct flow: field selection -> data-quality check -> findings -> self-critique -> claim revision.
+4. Strict response schema with section and bullet limits.
+5. Safety constraints: no fabricated metrics, uncertainty disclosure, confidence labels.
 
-```text
-Analyze the dataset and give me useful insights.
-```
-
-### Why this performs poorly
-
-- No analyst role or perspective is defined.
-- No scope boundaries (which columns or time range to prioritize).
-- No required output structure, so responses vary widely.
-- No data-quality handling instructions for missing or noisy fields.
-- No requirement to separate evidence-based findings from assumptions.
-
-## 2) Refined ReAct / Self-Reflection Prompt
-
-This is a custom prompt designed for this dataset and topic.
-
-```text
-Act as a senior data scientist specializing in incident analytics.
-
-You are given a CSV dataset of shark attack records with columns such as:
-Case Number, Date, Year, Type, Country, Area, Location, Activity, Sex, Age, Injury, Fatal (Y/N), Time, Species.
-
-Task:
-1. Analyze the dataset to extract the most important risk and pattern insights.
-2. Focus on practical insights for safety planning and public awareness.
-3. Use evidence from the available fields and avoid unsupported claims.
-
-Reasoning method (ReAct + self-reflection):
-- Step 1: List the columns you will rely on and why they matter.
-- Step 2: Identify data quality issues (missing values, inconsistent labels, duplicate columns, noisy text).
-- Step 3: Derive trends (time, geography, activity, and severity/fatality patterns).
-- Step 4: Self-check each trend:
-  - Is it directly supported by the data fields?
-  - Could missing data bias this conclusion?
-  - What confidence level should be assigned (High/Medium/Low)?
-- Step 5: Revise weak or speculative findings before finalizing.
-
-Output format (strict):
-- Section A: Key insights (5-8 bullet points), each with:
-  - Insight statement
-  - Supporting fields used
-  - Confidence: High/Medium/Low
-- Section B: Data quality findings (3-5 bullet points)
-- Section C: Recommended next analyses (3 bullet points)
-- Section D: Final concise summary (max 5 lines)
-
-Constraints:
-- Do not invent numeric values if they are not computed.
-- Explicitly state uncertainty when evidence is partial.
-- Keep language clear and non-technical for business stakeholders.
-```
-
-## 3) Debug and Optimization Log (v1 -> v2 -> v3)
+## Prompt Progression (v1 -> v2 -> v3)
 
 ### v1 (too broad)
 
@@ -80,12 +26,9 @@ Constraints:
 Act as a data scientist. Analyze the shark attacks dataset and provide key insights in bullet points.
 ```
 
-Problems:
-- Better than baseline, but still broad.
-- No mandatory method for checking weak assumptions.
-- No consistent section format, making outputs hard to compare.
+**Gap**: role exists, but scope and verification are weak.
 
-### v2 (clearer task and structure)
+### v2 (better structure)
 
 ```text
 Act as a data scientist.
@@ -98,100 +41,106 @@ Return:
 Use bullet points and mark confidence levels.
 ```
 
-Improvements over v1:
-- Defines specific columns.
-- Introduces structured outputs.
-- Adds confidence marking.
+**Gap**: better scope and format, but no mandatory self-correction loop.
 
-Remaining issues:
-- Still no explicit self-correction loop.
-- Confidence labels can still be inconsistent without evaluation criteria.
+### v3 (recommended)
 
-### v3 (optimized ReAct + self-reflection)
+Use `prompts/react-self-reflection-v3.txt` as the canonical prompt.
 
-v3 is the refined prompt shown in section 2.
+Key upgrades over v2:
+- Mandatory self-critique per finding.
+- Explicit claim revision/removal for weak evidence.
+- Hard anti-hallucination and uncertainty rules.
+- Consistent schema for cross-run comparison.
 
-What v3 fixes:
-- Adds explicit reasoning flow and self-check gates.
-- Forces uncertainty disclosure and anti-hallucination constraints.
-- Standardizes output for reliable comparison between model runs.
+## Workflow Diagram
 
-## 4) Meta-Prompting Experiment
-
-In this step, an LLM is used to improve an existing prompt (`v2`).
-
-### Meta-prompt used
-
-```text
-You are a prompt optimization expert.
-Improve the following prompt to maximize clarity, specificity, factual grounding, and output consistency for CSV analysis.
-
-Requirements:
-- Keep the same intent (analyze shark attacks dataset).
-- Add explicit reasoning and self-reflection steps.
-- Add hallucination controls and confidence calibration.
-- Enforce a strict response schema.
-- Keep the final prompt concise but robust.
-
-Prompt to improve:
-[PASTE v2 HERE]
-
-Return:
-1) Improved prompt
-2) Short explanation of what was changed and why
-3) A checklist to evaluate output quality
+```mermaid
+flowchart TD
+    A[Load dataset/attacks.csv] --> B[Run baseline prompt]
+    B --> C[Draft v1 prompt]
+    C --> D[Evaluate output quality]
+    D --> E[Refine to v2: scope + structure]
+    E --> F[Evaluate with checklist]
+    F --> G[Refine to v3: ReAct + self-reflection]
+    G --> H[Run v3 and capture output]
+    H --> I{Pass acceptance gate?}
+    I -- No --> J[Meta-prompt current version]
+    J --> K[Generate improved prompt]
+    K --> F
+    I -- Yes --> L[Promote prompt as project standard]
 ```
 
-### Example improved prompt produced by meta-prompting
+## Canonical v3 Prompt (Use As-Is)
 
 ```text
 Act as a senior incident data analyst.
-Analyze attacks.csv using Year, Country, Type, Activity, Injury, Fatal (Y/N), Age, and Time.
 
-Process:
-1) Select relevant fields and justify usage.
-2) Detect data quality risks that may affect conclusions.
-3) Extract trends by time, location, activity, and severity.
-4) Self-critique each finding for evidence strength and potential bias.
-5) Downgrade confidence or remove claims that are weakly supported.
+Context:
+- Data source: dataset/attacks.csv
+- Available columns may include: Case Number, Date, Year, Type, Country, Area, Location, Activity, Sex, Age, Injury, Fatal (Y/N), Time, Species.
+- If a referenced column is missing or unusable, state it explicitly and continue with available evidence.
 
-Output:
-- Insights: 5-8 bullets with evidence fields + confidence (High/Medium/Low)
-- Data quality caveats: 3-5 bullets
-- Recommended next analyses: 3 bullets
-- Executive summary: <= 5 lines
+Goals:
+1. Extract the most important incident and risk patterns supported by data.
+2. Separate confirmed findings from assumptions and recommendations.
+3. Produce a concise, decision-ready summary for non-technical stakeholders.
 
-Rules:
-- No fabricated statistics.
-- Explicitly mark uncertain findings.
-- Keep wording concise and stakeholder-friendly.
+Method (ReAct + self-reflection):
+1. Field selection: list the columns you will use and justify why each is relevant.
+2. Data quality check: identify missing values, inconsistent labels, noisy text, and potential duplicates that may affect conclusions.
+3. Evidence-based findings: derive trends from available columns (time, geography, activity, injury/fatality, demographics where possible).
+4. Self-critique each finding:
+   - Is this claim directly supported by observed fields or records?
+   - Could data quality gaps bias this conclusion?
+   - What confidence level is appropriate: High, Medium, or Low?
+5. Claim revision: downgrade confidence, rewrite, or remove weak/speculative claims before final output.
+
+Output schema (strict):
+Section A - Key insights
+- 5-8 bullet points.
+- Each bullet must contain:
+  - Insight statement
+  - Evidence (specific columns and/or observed record patterns)
+  - Confidence: High | Medium | Low
+
+Section B - Data quality caveats
+- 3-5 bullet points.
+- Each bullet must include impact on interpretation.
+
+Section C - Recommended next analyses
+- Exactly 3 bullet points.
+- Must be feasible follow-ups based on available columns.
+
+Section D - Executive summary
+- Maximum 5 lines.
+- Plain language, stakeholder-friendly.
+
+Constraints:
+- Do not fabricate metrics or exact numbers that were not computed from the data.
+- If evidence is partial, disclose uncertainty explicitly.
+- Do not present assumptions as confirmed facts.
+- Keep wording concise and actionable.
 ```
 
-### Test result checklist
+## Quality Checklist and Acceptance Gate
 
-Use this checklist to compare `v2` vs improved prompt outputs:
+Score each criterion from 1 (weak) to 5 (strong):
+- Clarity
+- Specificity
+- Grounding
+- Hallucination resistance
+- Consistency
+- Actionability
 
-- Clarity: Is the task objective unambiguous?
-- Specificity: Are required fields and sections explicit?
-- Grounding: Are claims tied to dataset columns?
-- Hallucination resistance: Does the model avoid fabricated numbers?
-- Consistency: Is output format stable across multiple runs?
-- Actionability: Are recommendations practical and prioritized?
+Accept a prompt only if:
+- Average score >= 4.0
+- No fabricated metrics
+- No unlabeled speculative claims
 
-## 5) How to Run the Experiment
+## Minimal Runbook
 
-1. Open `dataset/attacks.csv` and copy a representative sample (or provide full file context if your LLM supports it).
-2. Run baseline prompt and save output as `baseline_output`.
-3. Run `v1`, `v2`, and `v3` prompts; save each result.
-4. Run the meta-prompt on `v2` and capture the LLM-generated improved prompt.
-5. Re-run analysis with the improved prompt.
-6. Evaluate all outputs with the checklist above.
-7. Select the prompt that gives the best balance of correctness, clarity, and consistency.
-
-## Expected Outcome
-
-By following this workflow, you should observe that:
-
-- Prompt specificity strongly improves output quality.
-- Self-reflection steps reduce weak or unsupported claims.
-- Meta-prompting accelerates prompt refinement and standardization.
+1. Run baseline, `v1`, `v2`, and `v3` on the same data sample.
+2. Compare outputs with the checklist.
+3. If needed, meta-prompt the current best version and rerun.
+4. Promote only prompts that pass the acceptance gate.
