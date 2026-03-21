@@ -13,10 +13,12 @@ public static class DependencyInjectionConfigurationExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
-        var section = configuration.GetSection(nameof(AiServiceSettings));
-        var settings = section.Get<AiServiceSettings>() ?? throw new ArgumentNullException(nameof(section));
+        var aiSection = configuration
+            .GetSection(nameof(SystemSettings))
+            .GetSection(nameof(AiServiceSettings));
+        var settings = aiSection.Get<AiServiceSettings>() ?? throw new ArgumentNullException(nameof(aiSection));
 
-        ArgumentNullException.ThrowIfNull(section);
+        ArgumentNullException.ThrowIfNull(aiSection);
         ArgumentNullException.ThrowIfNull(settings.BaseAddress);
         ArgumentNullException.ThrowIfNull(settings.Instances);
         ArgumentNullException.ThrowIfNull(settings.Retry);
@@ -43,8 +45,7 @@ public static class DependencyInjectionConfigurationExtensions
             ArgumentNullException.ThrowIfNull(instance.Deployment);
         }
 
-        // Load settings from appsettings.json file
-        services.Configure<AiServiceSettings>(section);
+        services.Configure<AiServiceSettings>(aiSection);
 
         services.AddScoped<IAiService, AiService>();
         HttpClientSetUp(services, settings);

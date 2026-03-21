@@ -23,6 +23,7 @@ public static class DependencyInjectionConfigurationExtensions
         var configuration = BuildConfiguration();
 
         services.AddSingleton(configuration);
+        services.AddPromptEngineeringServices(configuration);
         services.AddGenAi(configuration);
         services.AddSingleton<IContextService, ContextService>();
         services.AddSingleton<IPromptService, PromptService>();
