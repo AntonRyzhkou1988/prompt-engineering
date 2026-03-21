@@ -19,12 +19,16 @@ public sealed class ContextService : IContextService
     private const string DataEndTag = "</data>";
     private const string YearHeader = "Year";
     private const string CountryHeader = "Country";
+    private const string AreaHeader = "Area";
     private const string TypeHeader = "Type";
     private const string ActivityHeader = "Activity";
     private const string InjuryHeader = "Injury";
     private const string FatalYnHeader = "Fatal (Y/N)";
+    private const string SexHeader = "Sex";
     private const string AgeHeader = "Age";
     private const string TimeHeader = "Time";
+    private const string SpeciesHeader = "Species";
+    private const string InvestigatorSourceHeader = "Investigator or Source";
     private static readonly JsonSerializerOptions DefaultJsonOptions = new(JsonSerializerDefaults.General);
     private readonly SystemSettings _systemSettings;
     private readonly ContextSettings _contextSettings;
@@ -240,12 +244,16 @@ public sealed class ContextService : IContextService
         {
             Year = GetFieldValue(row, headerIndexLookup, YearHeader),
             Country = GetFieldValue(row, headerIndexLookup, CountryHeader),
+            Area = GetFieldValue(row, headerIndexLookup, AreaHeader),
             Type = GetFieldValue(row, headerIndexLookup, TypeHeader),
             Activity = GetFieldValue(row, headerIndexLookup, ActivityHeader),
             Injury = GetFieldValue(row, headerIndexLookup, InjuryHeader),
             FatalYn = GetFieldValue(row, headerIndexLookup, FatalYnHeader),
+            Sex = GetFieldValue(row, headerIndexLookup, SexHeader),
             Age = GetFieldValue(row, headerIndexLookup, AgeHeader),
-            Time = GetFieldValue(row, headerIndexLookup, TimeHeader)
+            Time = GetFieldValue(row, headerIndexLookup, TimeHeader),
+            Species = GetFieldValue(row, headerIndexLookup, SpeciesHeader),
+            InvestigatorSource = GetFieldValue(row, headerIndexLookup, InvestigatorSourceHeader)
         };
     }
 
@@ -394,12 +402,16 @@ public sealed class ContextService : IContextService
             builder.Append("<record>");
             AppendXmlElement(builder, "Year", record.Year);
             AppendXmlElement(builder, "Country", record.Country);
+            AppendXmlElement(builder, "Area", record.Area);
             AppendXmlElement(builder, "Type", record.Type);
             AppendXmlElement(builder, "Activity", record.Activity);
             AppendXmlElement(builder, "Injury", record.Injury);
             AppendXmlElement(builder, "FatalYN", record.FatalYn);
+            AppendXmlElement(builder, "Sex", record.Sex);
             AppendXmlElement(builder, "Age", record.Age);
             AppendXmlElement(builder, "Time", record.Time);
+            AppendXmlElement(builder, "Species", record.Species);
+            AppendXmlElement(builder, "InvestigatorSource", record.InvestigatorSource);
             builder.Append("</record>");
         }
 

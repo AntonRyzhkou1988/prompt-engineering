@@ -1,146 +1,127 @@
 # Prompt Engineering Practice
 
-This repository practices prompt design for reliable CSV analysis on `dataset/attacks.csv`.
-The objective is to produce evidence-grounded insights with explicit uncertainty and a stable output format.
+This repository practices **ReAct-style prompt design** for reliable analysis of `dataset/attacks.csv`. The goal is **evidence-grounded** answers with **explicit uncertainty**, **confidence labels**, and a **stable output shape** so runs are comparable.
 
-## Quick Scope
+---
 
-- **Dataset**: `dataset/attacks.csv`
-- **Common columns**: `Year`, `Country`, `Type`, `Activity`, `Injury`, `Fatal (Y/N)`, `Age`, `Time`
-- **Typical data risks**: missing values, inconsistent labels, noisy text
+## How prompts run
 
-## ReAct Prompt Standard
+- Prompts live in [`prompts/`](prompts/) as **`v1.json`**, **`v2.json`**, **`v3.json`** (processed in **file-name order**).
+- Each file defines two string arrays: `DefaultAssistantRole` (system) and `DefaultUserPrompt` (user). The client **joins array entries with newlines** into the messages sent to the model.
+- The user prompt must contain a `<data>...</data>` region. At runtime, the app **replaces the inner part** with one `<record>...</record>` per loaded CSV row (see [Injected XML](#injected-xml-one-record-per-row)).
+- Paths for prompts, dataset, and output are configured under `ContextSettings` in [`src/PromptEngineering.Client/appsettings.json`](src/PromptEngineering.Client/appsettings.json).
 
-Every production-ready prompt in this repository should enforce:
-1. Domain role first (analyst perspective).
-2. Explicit fields and analysis scope.
-3. ReAct flow: field selection -> data-quality check -> findings -> self-critique -> claim revision.
-4. Strict response schema with section and bullet limits.
-5. Safety constraints: no fabricated metrics, uncertainty disclosure, confidence labels.
+---
 
-## Prompt Progression (v1 -> v2 -> v3)
+## Injected XML (one record per row)
 
-### v1 (too broad)
+The pipeline maps selected CSV columns into XML tags (names are fixed; empty tags mean missing values in the source row).
 
-```text
-Act as a data scientist. Analyze the shark attacks dataset and provide key insights in bullet points.
-```
+| XML element | Source column (conceptual) |
+|-------------|----------------------------|
+| `Year` | Year |
+| `Country` | Country |
+| `Area` | Area |
+| `Type` | Type |
+| `Activity` | Activity |
+| `Injury` | Injury |
+| `FatalYN` | Fatal (Y/N) |
+| `Sex` | Sex (CSV header may include a trailing space) |
+| `Age` | Age |
+| `Time` | Time |
+| `Species` | Species (CSV header may include a trailing space) |
+| `InvestigatorSource` | Investigator or Source |
 
-**Gap**: role exists, but scope and verification are weak.
+The raw CSV has additional columns (e.g. Case Number, Date, links). They are **not** injected unless the loader is extended; analyses should rely on the elements above.
 
-### v2 (better structure)
+---
 
-```text
-Act as a data scientist.
-Analyze attacks.csv using Year, Country, Type, Activity, Injury, and Fatal (Y/N).
-Return:
-1) Top trends
-2) Fatality-related patterns
-3) Data quality issues
-4) Suggested follow-up analyses
-Use bullet points and mark confidence levels.
-```
+## ReAct prompt standard (repository rule)
 
-**Gap**: better scope and format, but no mandatory self-correction loop.
+Production-ready prompts here should enforce:
 
-### v3 (recommended)
+1. **Role first** — domain-relevant analyst, not a generic assistant.
+2. **Explicit scope** — which fields and which questions (see **Q1–Q3** below).
+3. **ReAct flow** — field selection → data-quality check → evidence-based findings → **self-critique** → **claim revision** before the final answer.
+4. **Strict response schema** — section headings and **bullet limits** (see **v3**).
+5. **Safety** — no fabricated metrics; disclose partial evidence; **High / Medium / Low** confidence on substantive claims.
 
-Use `prompts/react-self-reflection-v3.txt` as the canonical prompt.
+---
 
-Key upgrades over v2:
-- Mandatory self-critique per finding.
-- Explicit claim revision/removal for weak evidence.
-- Hard anti-hallucination and uncertainty rules.
-- Consistent schema for cross-run comparison.
+## Research questions (Q1–Q3)
 
-## Workflow Diagram
+All three prompt versions target the same analytical frame:
+
+| ID | Theme | Core elements |
+|----|--------|----------------|
+| **Q1** | Geography, time, encounter classification | Year, Country, Area, Type, FatalYN |
+| **Q2** | Activity, demographics, harm | Activity, Sex, Age, Injury, FatalYN |
+| **Q3** | Species and time-of-day | Species, Time, Type, FatalYN, Country (optional: InvestigatorSource) |
+
+**Ordering:** Prefer **Q1** and **Q2** (cleaner dimensions) before **Q3** (noisier free text and sparse `Time`).
+
+---
+
+## Prompt progression (v1 → v2 → v3)
+
+| Version | File | Intent | ReAct |
+|---------|------|--------|--------|
+| **v1** | [`prompts/v1.json`](prompts/v1.json) | Baseline: same Q1–Q3, minimal scaffolding; notes that v2/v3 add formal checks | Not required (direct answers still must cite `<record>` evidence) |
+| **v2** | [`prompts/v2.json`](prompts/v2.json) | **Numbered outcomes**, field hints per question, fixed **section headings**, confidence on substantive bullets | Implicit (quality + follow-ups explicit; no mandatory 5-step loop) |
+| **v3** | [`prompts/v3.json`](prompts/v3.json) | **Canonical**: full **5-step** ReAct + self-reflection; **strict** Sections A–E and bullet caps | **Mandatory** |
+
+**Gaps each step fixes:** v1 → v2 adds structure and confidence discipline; v2 → v3 adds mandatory self-critique, claim revision, and a rigid schema for cross-run comparison.
+
+---
+
+## v3 output schema (canonical)
+
+Section titles and limits match [`prompts/v3.json`](prompts/v3.json):
+
+- **Section A — Q1 findings:** 3–5 bullets (insight; supporting elements; Confidence: High | Medium | Low).
+- **Section B — Q2 findings:** same.
+- **Section C — Q3 findings:** same; call out Species/Time limits where needed.
+- **Section D — Data quality caveats:** 3–5 bullets (each ties a risk to interpretation).
+- **Section E — Executive summary:** ≤5 lines; no new unsupported claims.
+
+---
+
+## Workflow
 
 ```mermaid
 flowchart TD
-    A[Load dataset/attacks.csv] --> B[Run baseline prompt]
-    B --> C[Draft v1 prompt]
-    C --> D[Evaluate output quality]
-    D --> E[Refine to v2: scope + structure]
-    E --> F[Evaluate with checklist]
-    F --> G[Refine to v3: ReAct + self-reflection]
-    G --> H[Run v3 and capture output]
-    H --> I{Pass acceptance gate?}
-    I -- No --> J[Meta-prompt current version]
-    J --> K[Generate improved prompt]
-    K --> F
-    I -- Yes --> L[Promote prompt as project standard]
+    A[Load dataset/attacks.csv] --> B[Run v1.json]
+    B --> C[Evaluate output]
+    C --> D[Run v2.json]
+    D --> E[Evaluate with checklist]
+    E --> F[Run v3.json]
+    F --> G{Pass acceptance gate?}
+    G -- No --> H[Meta-prompt best version]
+    H --> E
+    G -- Yes --> I[Promote as standard]
 ```
 
-## Canonical v3 Prompt (Use As-Is)
+---
 
-```text
-Act as a senior incident data analyst.
+## Quality checklist and acceptance gate
 
-Context:
-- Data source: dataset/attacks.csv
-- Available columns may include: Case Number, Date, Year, Type, Country, Area, Location, Activity, Sex, Age, Injury, Fatal (Y/N), Time, Species.
-- If a referenced column is missing or unusable, state it explicitly and continue with available evidence.
+Score 1 (weak) to 5 (strong):
 
-Goals:
-1. Extract the most important incident and risk patterns supported by data.
-2. Separate confirmed findings from assumptions and recommendations.
-3. Produce a concise, decision-ready summary for non-technical stakeholders.
+- Clarity  
+- Specificity  
+- Grounding  
+- Hallucination resistance  
+- Consistency  
+- Actionability  
 
-Method (ReAct + self-reflection):
-1. Field selection: list the columns you will use and justify why each is relevant.
-2. Data quality check: identify missing values, inconsistent labels, noisy text, and potential duplicates that may affect conclusions.
-3. Evidence-based findings: derive trends from available columns (time, geography, activity, injury/fatality, demographics where possible).
-4. Self-critique each finding:
-   - Is this claim directly supported by observed fields or records?
-   - Could data quality gaps bias this conclusion?
-   - What confidence level is appropriate: High, Medium, or Low?
-5. Claim revision: downgrade confidence, rewrite, or remove weak/speculative claims before final output.
+**Accept** only if average ≥ **4.0**, with **no fabricated metrics** and **no unlabeled speculation** passed off as fact.
 
-Output schema (strict):
-Section A - Key insights
-- 5-8 bullet points.
-- Each bullet must contain:
-  - Insight statement
-  - Evidence (specific columns and/or observed record patterns)
-  - Confidence: High | Medium | Low
+---
 
-Section B - Data quality caveats
-- 3-5 bullet points.
-- Each bullet must include impact on interpretation.
+## Minimal runbook
 
-Section C - Recommended next analyses
-- Exactly 3 bullet points.
-- Must be feasible follow-ups based on available columns.
-
-Section D - Executive summary
-- Maximum 5 lines.
-- Plain language, stakeholder-friendly.
-
-Constraints:
-- Do not fabricate metrics or exact numbers that were not computed from the data.
-- If evidence is partial, disclose uncertainty explicitly.
-- Do not present assumptions as confirmed facts.
-- Keep wording concise and actionable.
-```
-
-## Quality Checklist and Acceptance Gate
-
-Score each criterion from 1 (weak) to 5 (strong):
-- Clarity
-- Specificity
-- Grounding
-- Hallucination resistance
-- Consistency
-- Actionability
-
-Accept a prompt only if:
-- Average score >= 4.0
-- No fabricated metrics
-- No unlabeled speculative claims
-
-## Minimal Runbook
-
-1. Run baseline, `v1`, `v2`, and `v3` on the same data sample.
-2. Compare outputs with the checklist.
-3. If needed, meta-prompt the current best version and rerun.
-4. Promote only prompts that pass the acceptance gate.
+1. Point `ContextSettings:PromptPath` at the `prompts` folder and `DatasetPath` at `dataset/attacks.csv`.
+2. Run the client pipeline so **v1**, then **v2**, then **v3** execute (or run a single file by using a folder with only that JSON).
+3. Compare outputs using the checklist above.
+4. If quality stalls, **meta-prompt** the current best version (preserve intent, tighten grounding and schema) and re-run.
+5. Treat **v3** as the default template for new incident-style prompts in this repo.

@@ -1,16 +1,25 @@
 {
     "DefaultAssistantRole": [
-        "You are a data scientist.",
-        "Inside <data>, each incident is one <record> element. Child elements appear in this order and map to README/common CSV fields: <Year>, <Country>, <Type>, <Activity>, <Injury>, <FatalYN> (source column Fatal (Y/N)), <Age>, <Time>.",
-        "Element text is the raw field value from the CSV; empty elements mean missing or blank in source data. Text is XML-escaped where needed.",
-        "When citing evidence, reference these element names and patterns across <record> elements (do not invent rows or field values).",
-        "Return result in MARKDOWN format."
+        "## Role",
+        "You are a senior incident data analyst for shark-encounter records.",
+        "## Data you receive",
+        "The user message contains a <data>...</data> block. At runtime it holds one <record> per CSV row from dataset/attacks.csv.",
+        "Each <record> includes these child elements in order (empty tags mean missing source values): Year, Country, Area, Type, Activity, Injury, FatalYN (CSV column Fatal (Y/N)), Sex, Age, Time, Species, InvestigatorSource (CSV column Investigator or Source).",
+        "Treat element text as authoritative evidence. Do not invent rows, field values, or metrics you did not derive from those records.",
+        "## Output",
+        "Respond in Markdown."
     ],
     "DefaultUserPrompt": [
-        "Data source: historical shark attack incident records.",
-        "Dataset rows are injected into the <data> section below as XML: one <record> per incident, as described in the system instructions.",
-        "Task:",
-        "Analyze the shark attacks dataset and provide key insights in bullet points.",
+        "## Context",
+        "Data source: dataset/attacks.csv. Records appear as XML inside <data> below (see system message for element definitions).",
+        "## Task",
+        "Answer Q1–Q3 using only patterns visible in <record> elements. Use bullet points. Where fields are missing or ambiguous, say so briefly.",
+        "## Questions",
+        "Q1 — Geography, time, encounter classification: How do counts and fatality outcomes (FatalYN) vary by Country and Year, and how does stratifying by Type (e.g. Unprovoked, Provoked, Invalid, Boat) change how you read trends?",
+        "Q2 — Activity, demographics, harm: How do Activity, Sex, and Age relate to FatalYN and Injury text? Where is the evidence too thin for strong claims?",
+        "Q3 — Species and time-of-day: How do Species and Time relate to Type, FatalYN, and Country? What limits confidence (free text, missing IDs, inconsistent times)?",
+        "## Note (baseline prompt)",
+        "This version does not require an explicit ReAct step list; v2/v3 add structure and self-checks. Still ground every bullet in observable <record> content.",
         "<data>",
         "<!-- Runtime replaces this inner region with concatenated <record>...</record> elements. -->",
         "</data>"
