@@ -5,13 +5,9 @@ public static class PromptJsonDiscovery
     /// <summary>
     /// Returns full paths to every <c>*.json</c> file in the resolved prompts directory, ordered by file name (ordinal, case-insensitive).
     /// </summary>
-    public static IReadOnlyList<string> GetOrderedPromptJsonFullPaths(string promptPath = "prompts")
+    public static IReadOnlyList<string> GetOrderedPromptJsonFullPaths(string promptPath)
     {
-        var dir = ContextSettingsPromptPathResolver.ResolveExistingDirectoryPath(promptPath)
-            ?? throw new InvalidOperationException(
-                $"Prompts directory was not found. Tried path '{promptPath}' (resolved from app base and parent directories).");
-
-        return Directory.GetFiles(dir, "*.json")
+        return Directory.GetFiles(promptPath, "*.json")
             .OrderBy(f => Path.GetFileName(f), StringComparer.OrdinalIgnoreCase)
             .ToArray();
     }

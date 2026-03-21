@@ -96,12 +96,8 @@ public sealed class ContextService : IContextService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(promptPath);
 
-        var resolved = ContextSettingsPromptPathResolver.ResolveExistingFilePath(promptPath)
-            ?? throw new InvalidOperationException(
-                $"Context prompts JSON was not found. Tried path '{promptPath}' (resolved from app base and parent directories).");
-
-        var loaded = ContextPromptsJsonLoader.LoadFromResolvedPath(resolved);
-        var stem = Path.GetFileNameWithoutExtension(resolved);
+        var loaded = ContextPromptsJsonLoader.LoadFromResolvedPath(promptPath);
+        var stem = Path.GetFileNameWithoutExtension(promptPath);
         return RunCoreAsync(loaded, stem, cancellationToken);
     }
 
