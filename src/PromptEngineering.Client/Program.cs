@@ -21,9 +21,10 @@ internal class Program
             .BuildServiceProvider();
 
         var contextService = provider.GetRequiredService<IContextService>();
-        
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+
         // Run ReAct sequence 
-        var runs = await contextService.RunVersionChainAsync(cancellationToken: CancellationToken.None);
+        var runs = await contextService.RunReActAsync(cancellationToken: cts.Token);
 
         // Output result
         Console.WriteLine($"Completed prompts count: {runs.Count}");
