@@ -11,6 +11,7 @@ Goal: evidence-grounded answers with explicit confidence levels and a stable out
 
 ## Table of contents
 
+- [Features](#features)
 - [What it does](#what-it-does)
 - [Project structure](#project-structure)
 - [How to run](#how-to-run)
@@ -21,6 +22,22 @@ Goal: evidence-grounded answers with explicit confidence levels and a stable out
 - [Output schema](#output-schema-sections-ad)
 - [ReAct reasoning cycle](#react-reasoning-cycle)
 - [Quality checklist](#quality-checklist)
+
+---
+
+## Features
+
+### 1 — Cross-version ReAct chaining
+
+Each prompt's LLM completion is automatically injected as `<prior_run>` content into the next prompt in the sequence. This creates a refinement chain where every model call builds directly on the previous one's analysis — deepening findings, resolving contradictions, and tightening confidence labels across versions. Prompts without a `<prior_run>` region silently ignore the injection and run independently.
+
+### 2 — Per-prompt LLM routing
+
+Every prompt JSON file owns its own `InstanceName` and `Temperature`. At runtime, `ContextService` resolves the matching HTTP client and routes the call to the correct model — GPT-4o for exploratory runs, Claude for structured reasoning, Gemini for final synthesis. Credentials and endpoints are bound per-instance from `appsettings.json` and overridable via .NET user secrets, with no shared global model setting.
+
+### 3 — Resilient HTTP pipeline
+
+`AiService` wraps every LLM call with a **Polly retry policy** (exponential backoff, configurable retry count, transient errors + HTTP 408), a per-instance **connection timeout**, and a configurable **handler lifetime**. It also supports **SSE streaming** — aggregating server-sent `data:` delta tokens into a single `ChatCompletion` object — so the pipeline works identically in streaming and non-streaming modes.
 
 ---
 
