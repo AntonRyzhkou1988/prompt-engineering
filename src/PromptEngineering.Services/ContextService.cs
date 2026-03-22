@@ -32,8 +32,6 @@ public sealed class ContextService : IContextService
     private const string SpeciesHeader = "Species";
     private const string InvestigatorSourceHeader = "Investigator or Source";
     private static readonly JsonSerializerOptions DefaultJsonOptions = new(JsonSerializerDefaults.General);
-    private static readonly string ReActRunsSummarySeparator =
-        $"{Environment.NewLine}{Environment.NewLine}---{Environment.NewLine}{Environment.NewLine}";
     private readonly SystemSettings _systemSettings;
     private readonly ContextSettings _contextSettings;
     private readonly string _instanceName;
@@ -100,40 +98,58 @@ public sealed class ContextService : IContextService
     }
 
     public async Task<IReadOnlyList<ContextPipelineResult>> RunVersionChainAsync(
-        IReadOnlyList<string> promptFileNames,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(promptFileNames);
-        if (promptFileNames.Count == 0)
-            throw new ArgumentException("promptFileNames must contain at least one entry.", nameof(promptFileNames));
+        ArgumentNullException.ThrowIfNull(_contextSettings.ReActSequence);
+        if (_contextSettings.ReActSequence.Count == 0)
+            throw new ArgumentException("promptFileNames must contain at least one entry.", nameof(_contextSettings.ReActSequence));
 
         var datasetSnapshot = await LoadDatasetAsync(
             _contextSettings.DatasetPath,
             _systemSettings.MaximumDatasetRecordCount,
             cancellationToken);
 
-        var results = new List<ContextPipelineResult>(promptFileNames.Count);
+        var results = new List<ContextPipelineResult>(_contextSettings.ReActSequence.Count);
         string? priorCompletion = null;
 
-        foreach (var fileName in promptFileNames)
+        foreach (var fileName in _contextSettings.ReActSequence)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var promptPath = Path.Combine(_contextSettings.PromptPath, fileName);
             var stem = Path.GetFileNameWithoutExtension(promptPath);
+            Console.ForegroundColor = ConsoleColor.DarkMagenta;
             Console.WriteLine($"Running version chain pipeline: {stem}...");
+            Console.ForegroundColor = ConsoleColor.White;
 
-            var loaded = ContextPromptsJsonLoader.LoadFromResolvedPath(promptPath);
-            var result = await RunCoreAsync(datasetSnapshot, loaded, stem, priorCompletion, cancellationToken);
-            results.Add(result);
-
-            var content = result.Completion.Choices?.FirstOrDefault()?.Message?.Content;
-            if (!string.IsNullOrWhiteSpace(content))
+            try
             {
-                Console.WriteLine(content);
+                var loaded = ContextPromptsJsonLoader.LoadFromResolvedPath(promptPath);
+                var result = await RunCoreAsync(datasetSnapshot, loaded, stem, priorCompletion, cancellationToken);
+                results.Add(result);
+
+                var content = result.Completion.Choices?.FirstOrDefault()?.Message?.Content;
+                if (!string.IsNullOrWhiteSpace(content))
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkGreen;
+                    Console.WriteLine(content);
+                    Console.ForegroundColor = ConsoleColor.White;
+                }
+
+                Console.ForegroundColor = ConsoleColor.DarkCyan;
+                Console.WriteLine($"Saved assistant Markdown: {result.OutputPath}");
+                Console.ForegroundColor = ConsoleColor.White;
+
+                priorCompletion = content;
+            }
+            catch (Exception e)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkRed;
+                Console.WriteLine(e);
+                Console.ForegroundColor = ConsoleColor.White;
+
+                throw new Exception("Execution failed with system exception.", e);
             }
 
-            Console.WriteLine($"Saved assistant Markdown: {result.OutputPath}");
-            priorCompletion = content;
         }
 
         return results;
@@ -179,30 +195,6 @@ public sealed class ContextService : IContextService
 
         return results;
     }
-
-    public async Task SummarizeAsync(
-        IReadOnlyList<ContextPipelineResult> runs,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(runs);
-        ArgumentException.ThrowIfNullOrWhiteSpace(_contextSettings.OutputDirectory);
-
-        var text = BuildReActRunsSummaryText(runs);
-        await File.WriteAllTextAsync(Path.Combine(_contextSettings.OutputDirectory, "summarize.txt"), text, cancellationToken);
-    }
-
-    private static string BuildReActRunsSummaryText(IReadOnlyList<ContextPipelineResult> runs) =>
-        string.Join(
-            ReActRunsSummarySeparator,
-            runs.Select(run =>
-            {
-                var header =
-                    $"## Run: {run.PromptStem}{Environment.NewLine}Output: {run.OutputPath}{Environment.NewLine}{Environment.NewLine}";
-                var content = run.Completion.Choices?.FirstOrDefault()?.Message?.Content;
-                return string.IsNullOrWhiteSpace(content)
-                    ? $"{header}(no assistant content) — saved: {run.OutputPath}"
-                    : $"{header}{content}";
-            }));
 
     private Task<ContextPipelineResult> RunFromPromptPathAsync(
         DatasetSnapshot datasetSnapshot,

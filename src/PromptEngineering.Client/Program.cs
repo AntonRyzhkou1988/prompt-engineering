@@ -21,14 +21,11 @@ internal class Program
             .BuildServiceProvider();
 
         var contextService = provider.GetRequiredService<IContextService>();
+        
+        // Run ReAct sequence 
+        var runs = await contextService.RunVersionChainAsync(cancellationToken: CancellationToken.None);
 
-        // Run the three-version ReAct chain: v1 (minimal) → v2 (structured) → v3 (strict ReAct).
-        // Each completion feeds into the next prompt's <prior_run> region.
-        var runs = await contextService.RunVersionChainAsync(
-            ["v1.json", "v2.json", "v3.json"],
-            cancellationToken: CancellationToken.None);
-
-        // Write summarize.txt aggregating all iteration outputs
-        await contextService.SummarizeAsync(runs, cancellationToken: CancellationToken.None);
+        // Output result
+        Console.WriteLine($"Completed prompts count: {runs.Count}");
     }
 }

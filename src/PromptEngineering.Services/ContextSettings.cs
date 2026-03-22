@@ -10,11 +10,13 @@ public sealed class ContextSettings
     /// The runtime discovers all <c>*.json</c> files there and executes them in file-name order.
     /// Absolute and repository-relative paths are supported.
     /// </summary>
-    public string PromptPath { get; set; } = string.Empty;
+    public required string PromptPath { get; set; }
 
-    public float Temperature { get; set; } = 0.3f;
+    public required float Temperature { get; set; }
 
-    public string DatasetPath { get; set; } = "dataset/attacks.csv";
+    public required string DatasetPath { get; set; }
 
-    public string OutputDirectory { get; set; } = "output";
+    public required string OutputDirectory { get; set; }
+
+    public required List<string> ReActSequence { get; set; }
 }
