@@ -22,9 +22,11 @@ internal class Program
 
         var contextService = provider.GetRequiredService<IContextService>();
 
-        // Run 3 chained ReAct iterations: each completion feeds into the next via <prior_run>
-        var runs = await contextService.RunIterativeAsync(
-            "initial.json", iterations: 3, cancellationToken: CancellationToken.None);
+        // Run the three-version ReAct chain: v1 (minimal) → v2 (structured) → v3 (strict ReAct).
+        // Each completion feeds into the next prompt's <prior_run> region.
+        var runs = await contextService.RunVersionChainAsync(
+            ["v1.json", "v2.json", "v3.json"],
+            cancellationToken: CancellationToken.None);
 
         // Write summarize.txt aggregating all iteration outputs
         await contextService.SummarizeAsync(runs, cancellationToken: CancellationToken.None);

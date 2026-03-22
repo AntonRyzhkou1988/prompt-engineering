@@ -99,6 +99,46 @@ public sealed class ContextService : IContextService
         return results;
     }
 
+    public async Task<IReadOnlyList<ContextPipelineResult>> RunVersionChainAsync(
+        IReadOnlyList<string> promptFileNames,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(promptFileNames);
+        if (promptFileNames.Count == 0)
+            throw new ArgumentException("promptFileNames must contain at least one entry.", nameof(promptFileNames));
+
+        var datasetSnapshot = await LoadDatasetAsync(
+            _contextSettings.DatasetPath,
+            _systemSettings.MaximumDatasetRecordCount,
+            cancellationToken);
+
+        var results = new List<ContextPipelineResult>(promptFileNames.Count);
+        string? priorCompletion = null;
+
+        foreach (var fileName in promptFileNames)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var promptPath = Path.Combine(_contextSettings.PromptPath, fileName);
+            var stem = Path.GetFileNameWithoutExtension(promptPath);
+            Console.WriteLine($"Running version chain pipeline: {stem}...");
+
+            var loaded = ContextPromptsJsonLoader.LoadFromResolvedPath(promptPath);
+            var result = await RunCoreAsync(datasetSnapshot, loaded, stem, priorCompletion, cancellationToken);
+            results.Add(result);
+
+            var content = result.Completion.Choices?.FirstOrDefault()?.Message?.Content;
+            if (!string.IsNullOrWhiteSpace(content))
+            {
+                Console.WriteLine(content);
+            }
+
+            Console.WriteLine($"Saved assistant Markdown: {result.OutputPath}");
+            priorCompletion = content;
+        }
+
+        return results;
+    }
+
     public async Task<IReadOnlyList<ContextPipelineResult>> RunReActAsync(CancellationToken cancellationToken)
     {
         var promptPaths = PromptJsonDiscovery.GetOrderedPromptJsonFullPaths(_contextSettings.PromptPath);
