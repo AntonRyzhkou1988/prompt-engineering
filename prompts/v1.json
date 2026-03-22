@@ -15,9 +15,9 @@
         "## Context",
         "Data source: dataset/attacks.csv. Records appear as XML inside <data> below (see system message for element definitions).",
         "## Research question",
-        "In the provided <record> rows from dataset/attacks.csv, how do Activity and encounter Type relate to harm outcomes (FatalYN and Injury), and which data-quality issues most limit how strong those conclusions can be?",
+        "In the provided <record> rows from dataset/attacks.csv, are there geographic hotspots whose shark attack frequency is rising or falling, and what might drive those trends?",
         "## What to produce",
-        "Summarise what the records show about Activity, Type, FatalYN, and Injury. Flag missing or ambiguous values. Separate what the data confirms from what is only assumed. Briefly note any follow-up analyses that would be feasible on the same XML fields.",
+        "Group records by Country and Area across Year ranges to identify regions with rising or falling attack frequency. Note possible drivers such as shifts in Activity, Type, or Species within those regions. Flag missing or ambiguous values (blank Year, inconsistent Country/Area names). Separate confirmed frequency patterns from assumptions. Briefly note any follow-up analyses that would be feasible on the same XML fields.",
         "<data>",
         "<!-- Runtime replaces this inner region with concatenated <record>...</record> elements. -->",
         "</data>"

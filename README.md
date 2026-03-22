@@ -252,7 +252,7 @@ At runtime the `<data></data>` block is replaced with one `<record>` element per
 | Version | File | Instance | Temp | What it adds |
 | :--- | :--- | :--- | :---: | :--- |
 | **initial** | `initial.json` | Low | 0.3 | Entry point — mandatory Thought/Action/Observation, `<prior_run>` chaining, Sections A–D |
-| **v1** | `v1.json` | Low | 0.3 | Baseline — same research question, minimal structure |
+| **v1** | `v1.json` | Low | 0.3 | Baseline — broad geographic-hotspot question, minimal structure |
 | **v2** | `v2.json` | Low | 0.3 | Numbered goals, fixed section headings, confidence labels |
 | **v3** | `v3.json` | Medium | 0.2 | Mandatory Thought → Action → Observation + 5-step self-reflection, strict Sections A–D |
 | **answer** | `answer.json` | High | 0.2 | Final synthesized answer built from all prior completions |
@@ -272,12 +272,12 @@ At runtime the `<data></data>` block is replaced with one `<record>` element per
 
 ## Research question
 
-> In the provided records from `attacks.csv`, how do **Activity** and encounter **Type** relate to harm outcomes (**FatalYN** and **Injury**), and which **data-quality issues** most limit how strong those conclusions can be?
+> Are there geographic hotspots whose shark attack frequency is rising or falling, and what might drive those trends?
 
 | Field role | Fields |
 | :--- | :--- |
-| **Primary** | `Type`, `Activity`, `Injury`, `FatalYN` |
-| **Supporting** | `Year`, `Country`, `Area`, and others as needed |
+| **Primary** | `Country`, `Area`, `Year` |
+| **Supporting** | `Type`, `Activity`, `FatalYN`, `Injury`, `Species` (as potential trend drivers) |
 
 ---
 
@@ -287,9 +287,9 @@ Used by `initial.json` and `v3.json`:
 
 | Section | Content | Bullet limit |
 | :--- | :--- | :---: |
-| **A — Findings** | Key insight + supporting elements + `Confidence: High / Medium / Low` | 3–5 |
-| **B — Data quality caveats** | Each risk tied to a specific interpretation impact | 3–5 |
-| **C — Next analyses** | Feasible next steps on the same fields | max 3 |
+| **A — Findings** | Geographic frequency trend insight + supporting Country/Area/Year evidence and candidate drivers + `Confidence: High / Medium / Low` | 3–5 |
+| **B — Data quality caveats** | Each risk (missing Year, naming inconsistencies, reporting bias, small samples) tied to its effect on geographic trend interpretation | 3–5 |
+| **C — Next analyses** | Feasible next steps on the same fields (e.g., seasonal patterns, species-region correlation) | max 3 |
 | **D — Executive summary** | Short summary; no new unsupported claims | max 3 |
 
 ---
