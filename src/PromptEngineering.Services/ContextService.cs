@@ -98,14 +98,13 @@ public sealed class ContextService : IContextService
 
     public async Task SummarizeAsync(
         IReadOnlyList<ContextPipelineResult> runs,
-        string outputPath = "results.txt",
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(runs);
-        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(_contextSettings.OutputDirectory);
 
         var text = BuildReActRunsSummaryText(runs);
-        await File.WriteAllTextAsync(outputPath, text, cancellationToken);
+        await File.WriteAllTextAsync(Path.Combine(_contextSettings.OutputDirectory, "summarize.txt"), text, cancellationToken);
     }
 
     private static string BuildReActRunsSummaryText(IReadOnlyList<ContextPipelineResult> runs) =>
