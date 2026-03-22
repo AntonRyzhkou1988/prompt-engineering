@@ -4,7 +4,7 @@ A hands-on project for designing and iterating **ReAct-style prompts** that anal
 Goal: evidence-grounded answers with explicit confidence levels and a stable output shape across all prompt versions.
 
 ![.NET](https://img.shields.io/badge/.NET-8%2B-512BD4?logo=dotnet)
-![LLM](https://img.shields.io/badge/LLM-GPT--4o-10a37f?logo=openai)
+![LLM](https://img.shields.io/badge/LLM-GPT--4o%20%7C%20Claude%20%7C%20Gemini-10a37f)
 ![Data](https://img.shields.io/badge/Data-attacks.csv-blue)
 
 ---
@@ -109,15 +109,24 @@ graph TD
       "BaseAddress": "<DIAL base URL>",
       "Instances": [
         {
-          "Name": "AIArchitect.PromptEngineering",
+          "Name": "AIArchitect.PromptEngineering.Low",
           "ApiKey": "<your API key>",
           "Deployment": "gpt-4o-2024-05-13"
+        },
+        {
+          "Name": "AIArchitect.PromptEngineering.Medium",
+          "ApiKey": "<your API key>",
+          "Deployment": "anthropic.claude-opus-4-20250514-v1:0-with-thinking"
+        },
+        {
+          "Name": "AIArchitect.PromptEngineering.High",
+          "ApiKey": "<your API key>",
+          "Deployment": "gemini-2.5-pro"
         }
       ]
     }
   },
   "ContextSettings": {
-    "Temperature": 0.3,
     "PromptPath": "<absolute path to prompts/>",
     "DatasetPath": "<absolute path to dataset/attacks.csv>",
     "OutputDirectory": "<absolute path to output/>",
@@ -137,6 +146,8 @@ graph TD
 cd src/PromptEngineering.Client
 dotnet user-secrets set "SystemSettings:AiServiceSettings:BaseAddress" "https://..."
 dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:0:ApiKey" "your-key"
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:1:ApiKey" "your-key"
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:2:ApiKey" "your-key"
 ```
 
 ### 3 — Run
@@ -176,16 +187,26 @@ answer.json   ──►  completion_answer_<timestamp>.md
 
 ## Prompt file format
 
-Each prompt is a JSON file with two string arrays, joined by newlines at runtime:
+Each prompt is a JSON file with four required fields:
 
 ```json
 {
+  "InstanceName": "AIArchitect.PromptEngineering.Low",
+  "Temperature": 0.3,
   "DefaultAssistantRole": ["System instruction line 1", "line 2"],
   "DefaultUserPrompt":   ["User message line 1", "<data></data>", "line 3"]
 }
 ```
 
+`DefaultAssistantRole` and `DefaultUserPrompt` are string arrays joined by newlines at runtime.  
 At runtime the `<data></data>` block is replaced with one `<record>` element per loaded CSV row.
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `InstanceName` | `string` | LLM instance to use — must match a name in `SystemSettings:AiServiceSettings:Instances` |
+| `Temperature` | `float` | Sampling temperature for this prompt |
+| `DefaultAssistantRole` | `string[]` | System message lines |
+| `DefaultUserPrompt` | `string[]` | User message lines; must contain a `<data></data>` region |
 
 ### Injected XML fields
 
@@ -211,13 +232,21 @@ At runtime the `<data></data>` block is replaced with one `<record>` element per
 
 ## Prompt versions
 
-| Version | File | What it adds |
+| Version | File | Instance | Temp | What it adds |
+| :--- | :--- | :--- | :---: | :--- |
+| **initial** | `initial.json` | Low | 0.3 | Entry point — mandatory Thought/Action/Observation, `<prior_run>` chaining, Sections A–D |
+| **v1** | `v1.json` | Low | 0.3 | Baseline — same research question, minimal structure |
+| **v2** | `v2.json` | Low | 0.3 | Numbered goals, fixed section headings, confidence labels |
+| **v3** | `v3.json` | Medium | 0.2 | Mandatory Thought → Action → Observation + 5-step self-reflection, strict Sections A–D |
+| **answer** | `answer.json` | High | 0.2 | Final synthesized answer built from all prior completions |
+
+**Instance tiers:**
+
+| Tier | Instance name | Model |
 | :--- | :--- | :--- |
-| **initial** | `initial.json` | Entry point — mandatory Thought/Action/Observation, `<prior_run>` chaining, Sections A–D |
-| **v1** | `v1.json` | Baseline — same research question, minimal structure |
-| **v2** | `v2.json` | Numbered goals, fixed section headings, confidence labels |
-| **v3** | `v3.json` | Mandatory Thought → Action → Observation + 5-step self-reflection, strict Sections A–D |
-| **answer** | `answer.json` | Final synthesized answer built from all prior completions |
+| Low | `AIArchitect.PromptEngineering.Low` | `gpt-4o-2024-05-13` |
+| Medium | `AIArchitect.PromptEngineering.Medium` | `anthropic.claude-opus-4-20250514-v1:0-with-thinking` |
+| High | `AIArchitect.PromptEngineering.High` | `gemini-2.5-pro` |
 
 > [!TIP]
 > Use `initial.json` as the starting point for new prompts. Use `v3.json` as a reference for standalone single-turn runs.
