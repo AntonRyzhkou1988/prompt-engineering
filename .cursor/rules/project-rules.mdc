@@ -1,0 +1,91 @@
+---
+description: ReAct and self-reflection prompt engineering standards for dataset analysis tasks
+alwaysApply: true
+---
+
+# ReAct Prompt Engineering Standard
+
+Use this rule for prompt creation, revision, and review in this repository.
+
+## Prompt Design Requirements
+
+- Define role first (who the model acts as) and keep it domain-relevant.
+- Provide clear context and data source (for example `dataset/attacks.csv`).
+- State task goals as numbered outcomes, not a single vague request.
+- Add explicit constraints (no fabricated numbers, uncertainty must be disclosed).
+- Enforce strict output schema with sections and bullet-count limits.
+
+## ReAct and Self-Reflection Cycle
+
+Canonical ReAct interleaves **Thought** (reason and plan), **Action** (invoke a tool or step), and **Observation** (environment feedback), repeating until a final answer.
+
+**Mapping (this repository):** The five steps below are the minimum analytical flow. Relate them to Thought/Action/Observation as follows:
+
+| Step | Typical ReAct role |
+|------|-------------------|
+| 1. Select fields and justify relevance | **Thought** (plan scope). |
+| 2. Identify data quality risks | **Thought** then **Action** (inspect records/missingness) → **Observation** (what the data supports or withholds). |
+| 3. Derive findings from evidence | **Action** (stratify, compare patterns on provided records) → **Observation** (evidence-backed summaries). |
+| 4. Self-critique each finding | **Thought** on support strength and bias risk. |
+| 5. Revise or remove weak claims | **Thought** leading to a tightened final answer. |
+
+Every refined prompt should require this minimum flow:
+
+1. Select fields and justify why they are relevant.
+2. Identify data quality risks before drawing conclusions.
+3. Derive findings from evidence tied to known columns.
+4. Self-critique each finding for support strength and bias risk.
+5. Revise or remove weak claims before final output.
+
+**Single-turn default:** The standard client sends one user message with embedded records (for example XML `<record>` elements). There is no host-executed tool loop—**do not fabricate tool results**. **Action** means analytical moves the model applies to the provided data in internal reasoning. If a future pipeline adds real tools (search, calculators, APIs), prompts must define those tools explicitly and include few-shot examples of correct use.
+
+## Evidence and Safety Rules
+
+- Tie each key finding to specific columns or observed records.
+- Do not infer exact metrics unless they are computed from provided data.
+- If evidence is partial, label confidence as `High`, `Medium`, or `Low`.
+- Separate confirmed findings from assumptions or recommendations.
+
+## Pipeline output aggregation
+
+When the host aggregates multiple run results (for example `IContextService.SummarizeAsync` writing `results.txt`), include **only** stored completion text and explicit placeholders when content is missing (referencing the per-run output path). Do **not** fabricate metrics, do **not** paraphrase or synthesize new findings in that step, and do **not** treat the aggregate file as a substitute for the model’s structured sections (for example v3 Sections A–D). The aggregate exists for **human comparison**, not as additional model output. Per-run headers (for example `## Run: v2` and the saved output path) are host-side labels only.
+
+## Iterative Optimization Protocol
+
+Use an explicit revision chain when improving prompts:
+
+- `v1`: initial structured attempt (often still broad)
+- `v2`: add clearer scope, fields, and response sections
+- `v3`: add ReAct self-checks, uncertainty controls, and stricter schema
+
+Document what each version fixes and what risk remains.
+
+## Meta-Prompting Protocol
+
+When quality is still unstable, ask an LLM to improve the active prompt with instructions to:
+
+- preserve intent
+- improve clarity and specificity
+- increase grounding and hallucination resistance
+- enforce an unambiguous output schema
+
+After meta-prompting, rerun and compare outputs using this checklist:
+
+- clarity
+- specificity
+- grounding
+- consistency
+- actionability
+
+## Example Pattern (`attacks.csv`)
+
+Use this skeleton when drafting a new analysis prompt:
+
+```text
+Act as a senior incident data analyst.
+Analyze dataset/attacks.csv using Year, Country, Type, Activity, Injury, and Fatal (Y/N).
+Internally use Thought -> Action (analytical steps on the provided records only) -> Observation (what the records show or lack), repeating until claims are stable.
+Then: field selection -> data quality check -> trend extraction -> self-critique -> claim revision.
+Return sections: Key insights, Data quality caveats, Next analyses, Executive summary.
+Rules: no fabricated metrics, no fabricated tool output, include confidence labels, disclose uncertainty.
+```

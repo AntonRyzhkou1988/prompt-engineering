@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\PromptEngineering.LLM\PromptEngineering.LLM.csproj" />
+    <ProjectReference Include="..\PromptEngineering.Services\PromptEngineering.Services.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -23,8 +23,13 @@
     <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <Folder Include="Documents\" />
-    <Folder Include="Prompts\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\prompts\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <LinkBase>prompts</LinkBase>
+    </None>
   </ItemGroup>
 
 </Project>

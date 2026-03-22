@@ -1,11 +1,8 @@
-using System.Net.Http.Headers;
-using System.Text.Json;
+using System.Reflection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using PromptEngineering.LLM;
-using PromptEngineering.LLM.Configurations;
-using PromptEngineering.LLM.Extensions;
-using PromptEngineering.LLM.Models;
+using PromptEngineering.Services;
+using PromptEngineering.Services.Configurations;
 
 namespace PromptEngineering.Client;
 
@@ -13,29 +10,23 @@ internal class Program
 {
     private static async Task Main(string[] args)
     {
+        // Configure
         var configuration = new ConfigurationBuilder()
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
-            .AddUserSecrets<Program>(optional: true)
+            .AddUserSecrets(Assembly.GetExecutingAssembly(), optional: true)
             .Build();
 
-        var services = new ServiceCollection();
-        services.UseGenAi(configuration);
-        await using var provider = services.BuildServiceProvider();
-        var aiService = provider.GetRequiredService<IAiService>();
+        await using var provider = new ServiceCollection()
+            .AddPromptEngineeringServices(configuration)
+            .BuildServiceProvider();
 
-        var chatRequest = new ChatRequest()
-        {
-            Temperature = 0.3f
-        };
-        chatRequest.AddSystemMessage("You are software developer assistant.");
-        chatRequest.AddUserMessage("What is a GC in .NET?");
+        var contextService = provider.GetRequiredService<IContextService>();
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 
-        var completion = await aiService.CompleteChatAsync("AIArchitect",
-            chatRequest,
-            new MediaTypeHeaderValue("application/json"),
-            new JsonSerializerOptions(JsonSerializerDefaults.General),
-            CancellationToken.None);
+        // Run ReAct sequence 
+        var runs = await contextService.RunReActAsync(cancellationToken: cts.Token);
 
-        Console.WriteLine("GenAI dependencies are configured.");
+        // Output result
+        Console.WriteLine($"Completed prompts count: {runs.Count}");
     }
 }

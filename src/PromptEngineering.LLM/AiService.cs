@@ -1,15 +1,12 @@
 using System.Collections.Concurrent;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using PromptEngineering.LLM.Exceptions;
 using PromptEngineering.LLM.Models;
 using Flurl;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Polly;
 
 namespace PromptEngineering.LLM;
 
@@ -20,46 +17,14 @@ public class AiService : IAiService
     private const string MetadataUrlPath = "v1/metadata/files";
     private const string NameOfTheFieldWithFile = "data";
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly ILogger<AiService> _logger;
     private readonly AiServiceSettings _settings;
-    private readonly IAsyncPolicy<HttpResponseMessage> _retryPolicy;
 
     private readonly ConcurrentDictionary<string, BucketResponse> _bucketCache = new();
 
-    private static readonly Action<ILogger, int, Exception?> LogErrorUpload =
-        LoggerMessage.Define<int>(
-            LogLevel.Error,
-            new EventId(1, nameof(AiService)),
-            "Error during Stream upload on attempt #{AttemptNumber}");
-
-    public AiService(IHttpClientFactory httpClientFactory, IOptions<AiServiceSettings> settings,
-        ILogger<AiService> logger)
+    public AiService(IHttpClientFactory httpClientFactory, IOptions<AiServiceSettings> settings)
     {
         _httpClientFactory = httpClientFactory;
-        _logger = logger;
         _settings = settings.Value;
-
-        // Specific Retry Policy for Upload. Including "SocketException"
-        var exceptionPolicy = Policy<HttpResponseMessage>
-        .Handle<HttpRequestException>(ex => ex.InnerException is SocketException)
-        .Or<HttpRequestException>(ex => ex.Message.Contains("forcibly closed by the remote host", StringComparison.OrdinalIgnoreCase))
-        .WaitAndRetryAsync(
-            3,
-            retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
-                onRetry: (ex, timespan, retryAttempt, context) =>
-                {
-                    LogErrorUpload(_logger, retryAttempt, ex.Exception);
-                });
-        var resultPolicy = Policy<HttpResponseMessage>
-        .HandleResult(msg => msg.StatusCode == System.Net.HttpStatusCode.RequestTimeout)
-        .WaitAndRetryAsync(
-            3,
-            retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
-                onRetry: (ex, timespan, retryAttempt, context) =>
-                {
-                    LogErrorUpload(_logger, retryAttempt, ex.Exception);
-                });
-        _retryPolicy = Policy.WrapAsync(exceptionPolicy, resultPolicy);
     }
 
     /// <inheritdoc />
@@ -95,30 +60,25 @@ public class AiService : IAiService
     {
         var randomFileName = $"file_{Guid.NewGuid()}";
 
-        // Specific Retry for Stream.
-        using var fileUploadResponse = await _retryPolicy.ExecuteAsync(async () =>
+        if (stream.CanSeek)
         {
-            if (stream.CanSeek)
-            {
-                stream.Position = 0;
-            }
+            stream.Position = 0;
+        }
 
-            using var openAiClient = _httpClientFactory.CreateClient(instanceName);
+        using var openAiClient = _httpClientFactory.CreateClient(instanceName);
 
-            // Get BucketId
-            var bucketId = await GetBucketId(instanceName, cancellationToken);
+        // Get BucketId
+        var bucketId = await GetBucketId(instanceName, cancellationToken);
 
-            using var content = new MultipartFormDataContent();
-            var streamContent = new StreamContent(stream);
-            streamContent.Headers.ContentType = new MediaTypeHeaderValue(contentType);
-            content.Add(streamContent, NameOfTheFieldWithFile, randomFileName);
+        using var content = new MultipartFormDataContent();
+        var streamContent = new StreamContent(stream);
+        streamContent.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+        content.Add(streamContent, NameOfTheFieldWithFile, randomFileName);
 
-            // We use "Instance Name" as BucketName
-            var fileUploadUri =
-                $"{FilesUrlPath}/{bucketId}/{instanceName}/{randomFileName}";
-            return await openAiClient.PutAsync(fileUploadUri, content, cancellationToken);
-
-        });
+        // We use "Instance Name" as BucketName
+        var fileUploadUri =
+            $"{FilesUrlPath}/{bucketId}/{instanceName}/{randomFileName}";
+        using var fileUploadResponse = await openAiClient.PutAsync(fileUploadUri, content, cancellationToken);
 
         await EnsureSuccessStatusCodeAsync(fileUploadResponse, cancellationToken);
         var fileResponse =

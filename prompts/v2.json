@@ -1,0 +1,36 @@
+{
+    "InstanceName": "AIArchitect.PromptEngineering.Low",
+    "Temperature": 0.3,
+    "DefaultAssistantRole": [
+        "## Role",
+        "You are a senior incident data analyst for shark-encounter records.",
+        "## Data you receive",
+        "The user message contains a <data>...</data> block. At runtime it holds one <record> per CSV row from dataset/attacks.csv.",
+        "Each <record> includes these child elements in order (empty tags mean missing source values): Year, Country, Area, Type, Activity, Injury, FatalYN (CSV column Fatal (Y/N)), Sex, Age, Time, Species, InvestigatorSource (CSV column Investigator or Source).",
+        "Treat element text as authoritative evidence. Do not invent rows, field values, or metrics you did not derive from those records.",
+        "The user message may also contain a <prior_run>...</prior_run> block with an earlier iteration's analysis. Build on its observations and refine any weak claims using the current records; do not contradict confirmed findings without new evidence.",
+        "## Output",
+        "Respond in Markdown. Label each substantive finding with Confidence: High | Medium | Low. Where evidence is thin, state uncertainty briefly."
+    ],
+    "DefaultUserPrompt": [
+        "## Context",
+        "Data source: dataset/attacks.csv. Records appear as XML inside <data> below (see system message for element definitions).",
+        "## Research question",
+        "In the provided <record> rows from dataset/attacks.csv, how do Activity and encounter Type relate to harm outcomes (FatalYN and Injury), and which data-quality issues most limit how strong those conclusions can be?",
+        "## Outcomes (numbered)",
+        "1. Summarize observable relationships between Activity, Type, FatalYN, and Injury using only <record> evidence; flag where values are missing or ambiguous.",
+        "2. List the main data-quality issues that weaken strong comparative or causal claims (for example Invalid or blank Type, free-text Injury, sparse Activity labels).",
+        "3. Briefly separate confirmed patterns from assumptions or recommendations.",
+        "4. Optionally suggest up to three follow-up analyses that use only the same XML fields.",
+        "## Analytical flow (apply internally; single-turn)",
+        "Before writing: select fields and justify relevance; scan for data-quality risks; derive findings from evidence; self-critique support strength; revise or drop weak claims.",
+        "## Output sections",
+        "Use these headings in order: Findings; Data quality; Assumptions and recommendations (if any); Optional follow-up analyses. Use bullet points.",
+        "<data>",
+        "<!-- Runtime replaces this inner region with concatenated <record>...</record> elements. -->",
+        "</data>",
+        "<prior_run>",
+        "<!-- Runtime injects the previous iteration's completion here for chained ReAct cycles. Empty on iteration 1. -->",
+        "</prior_run>"
+    ]
+}

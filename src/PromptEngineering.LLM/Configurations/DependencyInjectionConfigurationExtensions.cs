@@ -1,7 +1,6 @@
-﻿using PromptEngineering.LLM.Models;
+using PromptEngineering.LLM.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Extensions.Http;
 
@@ -9,24 +8,34 @@ namespace PromptEngineering.LLM.Configurations;
 
 public static class DependencyInjectionConfigurationExtensions
 {
-    public static IServiceCollection UseGenAi(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddGenAi(this IServiceCollection services, IConfiguration configuration)
     {
-        var section = configuration.GetSection(nameof(AiServiceSettings));
-        var settings = section.Get<AiServiceSettings>();
-
-        ArgumentNullException.ThrowIfNull(section);
-        ArgumentNullException.ThrowIfNull(settings);
-
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
-        ArgumentNullException.ThrowIfNull(settings);
+        var aiSection = configuration
+            .GetSection(nameof(SystemSettings))
+            .GetSection(nameof(AiServiceSettings));
+        var settings = aiSection.Get<AiServiceSettings>() ?? throw new ArgumentNullException(nameof(aiSection));
+
+        ArgumentNullException.ThrowIfNull(aiSection);
         ArgumentNullException.ThrowIfNull(settings.BaseAddress);
         ArgumentNullException.ThrowIfNull(settings.Instances);
+        ArgumentNullException.ThrowIfNull(settings.Retry);
 
         if (!settings.Instances.Any())
         {
             throw new ArgumentException("No instance to use.");
+        }
+
+        if (settings.Retry.RetryCount <= 0)
+        {
+            throw new ArgumentException("RetryCount should be greater than zero.");
+        }
+
+        if (settings.Retry.BackoffBase <= 1)
+        {
+            throw new ArgumentException("BackoffBase should be greater than one.");
         }
 
         foreach (var instance in settings.Instances)
@@ -36,41 +45,38 @@ public static class DependencyInjectionConfigurationExtensions
             ArgumentNullException.ThrowIfNull(instance.Deployment);
         }
 
-        // Load settings from appsettings.json file
-        services.Configure<AiServiceSettings>(section);
+        services.Configure<AiServiceSettings>(aiSection);
 
         services.AddScoped<IAiService, AiService>();
-        HttpClientSetUp(services,
-            services.BuildServiceProvider().GetRequiredService<IOptions<AiServiceSettings>>());
+        HttpClientSetUp(services, settings);
 
         return services;
     }
 
-    private static void HttpClientSetUp(IServiceCollection services, IOptions<AiServiceSettings> options)
+    private static void HttpClientSetUp(IServiceCollection services, AiServiceSettings settings)
     {
-        ArgumentNullException.ThrowIfNull(options);
-        ArgumentNullException.ThrowIfNull(options.Value);
+        ArgumentNullException.ThrowIfNull(settings);
 
         // Cover Transient Errors
         var retryPolicy = HttpPolicyExtensions
             .HandleTransientHttpError()
             .OrResult(msg => msg.StatusCode == System.Net.HttpStatusCode.RequestTimeout)
-            .WaitAndRetryAsync(3,
-                    // 2, 4, 8 seconds
-                    retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))
+            .WaitAndRetryAsync(settings.Retry.RetryCount,
+                    // Exponential backoff, e.g. 2, 4, 8 seconds for base 2.
+                    retryAttempt => TimeSpan.FromSeconds(Math.Pow(settings.Retry.BackoffBase, retryAttempt))
                     );
 
-        foreach (var instance in options.Value.Instances)
+        foreach (var instance in settings.Instances)
         {
             services
                 .AddHttpClient(instance.Name, cfg =>
                 {
                     cfg.BaseAddress =
-                        new Uri(options.Value.BaseAddress);
-                    cfg.Timeout = TimeSpan.FromSeconds(options.Value.TimeoutInSeconds);
-                    cfg.DefaultRequestHeaders.Add("Api-Key", instance.ApiKey);
+                        new Uri(settings.BaseAddress);
+                    cfg.Timeout = TimeSpan.FromSeconds(settings.TimeoutInSeconds);
+                    cfg.DefaultRequestHeaders.Add("api-key", instance.ApiKey);
                 })
-                .SetHandlerLifetime(TimeSpan.FromSeconds(options.Value.HandlerLifetimeInSeconds))
+                .SetHandlerLifetime(TimeSpan.FromSeconds(settings.HandlerLifetimeInSeconds))
                 .AddPolicyHandler(retryPolicy);
         }
     }
