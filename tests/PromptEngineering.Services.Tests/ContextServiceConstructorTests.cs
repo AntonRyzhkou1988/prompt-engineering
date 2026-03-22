@@ -25,7 +25,6 @@ public sealed class ContextServiceConstructorTests
     private static ContextSettings ValidContextSettings() => new()
     {
         PromptPath = "prompts",
-        Temperature = 0.5f,
         DatasetPath = "dataset.csv",
         OutputDirectory = "output",
         ReActSequence = ["v1.json"]

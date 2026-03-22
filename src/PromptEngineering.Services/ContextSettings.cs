@@ -12,8 +12,6 @@ public sealed class ContextSettings
     /// </summary>
     public required string PromptPath { get; set; }
 
-    public required float Temperature { get; set; }
-
     public required string DatasetPath { get; set; }
 
     public required string OutputDirectory { get; set; }

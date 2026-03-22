@@ -22,7 +22,6 @@ public sealed class ContextService : IContextService
 
     private readonly SystemSettings _systemSettings;
     private readonly ContextSettings _contextSettings;
-    private readonly string _instanceName;
     private readonly IAiService _aiService;
 
     public ContextService(
@@ -38,7 +37,6 @@ public sealed class ContextService : IContextService
             throw new ArgumentException("AiServiceSettings instance count is 0.");
 
         _contextSettings = contextSettings.Value;
-        _instanceName = systemSettings.Value.AiServiceSettings.Instances.First().Name;
         _systemSettings = systemSettings.Value;
         _aiService = aiService;
     }
@@ -96,10 +94,10 @@ public sealed class ContextService : IContextService
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var chatRequest = BuildChatRequest(records, prompt, _contextSettings.Temperature, priorCompletion);
+        var chatRequest = BuildChatRequest(records, prompt, priorCompletion);
 
         var completion = await _aiService.CompleteChatAsync(
-            _instanceName,
+            prompt.InstanceName,
             chatRequest,
             new MediaTypeHeaderValue("application/json"),
             DefaultJsonOptions,
@@ -121,7 +119,6 @@ public sealed class ContextService : IContextService
     private static ChatRequest BuildChatRequest(
         IReadOnlyList<AttackRecord> records,
         ContextPrompt prompt,
-        float temperature,
         string? priorCompletion = null)
     {
         var userPrompt = JoinLines(prompt.DefaultUserPrompt);
@@ -130,7 +127,7 @@ public sealed class ContextService : IContextService
         if (!string.IsNullOrWhiteSpace(priorCompletion))
             userPrompt = InjectRegion(userPrompt, PriorRunStartTag, PriorRunEndTag, priorCompletion, required: false);
 
-        var request = new ChatRequest { Temperature = temperature };
+        var request = new ChatRequest { Temperature = prompt.Temperature };
         request.AddSystemMessage(JoinLines(prompt.DefaultAssistantRole));
         request.AddUserMessage(userPrompt);
         return request;

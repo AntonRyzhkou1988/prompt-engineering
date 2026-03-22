@@ -1,4 +1,6 @@
 {
+    "InstanceName": "AIArchitect.PromptEngineering.Low",
+    "Temperature": 0.3,
     "DefaultAssistantRole": [
         "## Role",
         "You are a senior incident data analyst for shark-encounter records.",

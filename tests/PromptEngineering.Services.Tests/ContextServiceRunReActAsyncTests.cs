@@ -45,6 +45,7 @@ public sealed class ContextServiceRunReActAsyncTests
 
     private const string PromptJson = """
         {
+          "InstanceName": "default",
           "DefaultAssistantRole": ["You are a data analyst."],
           "DefaultUserPrompt": ["Analyze the following data: <data></data>"]
         }
@@ -68,7 +69,6 @@ public sealed class ContextServiceRunReActAsyncTests
         var contextSettings = new ContextSettings
         {
             PromptPath = _promptsDir,
-            Temperature = 0.5f,
             DatasetPath = _datasetPath,
             OutputDirectory = _outputDir,
             ReActSequence = sequence
@@ -163,6 +163,7 @@ public sealed class ContextServiceRunReActAsyncTests
     {
         File.WriteAllText(Path.Combine(_promptsDir, "v2.json"), """
             {
+              "InstanceName": "default",
               "DefaultAssistantRole": ["You are a data analyst."],
               "DefaultUserPrompt": ["Refine: <data></data> <prior_run></prior_run>"]
             }

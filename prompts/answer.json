@@ -1,4 +1,6 @@
 {
+    "InstanceName": "AIArchitect.PromptEngineering.High",
+    "Temperature": 0.2,
     "DefaultAssistantRole": [
         "## Role",
         "You are a senior data analyst and technical writer. Your task is to produce a single, authoritative, human-readable final report that synthesises the complete multi-stage ReAct analysis already performed across prior iterations.",

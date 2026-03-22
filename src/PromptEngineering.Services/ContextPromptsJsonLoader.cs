@@ -35,7 +35,9 @@ internal static class ContextPromptsJsonLoader
         return new ContextPrompt
         {
             DefaultAssistantRole = document.DefaultAssistantRole,
-            DefaultUserPrompt = document.DefaultUserPrompt
+            DefaultUserPrompt = document.DefaultUserPrompt,
+            InstanceName = document.InstanceName,
+            Temperature = document.Temperature
         };
     }
 }

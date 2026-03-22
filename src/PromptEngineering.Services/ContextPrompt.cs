@@ -5,7 +5,11 @@ namespace PromptEngineering.Services;
 /// </summary>
 public sealed class ContextPrompt
 {
-    public string[] DefaultAssistantRole { get; set; } = [];
+    public required string[] DefaultAssistantRole { get; set; }
 
-    public string[] DefaultUserPrompt { get; set; } = [];
+    public required string[] DefaultUserPrompt { get; set; }
+
+    public required string InstanceName { get; set; }
+
+    public required float Temperature { get; set; }
 }
