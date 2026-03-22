@@ -141,7 +141,7 @@ public sealed class ContextService : IContextService
     /// <paramref name="content"/>. Throws when <paramref name="required"/> is true and the region is absent;
     /// returns the original prompt unchanged otherwise.
     /// </summary>
-    private static string InjectRegion(
+    internal static string InjectRegion(
         string prompt, string startTag, string endTag, string content, bool required)
     {
         var startIndex = prompt.IndexOf(startTag, StringComparison.OrdinalIgnoreCase);
@@ -198,7 +198,7 @@ public sealed class ContextService : IContextService
     }
 
     /// <summary>Escapes text for use as XML element character data.</summary>
-    private static string EscapeXml(string? value)
+    internal static string EscapeXml(string? value)
     {
         if (string.IsNullOrEmpty(value)) return string.Empty;
         if (value.AsSpan().IndexOfAny("<>&\"'".AsSpan()) < 0) return value;
@@ -316,7 +316,7 @@ public sealed class ContextService : IContextService
         return buffer.ToString();
     }
 
-    private static bool UpdateQuoteState(string line, bool insideQuotes)
+    internal static bool UpdateQuoteState(string line, bool insideQuotes)
     {
         for (var i = 0; i < line.Length; i++)
         {
@@ -327,7 +327,7 @@ public sealed class ContextService : IContextService
         return insideQuotes;
     }
 
-    private static string[] ParseCsvRecord(string record)
+    internal static string[] ParseCsvRecord(string record)
     {
         var fields = new List<string>();
         var current = new StringBuilder();
