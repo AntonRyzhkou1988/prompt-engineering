@@ -1,0 +1,54 @@
+# Shark Encounter Analysis
+
+## Section A: Summary of Findings
+In this analysis, we examined shark encounter records from 2017 across various countries. The primary focus was on the nature of the encounters, the activities involved, the injuries sustained, and the fatality status. The data provided insights into the types of shark encounters and highlighted patterns in activities and injuries.
+
+## Section B: Detailed Observations
+
+### 1. Encounter Types and Activities
+- **Unprovoked Encounters**: The majority of the encounters were unprovoked, with activities including body boarding, surfing, spearfishing, snorkeling, and feeding sharks.
+  - **Surfing**: Surfing was a common activity during unprovoked encounters, with incidents reported in Australia, the USA, and the UK.
+  - **Spearfishing**: Spearfishing also appeared in multiple records, including incidents in the USA and the United Arab Emirates.
+  - **Snorkeling**: There was one notable snorkeling incident in the Bahamas where a tiger shark severed the victim's right forearm.
+- **Provoked Encounters**: There was one provoked encounter involving a person touching a hooked shark in South Carolina, USA.
+
+Confidence: High
+
+### 2. Injuries and Fatalities
+- **Injuries**: Injuries varied from minor abrasions to severe bites.
+  - **Severe Injuries**: The most severe injury reported was the severing of the right forearm in the Bahamas during a snorkeling activity.
+  - **Lacerations**: Lacerations were common, with incidents involving lacerations to the foot, shin, and arm.
+  - **Minor Injuries**: Minor injuries included bruises, cuts, and abrasions.
+- **Fatalities**: None of the encounters resulted in fatalities. All records indicated "N" for FatalYN.
+
+Confidence: High
+
+### 3. Species Involved
+- **Identified Species**: Several species were identified in the records, including white sharks, 7 gill sharks, tiger sharks, and smooth hound sharks.
+  - **Tiger Sharks**: Tiger sharks were involved in two incidents, one in the Bahamas and one in Florida, USA.
+  - **White Sharks**: A white shark was involved in an incident in Western Australia.
+- **Unidentified Species**: Some records did not specify the shark species involved.
+
+Confidence: Medium
+
+### 4. Demographics
+- **Sex**: Both male and female victims were reported, with males being slightly more common.
+- **Age**: Ages ranged from 19 to 73 years, with some records missing age information.
+
+Confidence: Medium
+
+## Section C: Patterns and Insights
+- **Activity Risk**: Surfing and spearfishing appear to be high-risk activities for unprovoked shark encounters.
+- **Geographical Distribution**: Shark encounters were reported across diverse geographical locations, including Australia, the USA, the UK, the Bahamas, and the UAE.
+- **Injury Severity**: The severity of injuries varied significantly, with snorkeling and spearfishing incidents tending to result in more severe injuries.
+
+Confidence: Medium
+
+## Section D: Uncertainties and Limitations
+- **Missing Data**: Some records lacked information on age, time, and shark species, which limits the ability to draw comprehensive conclusions.
+- **Species Identification**: The identification of shark species was not always provided, reducing the ability to analyze species-specific patterns.
+- **Investigator Source**: The reliability of the investigator sources varies, which may impact the accuracy of the records.
+
+Confidence: Medium
+
+Overall, the analysis provides a detailed view of shark encounters in 2017, highlighting key activities, injuries, and species involved. However, the presence of missing data and varying reliability of sources introduces some uncertainties that should be considered when interpreting the findings.

@@ -17,6 +17,8 @@ public sealed class ContextService : IContextService
     private const string RequestMediaType = "application/json";
     private const string DataStartTag = "<data>";
     private const string DataEndTag = "</data>";
+    private const string PriorRunStartTag = "<prior_run>";
+    private const string PriorRunEndTag = "</prior_run>";
     private const string YearHeader = "Year";
     private const string CountryHeader = "Country";
     private const string AreaHeader = "Area";
@@ -53,6 +55,48 @@ public sealed class ContextService : IContextService
         _instanceName = systemSettings.Value.AiServiceSettings.Instances.First().Name;
         _systemSettings = systemSettings.Value;
         _aiService = aiService;
+    }
+
+    public async Task<IReadOnlyList<ContextPipelineResult>> RunIterativeAsync(
+        string promptFileName,
+        int iterations,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(promptFileName);
+        if (iterations < 1)
+            throw new ArgumentOutOfRangeException(nameof(iterations), "iterations must be at least 1.");
+
+        var promptPath = Path.Combine(_contextSettings.PromptPath, promptFileName);
+
+        var datasetSnapshot = await LoadDatasetAsync(
+            _contextSettings.DatasetPath,
+            _systemSettings.MaximumDatasetRecordCount,
+            cancellationToken);
+
+        var results = new List<ContextPipelineResult>(iterations);
+        string? priorCompletion = null;
+
+        for (var iteration = 1; iteration <= iterations; iteration++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var stem = $"{Path.GetFileNameWithoutExtension(promptPath)}_run{iteration}";
+            Console.WriteLine($"Running iterative pipeline: {stem}...");
+
+            var loaded = ContextPromptsJsonLoader.LoadFromResolvedPath(promptPath);
+            var result = await RunCoreAsync(datasetSnapshot, loaded, stem, priorCompletion, cancellationToken);
+            results.Add(result);
+
+            var content = result.Completion.Choices?.FirstOrDefault()?.Message?.Content;
+            if (!string.IsNullOrWhiteSpace(content))
+            {
+                Console.WriteLine(content);
+            }
+
+            Console.WriteLine($"Saved assistant Markdown: {result.OutputPath}");
+            priorCompletion = content;
+        }
+
+        return results;
     }
 
     public async Task<IReadOnlyList<ContextPipelineResult>> RunReActAsync(CancellationToken cancellationToken)
@@ -129,18 +173,19 @@ public sealed class ContextService : IContextService
 
         var loaded = ContextPromptsJsonLoader.LoadFromResolvedPath(promptPath);
         var stem = Path.GetFileNameWithoutExtension(promptPath);
-        return RunCoreAsync(datasetSnapshot, loaded, stem, cancellationToken);
+        return RunCoreAsync(datasetSnapshot, loaded, stem, priorCompletion: null, cancellationToken);
     }
 
     private async Task<ContextPipelineResult> RunCoreAsync(
         DatasetSnapshot datasetSnapshot,
         ContextPrompt prompts,
         string? outputFileStem,
+        string? priorCompletion,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var chatRequest = BuildChatRequest(datasetSnapshot, prompts, _contextSettings.Temperature);
+        var chatRequest = BuildChatRequest(datasetSnapshot, prompts, _contextSettings.Temperature, priorCompletion);
 
         var completion = await _aiService.CompleteChatAsync(
             _instanceName,
@@ -178,12 +223,18 @@ public sealed class ContextService : IContextService
     private static ChatRequest BuildChatRequest(
         DatasetSnapshot datasetSnapshot,
         ContextPrompt prompts,
-        float temperature)
+        float temperature,
+        string? priorCompletion = null)
     {
         var assistantRole = JoinSentences(prompts.DefaultAssistantRole);
         var baseUserPrompt = JoinSentences(prompts.DefaultUserPrompt);
         var recordsMarkup = BuildDataXmlMarkup(datasetSnapshot.Records);
         var userPrompt = InjectDataMarkup(baseUserPrompt, recordsMarkup);
+
+        if (!string.IsNullOrWhiteSpace(priorCompletion))
+        {
+            userPrompt = InjectPriorRunMarkup(userPrompt, priorCompletion);
+        }
 
         var chatRequest = new ChatRequest
         {
@@ -524,6 +575,37 @@ public sealed class ContextService : IContextService
         }
 
         builder.AppendLine(dataListMarkup);
+        builder.Append(endContent);
+
+        return builder.ToString();
+    }
+
+    /// <summary>
+    /// Injects <paramref name="priorCompletion"/> between the <c>&lt;prior_run&gt;</c> and <c>&lt;/prior_run&gt;</c> tags.
+    /// Returns the original prompt unchanged when either tag is absent (prompts without the region are unaffected).
+    /// </summary>
+    private static string InjectPriorRunMarkup(string baseUserPrompt, string priorCompletion)
+    {
+        var startTagIndex = baseUserPrompt.IndexOf(PriorRunStartTag, StringComparison.OrdinalIgnoreCase);
+        var endTagIndex = baseUserPrompt.IndexOf(PriorRunEndTag, StringComparison.OrdinalIgnoreCase);
+
+        if (startTagIndex < 0 || endTagIndex < 0 || endTagIndex < startTagIndex)
+        {
+            return baseUserPrompt;
+        }
+
+        var contentStartIndex = startTagIndex + PriorRunStartTag.Length;
+        var startContent = baseUserPrompt[..contentStartIndex];
+        var endContent = baseUserPrompt[endTagIndex..];
+        var builder = new StringBuilder(startContent.Length + endContent.Length + priorCompletion.Length + 8);
+
+        builder.Append(startContent);
+        if (!startContent.EndsWith(Environment.NewLine, StringComparison.Ordinal))
+        {
+            builder.AppendLine();
+        }
+
+        builder.AppendLine(priorCompletion);
         builder.Append(endContent);
 
         return builder.ToString();

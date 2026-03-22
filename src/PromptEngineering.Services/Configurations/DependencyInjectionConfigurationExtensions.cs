@@ -17,7 +17,7 @@ public static class DependencyInjectionConfigurationExtensions
         services.Configure<ContextSettings>(configuration.GetSection(nameof(ContextSettings)));
 
         services.AddGenAi(configuration);
-        services.AddSingleton<IContextService, ContextService>();
+        services.AddTransient<IContextService, ContextService>();
 
         return services;
     }

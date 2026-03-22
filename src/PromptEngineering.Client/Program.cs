@@ -22,10 +22,11 @@ internal class Program
 
         var contextService = provider.GetRequiredService<IContextService>();
 
-        // Run
-        var runs = await contextService.RunReActAsync(cancellationToken: CancellationToken.None);
+        // Run 3 chained ReAct iterations: each completion feeds into the next via <prior_run>
+        var runs = await contextService.RunIterativeAsync(
+            "initial.json", iterations: 3, cancellationToken: CancellationToken.None);
 
-        // Output
+        // Write summarize.txt aggregating all iteration outputs
         await contextService.SummarizeAsync(runs, cancellationToken: CancellationToken.None);
     }
 }
