@@ -19,6 +19,17 @@ public interface IAiService
         JsonSerializerOptions? options, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Creates embeddings for the given inputs (batch supported). Uses <see cref="InstanceSettings.EmbeddingDeployment"/>
+    /// when set; otherwise <see cref="InstanceSettings.Deployment"/>.
+    /// </summary>
+    Task<EmbeddingResponse?> CreateEmbeddingsAsync(
+        string instanceName,
+        EmbeddingRequest request,
+        MediaTypeHeaderValue? mediaType,
+        JsonSerializerOptions? options,
+        CancellationToken cancellationToken);
+
+    /// <summary>
     /// Uploads a file to the specified instance.
     /// </summary>
     /// <param name="instanceName">The name of the instance to upload the file to.</param>

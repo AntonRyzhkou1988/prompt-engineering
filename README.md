@@ -1,340 +1,71 @@
 # Prompt Engineering Practice
 
-A hands-on project for designing and iterating **ReAct-style prompts** that analyze shark attack data.  
-Goal: evidence-grounded answers with explicit confidence levels and a stable output shape across all prompt versions.
-
 ![.NET](https://img.shields.io/badge/.NET-8%2B-512BD4?logo=dotnet)
 ![LLM](https://img.shields.io/badge/LLM-GPT--4o%20%7C%20Claude%20%7C%20Gemini-10a37f)
 ![Data](https://img.shields.io/badge/Data-attacks.csv-blue)
 
----
-
-## Table of contents
-
-- [Features](#features)
-- [What it does](#what-it-does)
-- [Project structure](#project-structure)
-- [How to run](#how-to-run)
-- [Execution flow](#execution-flow)
-- [Prompt file format](#prompt-file-format)
-- [Prompt versions](#prompt-versions)
-- [Research question](#research-question)
-- [Output schema](#output-schema-sections-ad)
-- [ReAct reasoning cycle](#react-reasoning-cycle)
-- [Quality checklist](#quality-checklist)
+**.NET 8** solution for experimenting with **prompt engineering** (structured, versioned prompts and multi-step refinement) and **RAG** (retrieval-augmented answers over your own documents).
 
 ---
 
-## Features
+## Prompt engineering (in this repo)
 
-### 1 — Cross-version ReAct chaining
+**Prompt engineering** here means designing **explicit roles, tasks, constraints, and output shapes** so model outputs stay grounded, comparable across runs, and easy to review.
 
-Each prompt's LLM completion is automatically injected as `<prior_run>` content into the next prompt in the sequence. This creates a refinement chain where every model call builds directly on the previous one's analysis — deepening findings, resolving contradictions, and tightening confidence labels across versions. Prompts without a `<prior_run>` region silently ignore the injection and run independently.
+This track is implemented by **`PromptEngineering.Client`**:
 
-### 2 — Per-prompt LLM routing
+- Prompts are **JSON files** (`prompts/`) with system/user text, temperature, and **per-prompt model routing** (`InstanceName`).
+- **Shark attack** rows from `dataset/attacks.csv` are injected as XML `<record>` elements where the template has `<data></data>`.
+- Runs follow a **ReAct-style refinement chain**: each completion can be passed into the next file as **`<prior_run>`**, so later prompts build on earlier analysis instead of starting cold.
+- Completions are written as timestamped Markdown under `output/` for diffing and scoring.
 
-Every prompt JSON file owns its own `InstanceName` and `Temperature`. At runtime, `ContextService` resolves the matching HTTP client and routes the call to the correct model — GPT-4o for exploratory runs, Claude for structured reasoning, Gemini for final synthesis. Credentials and endpoints are bound per-instance from `appsettings.json` and overridable via .NET user secrets, with no shared global model setting.
-
-### 3 — Resilient HTTP pipeline
-
-`AiService` wraps every LLM call with a **Polly retry policy** (exponential backoff, configurable retry count, transient errors + HTTP 408), a per-instance **connection timeout**, and a configurable **handler lifetime**. It also supports **SSE streaming** — aggregating server-sent `data:` delta tokens into a single `ChatCompletion` object — so the pipeline works identically in streaming and non-streaming modes.
-
----
-
-## What it does
-
-| Step | Description |
-| :---: | --- |
-| 1 | Load up to `MaximumDatasetRecordCount` rows from `dataset/attacks.csv` |
-| 2 | Inject them as XML `<record>` elements into each prompt template |
-| 3 | Run each prompt in `ReActSequence` order — one LLM call per prompt |
-| 4 | Pass each completion as `<prior_run>` into the next prompt (cross-version chaining) |
-| 5 | Save each LLM response as a timestamped `.md` file in `OutputDirectory` |
+For the full flow, schema (Sections A–D), and quality checklist, see **[docs/prompt-chain.md](docs/prompt-chain.md)** and **[project-rules.mdc](.cursor/rules/project-rules.mdc)**.
 
 ---
 
-## Project structure
+## RAG (in this repo)
 
-```mermaid
-graph TD
-    ROOT["📁 prompt-engineering/"]
+**RAG (retrieval-augmented generation)** means: turn your documents into **vector embeddings**, **retrieve** the pieces most similar to a user question, and **generate** an answer using only (or primarily) that retrieved text as context—reducing reliance on the model’s parametric memory.
 
-    ROOT --> DATASET["📁 dataset/"]
-    ROOT --> PROMPTS["📁 prompts/"]
-    ROOT --> OUTPUT["📁 output/"]
-    ROOT --> SRC["📁 src/"]
-    ROOT --> TESTS["📁 tests/"]
+This track is implemented by **`Rag`**:
 
-    DATASET --> DS_FILE["attacks.csv\nSource data"]
+- **Index**: `.md` and `.txt` under `src/Rag/documents` (copied to the build output) are **chunked**, **embedded** in batches, and stored in an **in-memory** vector index.
+- **Query**: the question is embedded; **top‑K** chunks are selected by **cosine similarity** and passed into a **chat** completion with instructions to stay grounded in that context.
+- **Configuration**: chunk size, overlap, `TopK`, batch size, and which configured **instance** performs embeddings and chat (see `appsettings.json`).
 
-    PROMPTS --> P_INIT["initial.json\nFirst in ReAct sequence"]
-    PROMPTS --> P_V1["v1.json\nBaseline, minimal scaffolding"]
-    PROMPTS --> P_V2["v2.json\nSection headings + confidence labels"]
-    PROMPTS --> P_V3["v3.json\nFull ReAct + 5-step self-reflection"]
-    PROMPTS --> P_ANS["answer.json\nFinal answer prompt"]
-
-    OUTPUT --> OUT_FILE["completion_&lt;stem&gt;_&lt;timestamp&gt;.md\nSaved LLM responses"]
-
-    SRC --> CLIENT["PromptEngineering.Client\nConsole app — entry point"]
-    SRC --> SERVICES["PromptEngineering.Services\nPipeline orchestration"]
-    SRC --> LLM["PromptEngineering.LLM\nEPAM DIAL / OpenAI integration"]
-    SRC --> MODEL["PromptEngineering.Model\nShared domain models"]
-
-    TESTS --> TEST_PROJ["PromptEngineering.Services.Tests\nUnit tests for ContextService"]
-
-    style ROOT fill:#1e1e2e,color:#cdd6f4,stroke:#89b4fa
-    style DATASET fill:#1e1e2e,color:#cdd6f4,stroke:#a6e3a1
-    style PROMPTS fill:#1e1e2e,color:#cdd6f4,stroke:#f9e2af
-    style OUTPUT fill:#1e1e2e,color:#cdd6f4,stroke:#cba6f7
-    style SRC fill:#1e1e2e,color:#cdd6f4,stroke:#89b4fa
-    style TESTS fill:#1e1e2e,color:#cdd6f4,stroke:#f38ba8
-    style DS_FILE fill:#313244,color:#a6e3a1,stroke:#a6e3a1
-    style P_INIT fill:#313244,color:#f9e2af,stroke:#f9e2af
-    style P_V1 fill:#313244,color:#f9e2af,stroke:#f9e2af
-    style P_V2 fill:#313244,color:#f9e2af,stroke:#f9e2af
-    style P_V3 fill:#313244,color:#f9e2af,stroke:#f9e2af
-    style P_ANS fill:#313244,color:#f9e2af,stroke:#f9e2af
-    style OUT_FILE fill:#313244,color:#cba6f7,stroke:#cba6f7
-    style CLIENT fill:#313244,color:#89b4fa,stroke:#89b4fa
-    style SERVICES fill:#313244,color:#89b4fa,stroke:#89b4fa
-    style LLM fill:#313244,color:#89b4fa,stroke:#89b4fa
-    style MODEL fill:#313244,color:#89b4fa,stroke:#89b4fa
-    style TEST_PROJ fill:#313244,color:#f38ba8,stroke:#f38ba8
-```
+CSV files are **not** indexed as-is; put tabular or dictionary content in Markdown or text if you want it retrieved. Details: **[docs/rag.md](docs/rag.md)**.
 
 ---
 
-## How to run
+## Shared LLM layer
 
-### Prerequisites
+**`PromptEngineering.LLM`** provides **chat** completions, optional **SSE** streaming (aggregated to one completion object), **Polly** retries, timeouts, and **embeddings** (`CreateEmbeddingsAsync`), including optional **`EmbeddingDeployment`** when embedding and chat models differ.
 
-- .NET 8+
-- Access to an EPAM DIAL deployment (or any OpenAI-compatible endpoint)
+---
 
-### 1 — Configure `appsettings.json`
+## Documentation
 
-`src/PromptEngineering.Client/appsettings.json` controls all runtime settings:
+| Doc | Topics |
+| --- | --- |
+| [docs/README.md](docs/README.md) | Index of all guides |
+| [docs/overview.md](docs/overview.md) | Big-picture summary and capabilities |
+| [docs/getting-started.md](docs/getting-started.md) | Prerequisites, secrets, run commands |
+| [docs/repository-structure.md](docs/repository-structure.md) | Folders, projects, diagram |
+| [docs/prompt-chain.md](docs/prompt-chain.md) | ReAct sequence, JSON/XML, versions, Sections A–D, quality bar |
+| [docs/rag.md](docs/rag.md) | RAG pipeline, settings, limitations |
 
-<details>
-<summary>Show full configuration</summary>
+---
 
-```json
-{
-  "SystemSettings": {
-    "MaximumDatasetRecordCount": 10,
-    "AiServiceSettings": {
-      "BaseAddress": "<DIAL base URL>",
-      "Instances": [
-        {
-          "Name": "AIArchitect.PromptEngineering.Low",
-          "ApiKey": "<your API key>",
-          "Deployment": "gpt-4o-2024-05-13"
-        },
-        {
-          "Name": "AIArchitect.PromptEngineering.Medium",
-          "ApiKey": "<your API key>",
-          "Deployment": "anthropic.claude-opus-4-20250514-v1:0-with-thinking"
-        },
-        {
-          "Name": "AIArchitect.PromptEngineering.High",
-          "ApiKey": "<your API key>",
-          "Deployment": "gemini-2.5-pro"
-        }
-      ]
-    }
-  },
-  "ContextSettings": {
-    "PromptPath": "<absolute path to prompts/>",
-    "DatasetPath": "<absolute path to dataset/attacks.csv>",
-    "OutputDirectory": "<absolute path to output/>",
-    "ReActSequence": ["initial.json", "v1.json", "v2.json", "v3.json", "answer.json"]
-  }
-}
-```
-
-</details>
-
-### 2 — Set credentials via user secrets
-
-> [!IMPORTANT]
-> Never commit `ApiKey` or `BaseAddress` to source control. Use .NET user secrets instead.
-
-```powershell
-cd src/PromptEngineering.Client
-dotnet user-secrets set "SystemSettings:AiServiceSettings:BaseAddress" "https://..."
-dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:0:ApiKey" "your-key"
-dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:1:ApiKey" "your-key"
-dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:2:ApiKey" "your-key"
-```
-
-### 3 — Run
+## Quick start
 
 ```powershell
 cd src
 dotnet run --project PromptEngineering.Client
 ```
 
----
-
-## Execution flow
-
-`RunReActAsync` processes all prompts in `ReActSequence` in order.  
-Each completion is automatically injected as `<prior_run>` into the next prompt:
-
-```
-initial.json  ──►  completion_initial_<timestamp>.md
-      │ <prior_run>
-      ▼
-v1.json       ──►  completion_v1_<timestamp>.md
-      │ <prior_run>
-      ▼
-v2.json       ──►  completion_v2_<timestamp>.md
-      │ <prior_run>
-      ▼
-v3.json       ──►  completion_v3_<timestamp>.md
-      │ <prior_run>
-      ▼
-answer.json   ──►  completion_answer_<timestamp>.md
+```powershell
+cd src
+dotnet run --project Rag
 ```
 
-> [!NOTE]
-> Prompts without a `<prior_run>...</prior_run>` region silently ignore the injected content.
-
----
-
-## Prompt file format
-
-Each prompt is a JSON file with four required fields:
-
-```json
-{
-  "InstanceName": "AIArchitect.PromptEngineering.Low",
-  "Temperature": 0.3,
-  "DefaultAssistantRole": ["System instruction line 1", "line 2"],
-  "DefaultUserPrompt":   ["User message line 1", "<data></data>", "line 3"]
-}
-```
-
-`DefaultAssistantRole` and `DefaultUserPrompt` are string arrays joined by newlines at runtime.  
-At runtime the `<data></data>` block is replaced with one `<record>` element per loaded CSV row.
-
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| `InstanceName` | `string` | LLM instance to use — must match a name in `SystemSettings:AiServiceSettings:Instances` |
-| `Temperature` | `float` | Sampling temperature for this prompt |
-| `DefaultAssistantRole` | `string[]` | System message lines |
-| `DefaultUserPrompt` | `string[]` | User message lines; must contain a `<data></data>` region |
-
-### Injected XML fields
-
-| XML element | CSV source column |
-| :--- | :--- |
-| `Year` | Year |
-| `Country` | Country |
-| `Area` | Area |
-| `Type` | Type |
-| `Activity` | Activity |
-| `Injury` | Injury |
-| `FatalYN` | Fatal (Y/N) |
-| `Sex` | Sex |
-| `Age` | Age |
-| `Time` | Time |
-| `Species` | Species |
-| `InvestigatorSource` | Investigator or Source |
-
-> [!NOTE]
-> Empty tags indicate missing values. Special characters (`<`, `>`, `&`, `"`, `'`) are XML-escaped automatically.
-
----
-
-## Prompt versions
-
-| Version | File | Instance | Temp | What it adds |
-| :--- | :--- | :--- | :---: | :--- |
-| **initial** | `initial.json` | Low | 0.3 | Entry point — mandatory Thought/Action/Observation, `<prior_run>` chaining, Sections A–D |
-| **v1** | `v1.json` | Low | 0.3 | Baseline — broad geographic-hotspot question, minimal structure |
-| **v2** | `v2.json` | Low | 0.3 | Numbered goals, fixed section headings, confidence labels |
-| **v3** | `v3.json` | Medium | 0.2 | Mandatory Thought → Action → Observation + 5-step self-reflection, strict Sections A–D |
-| **answer** | `answer.json` | High | 0.2 | Final synthesized answer built from all prior completions |
-
-**Instance tiers:**
-
-| Tier | Instance name | Model |
-| :--- | :--- | :--- |
-| Low | `AIArchitect.PromptEngineering.Low` | `gpt-4o-2024-05-13` |
-| Medium | `AIArchitect.PromptEngineering.Medium` | `anthropic.claude-opus-4-20250514-v1:0-with-thinking` |
-| High | `AIArchitect.PromptEngineering.High` | `gemini-2.5-pro` |
-
-> [!TIP]
-> Use `initial.json` as the starting point for new prompts. Use `v3.json` as a reference for standalone single-turn runs.
-
----
-
-## Research question
-
-> Are there geographic hotspots whose shark attack frequency is rising or falling, and what might drive those trends?
-
-| Field role | Fields |
-| :--- | :--- |
-| **Primary** | `Country`, `Area`, `Year` |
-| **Supporting** | `Type`, `Activity`, `FatalYN`, `Injury`, `Species` (as potential trend drivers) |
-
----
-
-## Output schema (Sections A–D)
-
-Used by `initial.json` and `v3.json`:
-
-| Section | Content | Bullet limit |
-| :--- | :--- | :---: |
-| **A — Findings** | Geographic frequency trend insight + supporting Country/Area/Year evidence and candidate drivers + `Confidence: High / Medium / Low` | 3–5 |
-| **B — Data quality caveats** | Each risk (missing Year, naming inconsistencies, reporting bias, small samples) tied to its effect on geographic trend interpretation | 3–5 |
-| **C — Next analyses** | Feasible next steps on the same fields (e.g., seasonal patterns, species-region correlation) | max 3 |
-| **D — Executive summary** | Short summary; no new unsupported claims | max 3 |
-
----
-
-## ReAct reasoning cycle
-
-The model internally completes this loop **before** writing Sections A–D:
-
-**Loop** (repeated until claims are stable)
-
-```
-Thought      →  plan what to look at and why
-Action       →  apply analytical steps to the injected <record> data
-Observation  →  note what the records show or lack
-```
-
-**5-step self-reflection** (after the loop)
-
-| Step | Description |
-| :---: | :--- |
-| 1 | Select fields and justify relevance |
-| 2 | Identify data quality risks |
-| 3 | Derive findings from evidence |
-| 4 | Self-critique each finding for support strength and bias |
-| 5 | Revise or remove weak claims |
-
-> [!NOTE]
-> The visible output is always Sections A–D only. Internal reasoning is not shown.
-
----
-
-## Quality checklist
-
-Score each response **1** (weak) → **5** (strong):
-
-| Criterion | Question to ask |
-| :--- | :--- |
-| Clarity | Is the response easy to understand? |
-| Specificity | Are claims tied to specific fields or records? |
-| Grounding | Is every finding backed by injected data? |
-| Hallucination resistance | Are there any fabricated metrics or tool results? |
-| Consistency | Does the output match the schema? |
-| Actionability | Are next steps concrete and feasible? |
-
-> [!IMPORTANT]
-> **Accept** a prompt only if the average score is **≥ 4.0**, with no fabricated metrics and no unlabeled speculation.
-
-**If quality stalls:** apply meta-prompting — ask an LLM to revise the prompt while preserving intent, improving grounding, and enforcing the output schema. Then re-run and re-score.
+Configure `appsettings.json` and set API keys via **user secrets** ([Getting started](docs/getting-started.md)).
