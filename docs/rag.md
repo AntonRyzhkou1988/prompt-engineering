@@ -51,12 +51,14 @@ The orchestrator constructs a user message that:
 
 Adjust system/user instructions in **`RagOrchestrator.AnswerAsync`** if you need stricter citation or different tone.
 
-## Indexing limitations
+## Supported document formats
 
-| Situation | Behavior |
+Only these extensions are indexed (recursive scan under **`Rag:DocumentsPath`**):
+
+| Extension | Role |
 | --- | --- |
-| **`.csv` in `documents/`** | **Not** indexed (extension filter). Convert to `.md`/`.txt` or preprocess if you need RAG over tabular exports. |
-| Empty or non-text result after chunking | Startup fails with a clear error; add at least one `.md` or `.txt`. |
+| **`.md`** | Markdown |
+| **`.txt`** | Plain text |
 
 ## Operational notes
 
@@ -70,46 +72,23 @@ Use these to check that retrieval pulls **schema prose** (for example `spotify_d
 
 **Prerequisite:** Include a Markdown (or `.txt`) **data dictionary** in `documents/` alongside any optional history export. Remember: **`.csv` is not embedded** by this sample indexer.
 
-### 1. Schema and coverage
+### Dictionary analysis, metric, and business questions
 
-| # | Question |
-| --- | --- |
-| S1 | Which columns does the Spotify streaming data dictionary define? |
-| S2 | List each field in the streaming export and its meaning. |
-| S3 | Which field records how long a stream was played, and what unit does it use? |
+Source: `src/Rag/documents/spotify_data_dictionary.md` (indexed when copied into the app `documents/` folder as `.md`).
 
-### 2. Specific fields
+#### Analysis
 
-| # | Question |
-| --- | --- |
-| F1 | What does `ts` mean, and in what timezone is it expressed? |
-| F2 | How should `spotify_track_uri` be interpreted or formatted? |
-| F3 | How do `reason_start` and `reason_end` differ? |
-| F4 | What do `shuffle` and `skipped` represent, and which values appear in the dictionary? |
-| F5 | Which fields hold the track title, artist, and album? |
+The dictionary describes **per-stream playback events** (one row per play). Each row ties a **track** (`spotify_track_uri`, `track_name`, `artist_name`, `album_name`) to **when it ended** (`ts` in UTC), **how long it ran** (`ms_played`), **where it was played** (`platform`), **how it started/ended** (`reason_start`, `reason_end`), and **mode/behavior** (`shuffle`, `skipped`). That supports engagement, channel, and content analytics when aggregating over rows; interpret with care (for example, very short `ms_played` may indicate partial listens; `skipped` marks user-initiated skips).
 
-### 3. Natural language (same facts, different wording)
+#### Metric: Total listening time (TLT)
 
-| # | Question |
-| --- | --- |
-| N1 | I need to detect skips—what field should I look at? |
-| N2 | Durations look like large integers (e.g. tens of thousands)—are those seconds or another unit? |
-| N3 | Which column indicates the client or surface used for playback (e.g. web vs app)? |
+For a chosen scope (date range, user, artist, album, platform, etc.), **TLT** is the **sum of `ms_played`** over all events in that scope. Use **milliseconds** as stored, or convert to minutes/hours for reporting. Optionally refine by filtering events—for example, exclude rows where `skipped` is TRUE if the question is time listened before skipping.
 
-### 4. Edge cases and grounding (dictionary-only)
+#### Business questions (TLT)
 
-These test whether the model **sticks to the dictionary** and avoids inventing enum semantics.
-
-| # | Question |
-| --- | --- |
-| E1 | Does the dictionary enumerate meanings for `reason_start` / `reason_end` values such as `clickrow` or `trackdone`, or only describe the fields in general? |
-| E2 | The dictionary text says “TRUE of FALSE” for `skipped`—what is that field actually about? |
-
-### Using the set
-
-- Run after **re-indexing** so new or updated `.md` chunks are embedded.
-- Compare answers when **only** `spotify_history.csv` (or other non-indexed files) is present versus when **`spotify_data_dictionary.md`** is indexed: correct responses for S3, F1–F2, and N2 should depend on the dictionary chunk.
-- Optionally log retrieved **source file names** from the orchestrator to confirm the dictionary appears in **TopK** for these queries.
+1. **Trend and seasonality** — How does **TLT** change week over week or month over month, and do spikes or drops align with releases, marketing, or product changes (using `ts` to place events in time)?
+2. **Platform and product mix** — How is **TLT** split and trending by **`platform`**, and should we prioritize fixes or features on the surfaces that carry the most listening time?
+3. **Content and discovery** — Which **`artist_name`** / **`album_name`** (or tracks by URI) drive the most **TLT** in a period, and how does that compare to **`skipped`** and **`shuffle`** to judge depth of engagement versus exploratory listening?
 
 ## See also
 
