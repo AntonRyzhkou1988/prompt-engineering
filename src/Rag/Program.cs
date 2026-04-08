@@ -25,9 +25,10 @@ internal static class Program
         var ragSettings = configuration.GetRequiredSection("Rag").Get<RagSettings>()
             ?? throw new InvalidOperationException("Configuration section 'Rag' is missing or invalid.");
         ragSettings.Validate();
+        ragSettings.EnsureDatasetExists(AppContext.BaseDirectory);
 
-        var documentsRoot = ragSettings.ResolveDocumentsRoot(AppContext.BaseDirectory);
-        Console.WriteLine($"Rag corpus: {documentsRoot}");
+        var datasetPath = ragSettings.ResolveDatasetPath(AppContext.BaseDirectory);
+        Console.WriteLine($"Rag dataset: {datasetPath}");
 
         await using var provider = new ServiceCollection()
             .AddLogging(b => b.AddSimpleConsole(o => o.SingleLine = true))

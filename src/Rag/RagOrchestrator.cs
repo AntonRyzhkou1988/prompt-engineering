@@ -25,16 +25,32 @@ internal sealed class RagOrchestrator
 
     public async Task<InMemoryVectorStore> BuildIndexAsync(CancellationToken cancellationToken)
     {
-        var docRoot = _settings.ResolveDocumentsRoot(AppContext.BaseDirectory);
-        if (!Directory.Exists(docRoot))
-            throw new DirectoryNotFoundException($"Rag corpus directory not found (Rag:DocumentsPath): {docRoot}");
-
+        var datasetPath = _settings.ResolveDatasetPath(AppContext.BaseDirectory);
         var extensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".md", ".txt", ".csv" };
-        var paths = Directory
-            .EnumerateFiles(docRoot, "*.*", SearchOption.AllDirectories)
-            .Where(p => extensions.Contains(Path.GetExtension(p)))
-            .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+
+        List<string> paths;
+        if (File.Exists(datasetPath))
+        {
+            var ext = Path.GetExtension(datasetPath);
+            if (!extensions.Contains(ext))
+                throw new InvalidOperationException(
+                    $"Rag:DatasetPath points to a file with unsupported extension '{ext}'. Use .md, .txt, or .csv: {datasetPath}");
+
+            paths = new List<string> { datasetPath };
+        }
+        else if (Directory.Exists(datasetPath))
+        {
+            paths = Directory
+                .EnumerateFiles(datasetPath, "*.*", SearchOption.AllDirectories)
+                .Where(p => extensions.Contains(Path.GetExtension(p)))
+                .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+        else
+        {
+            throw new FileNotFoundException(
+                $"Rag dataset not found (Rag:DatasetPath). Expected an existing file or directory: {datasetPath}");
+        }
 
         var chunks = new List<DocumentChunk>();
         foreach (var path in paths)
@@ -61,7 +77,8 @@ internal sealed class RagOrchestrator
         }
 
         if (chunks.Count == 0)
-            throw new InvalidOperationException($"No text chunks produced under '{docRoot}'. Add .md, .txt, or non-empty .csv files.");
+            throw new InvalidOperationException(
+                $"No text chunks produced for Rag:DatasetPath '{datasetPath}'. Add .md, .txt, or non-empty .csv files.");
 
         var store = new InMemoryVectorStore();
         var batchSize = _settings.EmbeddingBatchSize;

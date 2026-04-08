@@ -1,17 +1,20 @@
 namespace Rag;
 
 /// <summary>
-/// <see cref="DocumentsFolderPath"/> is the shared parent for corpus, questions, and answers. It may be an <b>absolute</b> path or relative to <see cref="AppContext.BaseDirectory"/>.
-/// <see cref="DocumentsPath"/>, <see cref="QuestionsPath"/>, and <see cref="AnswersPath"/> are folder names (or relative segments) under that parent, normalized with <see cref="Path.GetFullPath(string)"/>.
-/// Metric specs live in repository-root <c>metrics/</c>; that folder is not configured here—copy into the corpus folder or change paths if metrics files must be retrieved.
+/// <see cref="DocumentsFolderPath"/> is the shared parent for questions and answers (and the default anchor for relative <see cref="DatasetPath"/>). It may be an <b>absolute</b> path or relative to <see cref="AppContext.BaseDirectory"/>.
+/// <see cref="DatasetPath"/> is the corpus entry: a <b>single file</b> (<c>.md</c>, <c>.txt</c>, <c>.csv</c>) or a <b>directory</b> whose matching files are indexed recursively.
+/// <see cref="QuestionsPath"/> and <see cref="AnswersPath"/> are folder names (or relative segments) under <see cref="DocumentsFolderPath"/>.
 /// </summary>
 internal sealed class RagSettings
 {
-    /// <summary>Shared parent directory for corpus, questions, and answers (committed default: absolute repository root on this machine).</summary>
+    /// <summary>Shared parent directory for questions, answers, and relative <see cref="DatasetPath"/> (committed default: absolute repository root on this machine).</summary>
     public string DocumentsFolderPath { get; set; } = @"C:\Work\learn\ai-architect-practice\prompt-engineering";
 
-    /// <summary>Subfolder under <see cref="DocumentsFolderPath"/> for the indexed corpus (default <c>dataset</c>; includes <c>space_missions.csv</c> and <c>attacks.csv</c> when both are present).</summary>
-    public string DocumentsPath { get; set; } = "dataset";
+    /// <summary>
+    /// Indexed corpus: path to one file or one directory. Relative paths are under <see cref="DocumentsFolderPath"/>; rooted paths are used as-is.
+    /// Use a file path (for example <c>dataset/space_missions.csv</c>) to index <b>only</b> that dataset; use a folder (for example <c>dataset</c>) to index every <c>.md</c>/<c>.txt</c>/<c>.csv</c> under it.
+    /// </summary>
+    public string DatasetPath { get; set; } = "dataset/space_missions.csv";
 
     /// <summary>Subfolder under <see cref="DocumentsFolderPath"/> for prefilled question <c>.md</c> files (default <c>questions</c>).</summary>
     public string QuestionsPath { get; set; } = "questions";
@@ -34,8 +37,11 @@ internal sealed class RagSettings
 
     public CsvSettings Csv { get; set; } = new();
 
-    internal string ResolveDocumentsRoot(string baseDirectory) =>
-        Path.GetFullPath(Path.Combine(ResolveContentRoot(baseDirectory), DocumentsPath));
+    /// <summary>Resolves <see cref="DatasetPath"/> to an absolute file or directory path.</summary>
+    internal string ResolveDatasetPath(string baseDirectory) =>
+        Path.IsPathRooted(DatasetPath)
+            ? Path.GetFullPath(DatasetPath)
+            : Path.GetFullPath(Path.Combine(ResolveContentRoot(baseDirectory), DatasetPath));
 
     internal string ResolveQuestionsRoot(string baseDirectory) =>
         Path.GetFullPath(Path.Combine(ResolveContentRoot(baseDirectory), QuestionsPath));
@@ -67,8 +73,8 @@ internal sealed class RagSettings
             throw new ArgumentException("Instance name is required.", nameof(InstanceName));
         if (string.IsNullOrWhiteSpace(DocumentsFolderPath))
             throw new ArgumentException("Documents folder path is required.", nameof(DocumentsFolderPath));
-        if (string.IsNullOrWhiteSpace(DocumentsPath))
-            throw new ArgumentException("Documents path is required.", nameof(DocumentsPath));
+        if (string.IsNullOrWhiteSpace(DatasetPath))
+            throw new ArgumentException("Dataset path is required.", nameof(DatasetPath));
         if (string.IsNullOrWhiteSpace(QuestionsPath))
             throw new ArgumentException("Questions path is required.", nameof(QuestionsPath));
         if (string.IsNullOrWhiteSpace(AnswersPath))
@@ -76,5 +82,16 @@ internal sealed class RagSettings
 
         Csv ??= new CsvSettings();
         Csv.Validate();
+    }
+
+    /// <summary>Throws if <see cref="ResolveDatasetPath"/> does not exist as a file or directory.</summary>
+    internal void EnsureDatasetExists(string baseDirectory)
+    {
+        var path = ResolveDatasetPath(baseDirectory);
+        if (File.Exists(path) || Directory.Exists(path))
+            return;
+
+        throw new FileNotFoundException(
+            $"Rag dataset not found (Rag:DatasetPath). Expected an existing file or directory: {path}");
     }
 }
