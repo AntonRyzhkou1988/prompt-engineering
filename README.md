@@ -29,11 +29,12 @@ For the full flow, schema (Sections A–D), and quality checklist, see **[docs/p
 
 This track is implemented by **`Rag`**:
 
-- **Index**: `.md` and `.txt` under `src/Rag/documents` (copied to the build output) are **chunked**, **embedded** in batches, and stored in an **in-memory** vector index.
-- **Query**: the question is embedded; **top‑K** chunks are selected by **cosine similarity** and passed into a **chat** completion with instructions to stay grounded in that context.
-- **Configuration**: chunk size, overlap, `TopK`, batch size, and which configured **instance** performs embeddings and chat (see `appsettings.json`).
+- **Index**: `.md`, `.txt`, and `.csv` under `src/Rag/documents` (copied to the build output) are **chunked** (CSV as row batches), **embedded** in batches, and stored in an **in-memory** vector index.
+- **Query**: the question is embedded; **top‑K** chunks are selected by **cosine similarity**, with **`MinProseChunks`** reserving slots for the best‑matching dictionary-style `.md`/`.txt` chunks when configured. Answers use **context-only** instructions and **[n] citations** to context blocks.
+- **Batch Q&A**: prefilled prompts in `src/Rag/questions/` can be run from the console; answers are written under **`answers/`** (see **[docs/rag.md](docs/rag.md)**).
+- **Configuration**: chunk size, overlap, `TopK`, `MinProseChunks`, `Csv:BatchSize`, batch size, and which **instance** performs embeddings and chat (see `appsettings.json`).
 
-CSV files are **not** indexed as-is; put tabular or dictionary content in Markdown or text if you want it retrieved. Details: **[docs/rag.md](docs/rag.md)**.
+Specs and eval gold under **`src/Rag/metrics/`** are for documentation and offline scoring; copy anything you need retrieved into **`documents/`**. Full behavior: **[docs/rag.md](docs/rag.md)**.
 
 ---
 

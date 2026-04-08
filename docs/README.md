@@ -8,6 +8,6 @@ Hands-on guides for this repository. Start with [Overview](overview.md), then fo
 | [Getting started](getting-started.md) | Prerequisites, configuration, user secrets, run commands for Client and Rag |
 | [Repository structure](repository-structure.md) | Folders, projects, where data and outputs live (includes diagram) |
 | [Prompt chain (shark / ReAct)](prompt-chain.md) | End-to-end ReAct flow, JSON prompt format, prompt versions, research question, output schema, reasoning cycle, quality bar |
-| [RAG sample](rag.md) | Indexing rules, `Rag` settings, retrieval and answering behavior |
+| [RAG sample](rag.md) | Indexing rules (including CSV rows), `Rag` settings, prose reservation, prefilled questions, retrieval and answering with citations |
 
 Related: [Project rules for prompt authoring](../.cursor/rules/project-rules.mdc) (ReAct standard used when editing prompts).

@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using PromptEngineering.LLM;
 using PromptEngineering.LLM.Extensions;
 using PromptEngineering.LLM.Models;
@@ -13,11 +14,13 @@ internal sealed class RagOrchestrator
 
     private readonly IAiService _ai;
     private readonly RagSettings _settings;
+    private readonly ILogger<RagOrchestrator> _logger;
 
-    public RagOrchestrator(IAiService ai, RagSettings settings)
+    public RagOrchestrator(IAiService ai, RagSettings settings, ILogger<RagOrchestrator> logger)
     {
         _ai = ai;
         _settings = settings;
+        _logger = logger;
     }
 
     public async Task<InMemoryVectorStore> BuildIndexAsync(CancellationToken cancellationToken)
@@ -26,7 +29,7 @@ internal sealed class RagOrchestrator
         if (!Directory.Exists(docRoot))
             throw new DirectoryNotFoundException($"Documents directory not found: {docRoot}");
 
-        var extensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".md", ".txt" };
+        var extensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".md", ".txt", ".csv" };
         var paths = Directory
             .EnumerateFiles(docRoot, "*.*", SearchOption.AllDirectories)
             .Where(p => extensions.Contains(Path.GetExtension(p)))
@@ -38,13 +41,27 @@ internal sealed class RagOrchestrator
         {
             cancellationToken.ThrowIfCancellationRequested();
             var name = Path.GetFileName(path);
-            var text = await File.ReadAllTextAsync(path, cancellationToken);
-            foreach (var c in TextChunker.ChunkText(name, text, _settings.ChunkSizeChars, _settings.ChunkOverlapChars))
-                chunks.Add(c);
+            if (string.Equals(Path.GetExtension(path), ".csv", StringComparison.OrdinalIgnoreCase))
+            {
+                foreach (var c in await CsvDocumentChunker.ChunkFileAsync(
+                             path,
+                             name,
+                             _settings.Csv,
+                             _settings.ChunkSizeChars,
+                             _settings.ChunkOverlapChars,
+                             cancellationToken))
+                    chunks.Add(c);
+            }
+            else
+            {
+                var text = await File.ReadAllTextAsync(path, cancellationToken);
+                foreach (var c in TextChunker.ChunkText(name, text, _settings.ChunkSizeChars, _settings.ChunkOverlapChars))
+                    chunks.Add(c);
+            }
         }
 
         if (chunks.Count == 0)
-            throw new InvalidOperationException($"No text chunks produced under '{docRoot}'. Add .md or .txt files.");
+            throw new InvalidOperationException($"No text chunks produced under '{docRoot}'. Add .md, .txt, or non-empty .csv files.");
 
         var store = new InMemoryVectorStore();
         var batchSize = _settings.EmbeddingBatchSize;
@@ -71,7 +88,16 @@ internal sealed class RagOrchestrator
             for (var j = 0; j < ordered.Count; j++)
             {
                 var floats = ToFloatArray(ordered[j].Embedding);
-                store.Add(new VectorRecord(batch[j].SourceFileName, batch[j].Text, floats));
+                var chunk = batch[j];
+                store.Add(new VectorRecord(chunk.SourceFileName, chunk.Text, floats));
+                var chunkNumber = i + j + 1;
+                _logger.LogInformation(
+                    "Indexed chunk {ChunkNumber}/{TotalChunks}: source={Source}, chars={CharCount}, embeddingDims={Dims}",
+                    chunkNumber,
+                    chunks.Count,
+                    chunk.SourceFileName,
+                    chunk.Text.Length,
+                    floats.Length);
             }
         }
 
@@ -97,14 +123,29 @@ internal sealed class RagOrchestrator
             ?? throw new InvalidOperationException("No embedding returned for the question.");
 
         var queryVector = ToFloatArray(first.Embedding);
-        var top = store.SearchTopK(queryVector, _settings.TopK);
+        var top = store.SearchTopKWithProseReserve(
+            queryVector,
+            _settings.TopK,
+            _settings.MinProseChunks);
+
+        for (var i = 0; i < top.Count; i++)
+        {
+            var (r, score) = top[i];
+            _logger.LogInformation(
+                "Retrieval rank={Rank}/{RetrievedCount}: similarity={Similarity:F4}, source={Source}",
+                i + 1,
+                top.Count,
+                score,
+                r.SourceFileName);
+        }
 
         var contextBlocks = top
-            .Select((r, idx) => $"[{idx + 1}] (source: {r.SourceFileName})\n{r.Text.Trim()}");
+            .Select((x, idx) => $"[{idx + 1}] (source: {x.Record.SourceFileName})\n{x.Record.Text.Trim()}");
         var context = string.Join("\n---\n", contextBlocks);
 
         var userMessage =
-            "Use only the context below to answer. If the answer is not contained in the context, say you do not know.\n\n" +
+            "Use only the context below to answer. If the answer is not contained in the context, say you do not know and say what is missing.\n\n" +
+            "For every non-obvious factual claim (field meanings, units, URIs, dates, names, numbers), add a bracket citation like [1] or [2] pointing to the context block that supports it.\n\n" +
             "Context:\n" +
             context +
             "\n\nQuestion:\n" +
@@ -112,7 +153,7 @@ internal sealed class RagOrchestrator
 
         var chatRequest = new ChatRequest { Temperature = 0.2f };
         chatRequest.AddSystemMessage(
-            "You are a precise assistant. Ground every factual claim in the provided context. Do not invent policies, numbers, or contacts.");
+            "You are a precise assistant. Use only the provided context. Ground every factual claim in that context with [n] citations where n is the context block index. Do not invent policies, numbers, units, or contacts. If the context is insufficient, say so clearly.");
         chatRequest.AddUserMessage(userMessage);
 
         var completion = await _ai.CompleteChatAsync(

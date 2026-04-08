@@ -5,11 +5,11 @@ The **`Rag`** console demonstrates **retrieval-augmented generation** on local t
 ## Pipeline (high level)
 
 1. **Discover** files: recursive scan under **`Rag:DocumentsPath`** (relative to the application base directory).
-2. **Filter** extensions: **`.md`** and **`.txt`** only.
-3. **Chunk** each file with **`ChunkSizeChars`** and **`ChunkOverlapChars`**.
+2. **Filter** extensions: **`.md`**, **`.txt`**, and **`.csv`**.
+3. **Chunk** each file: **`.md`/`.txt`** use a character window; **`.csv`** is parsed into logical rows (quoted fields, `""` escapes, newlines inside quotes), each data row is formatted as `column: value` lines, then up to **`Rag:Csv:BatchSize`** new rows are packed per chunk (fewer chunks than char-only packing). The CSV text budget per chunk is **`max(ChunkSizeChars, BatchSize × 512)`** characters; overlap is still **whole trailing rows** up to **`ChunkOverlapChars`**.
 4. **Embed** chunks in batches of **`EmbeddingBatchSize`** via **`CreateEmbeddingsAsync`**, using **`Rag:InstanceName`**.
 5. **Store** vectors in an in-memory index with cosine similarity search.
-6. **Answer**: embed the user question, take **TopK** chunks, build a single user message with labeled context blocks, call **`CompleteChatAsync`** on the **same** instance.
+6. **Answer**: embed the user question, retrieve **`TopK`** chunks with **`SearchTopKWithProseReserve`**: up to **`MinProseChunks`** slots are filled from the **best-matching `.md` / `.txt`** chunks (by cosine similarity), then remaining slots are filled from the global ranking without duplicates. Chunks from **`.csv`** can still appear in the tail of context when they score highly. Build a single user message with labeled context blocks and call **`CompleteChatAsync`** on the **same** instance.
 
 ## Configuration
 
@@ -18,36 +18,66 @@ The **`Rag`** console demonstrates **retrieval-augmented generation** on local t
 | Key | Role |
 | --- | --- |
 | `DocumentsPath` | Root folder under the build output (default `documents`) |
-| `ChunkSizeChars` | Target chunk size |
+| `QuestionsPath` | Folder of prefilled question `.md` files under the build output (default `questions`); copied from `src/Rag/questions/` at build time |
+| `AnswersPath` | Folder where prefilled and manual answers are written (default `answers`); created at runtime next to the executable if missing |
+| `ChunkSizeChars` | Target chunk size for prose and base budget for CSV packing |
 | `ChunkOverlapChars` | Overlap between consecutive chunks (non-negative, smaller than chunk size) |
 | `EmbeddingBatchSize` | Texts per embedding API call |
 | `TopK` | How many chunks are concatenated into the prompt context |
+| `MinProseChunks` | Minimum count (capped by `TopK`) of retrieved chunks that must come from **`.md` / `.txt`** sources, by best cosine score among prose—helps pull dictionary or narrative docs even when raw rows dominate similarity |
 | `InstanceName` | Must match `Instances[].Name` — used for **both** embeddings and chat |
+
+### `Rag:Csv` (CSV indexing)
+
+| Key | Role |
+| --- | --- |
+| `Delimiter` | Single character separating fields (default `,`) |
+| `Quote` | Single character for quoted fields (default `"`) |
+| `HasHeader` | When `true`, the first logical row supplies column names for formatted text |
+| `BatchSize` | Max number of **new** data rows per chunk; larger values reduce chunk count and embedding volume |
+
+The CSV reader is a small in-repo parser (no extra packages): delimiter and quote must differ and cannot be newlines. Malformed rows or field counts that do not match the header row throw with file name and row index.
 
 ### `SystemSettings.AiServiceSettings`
 
 Same shape as the Client. For many providers, chat and embeddings use **different deployment names**; set **`EmbeddingDeployment`** on the instance when needed.
 
-Example `Rag` block (illustrative):
+Example `Rag` block (aligned with current defaults in `appsettings.json`):
 
 ```json
 "Rag": {
   "DocumentsPath": "documents",
+  "QuestionsPath": "questions",
+  "AnswersPath": "answers",
   "ChunkSizeChars": 600,
   "ChunkOverlapChars": 100,
   "TopK": 4,
+  "MinProseChunks": 1,
   "EmbeddingBatchSize": 16,
-  "InstanceName": "AI Architect.Rag.Low"
+  "InstanceName": "AI Architect.Rag.Low",
+  "Csv": {
+    "Delimiter": ",",
+    "Quote": "\"",
+    "HasHeader": true,
+    "BatchSize": 100
+  }
 }
 ```
+
+## Running the console
+
+- **`dotnet run --project src/Rag/Rag.csproj`** (or `--project Rag` from the solution folder) starts indexing, then prompts:
+  - **`[1] Prefilled`** — reads every **`*.md`** in **`Rag:QuestionsPath`** (sorted by file name), runs each full file as the user question, writes one answer per question under **`Rag:AnswersPath`** with YAML front matter (`source`, `generated_utc`).
+  - **`[2] Manual`** — read single-line questions from stdin; each answer is saved as `manual_<utc-stamp>.md` with the question embedded in the file.
+- **One-shot CLI**: `dotnet run --project src/Rag/Rag.csproj -- "your question"` skips the interactive menu, prints the answer to stdout, and does **not** write an answers file.
 
 ## Answering behavior
 
 The orchestrator constructs a user message that:
 
-- Lists retrieved chunks with source file names and separators.
-- Instructs the model to use **only** that context.
-- Requires admitting **“do not know”** when the context is insufficient.
+- Lists retrieved chunks with **1-based indices**, source file names, and separators.
+- Instructs the model to use **only** that context, to say it **does not know** when context is insufficient, and to add **bracket citations** (`[1]`, `[2]`, …) for non-obvious factual claims tied to those blocks.
+- Uses a system message that forbids inventing policies, numbers, units, or contacts.
 
 Adjust system/user instructions in **`RagOrchestrator.AnswerAsync`** if you need stricter citation or different tone.
 
@@ -59,38 +89,32 @@ Only these extensions are indexed (recursive scan under **`Rag:DocumentsPath`**)
 | --- | --- |
 | **`.md`** | Markdown |
 | **`.txt`** | Plain text |
+| **`.csv`** | Parsed rows, formatted for retrieval (see **`Rag:Csv`**) |
 
 ## Operational notes
 
 - **Large corpora**: Everything is **in-memory** (vectors + text). Very large libraries may need a different store; this sample optimizes for clarity.
+- **Large CSV files**: Chunk count scales roughly with row count ÷ **`Csv:BatchSize`** (plus overlap). Raise **`BatchSize`** to reduce embedding calls if your provider allows larger inputs per request.
+- **`src/Rag/metrics/`**: Specs and offline RAG eval gold (`*.md`, `rag_eval_space_missions_gold.csv`) live here for documentation and checklist scoring. They are **not** copied to the output by the `.csproj`; anything you want **indexed** must also appear under **`src/Rag/documents/`** (or another path you set as `DocumentsPath`).
 - **Secrets**: Use user secrets on the `Rag` project (`UserSecretsId` in `.csproj`) for API keys and base address.
-- **One-shot CLI**: `dotnet run --project Rag -- "your question"` skips the interactive loop.
 
-## Sample RAG evaluation questions (Spotify dictionary)
+## Sample corpora and questions
 
-Use these to check that retrieval pulls **schema prose** (for example `spotify_data_dictionary.md`), not only play-history rows. Answers that need **URI shape**, **UTC on `ts`**, or **`ms_played` in milliseconds** should fail or go vague if the dictionary chunk is missing from context.
+### Space missions (default sample in repo)
 
-**Prerequisite:** Include a Markdown (or `.txt`) **data dictionary** in `documents/` alongside any optional history export. Remember: **`.csv` is not embedded** by this sample indexer.
+The checked-in **`src/Rag/documents/`** tree includes tabular launch data (for example **`space_missions.csv`**). For answers that need **stable field definitions** or metric wording (for example **`MissionStatus`** values, **MSR**), add prose under **`documents/`** as well—for example copy **`src/Rag/metrics/space_missions_data_dictionary.md`** into `documents/` or maintain a short dictionary `.md` next to the CSV. Otherwise retrieval may return mostly row chunks, and `MinProseChunks` only reserves slots for `.md`/`.txt` that actually exist in the index.
 
-### Dictionary analysis, metric, and business questions
+**Metric spec (reference):** `src/Rag/metrics/space_missions_mission_success_rate.md` defines **mission success rate (MSR)** from `MissionStatus`.
 
-Source: `src/Rag/documents/spotify_data_dictionary.md` (indexed when copied into the app `documents/` folder as `.md`).
+**Offline RAG quality:** `src/Rag/metrics/rag_grounded_response_metric.md` describes **GRPR** (grounding pass rate); paired gold rows live in **`src/Rag/metrics/rag_eval_space_missions_gold.csv`**.
 
-#### Analysis
+**Example prefilled prompt:** `src/Rag/questions/question_space_missions_extraction_pie.md` — asks for extraction from context plus a **Mermaid pie** chart; run via prefilled mode after indexing.
 
-The dictionary describes **per-stream playback events** (one row per play). Each row ties a **track** (`spotify_track_uri`, `track_name`, `artist_name`, `album_name`) to **when it ended** (`ts` in UTC), **how long it ran** (`ms_played`), **where it was played** (`platform`), **how it started/ended** (`reason_start`, `reason_end`), and **mode/behavior** (`shuffle`, `skipped`). That supports engagement, channel, and content analytics when aggregating over rows; interpret with care (for example, very short `ms_played` may indicate partial listens; `skipped` marks user-initiated skips).
+### Spotify-style playback dictionary (optional pattern)
 
-#### Metric: Total listening time (TLT)
-
-For a chosen scope (date range, user, artist, album, platform, etc.), **TLT** is the **sum of `ms_played`** over all events in that scope. Use **milliseconds** as stored, or convert to minutes/hours for reporting. Optionally refine by filtering events—for example, exclude rows where `skipped` is TRUE if the question is time listened before skipping.
-
-#### Business questions (TLT)
-
-1. **Trend and seasonality** — How does **TLT** change week over week or month over month, and do spikes or drops align with releases, marketing, or product changes (using `ts` to place events in time)?
-2. **Platform and product mix** — How is **TLT** split and trending by **`platform`**, and should we prioritize fixes or features on the surfaces that carry the most listening time?
-3. **Content and discovery** — Which **`artist_name`** / **`album_name`** (or tracks by URI) drive the most **TLT** in a period, and how does that compare to **`skipped`** and **`shuffle`** to judge depth of engagement versus exploratory listening?
+If you maintain a **Markdown data dictionary** (and optionally a history **`.csv`**) under **`documents/`**, you can ask schema-grounded questions the same way: URI shape, **UTC** on `ts`, **`ms_played`** in milliseconds, **`TLT`** (total listening time = sum of `ms_played` over a scope), and platform or content breakdowns. This is **not** required for the space-missions sample above.
 
 ## See also
 
 - [Getting started](getting-started.md) — run commands and secret setup
-- [Repository structure](repository-structure.md) — where `documents/` lives in source vs output
+- [Repository structure](repository-structure.md) — where `documents/` and `questions/` live in source vs output

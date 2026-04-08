@@ -7,7 +7,7 @@ A **.NET 8** solution for experimenting with **LLM-backed workflows** in two com
 | Track | Entry point | Purpose |
 | --- | --- | --- |
 | **ReAct prompt chain** | `PromptEngineering.Client` | Run a ordered sequence of JSON prompts against **shark attack** rows from `dataset/attacks.csv`. Each step can receive the previous model output as `<prior_run>`. Results are saved as timestamped Markdown under `output/`. |
-| **RAG sample** | `Rag` | Chunk **`.md` / `.txt`** under `src/Rag/documents`, embed them, retrieve top‑K chunks for a question, then answer with a **context-only** chat prompt. |
+| **RAG sample** | `Rag` | Chunk **`.md` / `.txt` / `.csv`** under `src/Rag/documents`, embed them, retrieve **top‑K** chunks (with optional **prose reservation** for dictionary-style `.md`/`.txt`), then answer with a **context-only** chat prompt and **[n] citations**. Prefilled questions live in `src/Rag/questions/`; answers are written under **`answers/`** (see [RAG](rag.md)). |
 
 Both tracks use the same **`PromptEngineering.LLM`** layer (HTTP to a DIAL- or OpenAI-compatible API).
 
@@ -21,7 +21,7 @@ Both tracks use the same **`PromptEngineering.LLM`** layer (HTTP to a DIAL- or O
 ## Data and safety notes
 
 - **ReAct track**: Evidence is **injected CSV rows** as XML `<record>` elements. Do not treat saved completions as a substitute for structured sections when aggregating runs (see project rules).
-- **RAG track**: Only **`.md` and `.txt`** are indexed. Raw **`.csv`** in `documents/` is **not** embedded unless you convert or wrap that content in text/Markdown.
+- **RAG track**: **`.md`**, **`.txt`**, and **`.csv`** under **`Rag:DocumentsPath`** are indexed (CSV is split into row batches for embedding). Specs and offline eval gold under **`src/Rag/metrics/`** are not copied to the build output unless you also place them under **`documents/`**.
 
 ## Where to go next
 

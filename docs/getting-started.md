@@ -48,7 +48,7 @@ The committed Client config lists **three** instances (Low / Medium / High). **`
 
 1. Edit `src/Rag/appsettings.json`:
    - `Rag.InstanceName` must equal one of `SystemSettings.AiServiceSettings.Instances[].Name`
-   - Tune `DocumentsPath`, chunk sizes, `TopK`, and `EmbeddingBatchSize` as needed
+   - Tune `DocumentsPath`, `QuestionsPath`, `AnswersPath`, chunk sizes, `TopK`, `MinProseChunks`, `Csv:BatchSize`, and `EmbeddingBatchSize` as needed
 2. If your provider uses a **separate** embedding model, set **`EmbeddingDeployment`** on that instance (see committed Rag `appsettings.json`).
 
 ```powershell
@@ -56,12 +56,15 @@ cd src
 dotnet run --project Rag
 ```
 
-Interactive mode: type questions; **empty line** exits.
+After indexing, the console offers:
 
-One-shot question:
+- **`[1] Prefilled`** — runs every **`*.md`** in **`Rag:QuestionsPath`** and saves answers under **`Rag:AnswersPath`** (YAML front matter + body).
+- **`[2] Manual`** — type one question per line; **empty line** exits.
+
+One-shot question (prints the answer only; does not write **`answers/`**):
 
 ```powershell
-dotnet run --project Rag -- "What does the ts field mean in the Spotify export?"
+dotnet run --project Rag -- "What MissionStatus values appear in the space missions context?"
 ```
 
 ## Configuration reference (abbreviated)
@@ -79,10 +82,14 @@ dotnet run --project Rag -- "What does the ts field mean in the Spotify export?"
 
 | Key | Role |
 | --- | --- |
-| `DocumentsPath` | Folder under the app base directory to scan for `.md` / `.txt` |
-| `ChunkSizeChars` / `ChunkOverlapChars` | Chunking for embedding |
+| `DocumentsPath` | Folder under the app base directory to scan for `.md` / `.txt` / `.csv` |
+| `QuestionsPath` | Prefilled question `.md` files (copied from `src/Rag/questions/`) |
+| `AnswersPath` | Output folder for prefilled and manual runs |
+| `ChunkSizeChars` / `ChunkOverlapChars` | Chunking for prose; CSV chunks use a larger effective budget (see [RAG](rag.md)) |
+| `Csv` | Delimiter, quote, header, **`BatchSize`** (rows per CSV chunk) |
 | `EmbeddingBatchSize` | Batch size for `CreateEmbeddingsAsync` |
 | `TopK` | Chunks injected into the answer prompt |
+| `MinProseChunks` | Reserve up to this many slots for best `.md`/`.txt` matches before filling from CSV-heavy results |
 | `InstanceName` | Instance used for **both** embeddings and chat completion |
 
 See [RAG sample](rag.md) for behavior details.

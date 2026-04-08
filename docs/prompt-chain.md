@@ -144,3 +144,7 @@ If scores stall, use **meta-prompting**: have an LLM revise the prompt (preserve
 ## Related rules
 
 Repository Cursor rules expand on ReAct steps, evidence rules, and aggregation behavior: [project-rules.mdc](../.cursor/rules/project-rules.mdc).
+
+## See also
+
+- [RAG sample](rag.md) — embeddings, CSV row chunks, and retrieval-based answers (contrast with **injected** `<record>` rows in this Client track).

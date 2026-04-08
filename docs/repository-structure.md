@@ -22,10 +22,14 @@
 | `Rag` | Console host: chunk documents, embed, retrieve, answer |
 | `PromptEngineering.Services.Tests` | Tests for services |
 
-## RAG document assets
+## RAG assets (`Rag` project)
 
-- Source files live under **`src/Rag/documents/`**.
-- The `.csproj` copies `documents/**` to the build output so paths resolve relative to **`Rag:DocumentsPath`** (default `documents`).
+| Path (source) | Build / runtime |
+| --- | --- |
+| **`src/Rag/documents/`** | Copied to output as **`documents/**`** — indexed corpus (`.md`, `.txt`, `.csv`). |
+| **`src/Rag/questions/`** | Copied to output as **`questions/**`** — prefilled prompts (`*.md`) for batch runs. |
+| **`src/Rag/answers/`** | Created at runtime next to the executable (default **`answers/`**) — model outputs from prefilled or manual mode. |
+| **`src/Rag/metrics/`** | Specs and gold eval CSV only; **not** in `Content` copy items — add files to **`documents/`** if they must be retrieved. |
 
 ## Diagram
 
@@ -51,7 +55,8 @@ graph TD
     SRC --> LLM["PromptEngineering.LLM"]
     SRC --> MODEL["PromptEngineering.Model"]
     SRC --> RAG["Rag"]
-    RAG --> RAG_DOCS["documents/ (.md, .txt)"]
+    RAG --> RAG_DOCS["documents/ (.md, .txt, .csv)"]
+    RAG --> RAG_Q["questions/ (*.md)"]
 
     TESTS --> TEST_PROJ["PromptEngineering.Services.Tests"]
 
