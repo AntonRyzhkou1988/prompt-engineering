@@ -25,7 +25,9 @@ internal static class Program
         var ragSettings = configuration.GetRequiredSection("Rag").Get<RagSettings>()
             ?? throw new InvalidOperationException("Configuration section 'Rag' is missing or invalid.");
         ragSettings.Validate();
-       
+
+        var documentsRoot = ragSettings.ResolveDocumentsRoot(AppContext.BaseDirectory);
+        Console.WriteLine($"Rag corpus: {documentsRoot}");
 
         await using var provider = new ServiceCollection()
             .AddLogging(b => b.AddSimpleConsole(o => o.SingleLine = true))
@@ -43,7 +45,7 @@ internal static class Program
             cts.Cancel();
         };
 
-        Console.WriteLine("Indexing documents...");
+        Console.WriteLine("Indexing corpus...");
         var store = await orchestrator.BuildIndexAsync(cts.Token);
         Console.WriteLine($"Indexed {store.Count} chunk(s).");
 
@@ -94,10 +96,10 @@ internal static class Program
     }
 
     private static string QuestionsRoot(RagSettings settings) =>
-        Path.Combine(AppContext.BaseDirectory, settings.QuestionsPath);
+        settings.ResolveQuestionsRoot(AppContext.BaseDirectory);
 
     private static string AnswersRoot(RagSettings settings) =>
-        Path.Combine(AppContext.BaseDirectory, settings.AnswersPath);
+        settings.ResolveAnswersRoot(AppContext.BaseDirectory);
 
     private static void EnsureAnswersDirectory(RagSettings settings) =>
         Directory.CreateDirectory(AnswersRoot(settings));
@@ -199,7 +201,8 @@ internal static class Program
     {
         EnsureAnswersDirectory(settings);
         Console.WriteLine();
-        Console.WriteLine("Manual mode — one question per line (empty line to exit). Each answer is saved under answers/.");
+        Console.WriteLine(
+            "Manual mode — one question per line (empty line to exit). Each answer is saved under the folder from Rag:AnswersPath (repository answers/ by default).");
 
         while (!cancellationToken.IsCancellationRequested)
         {

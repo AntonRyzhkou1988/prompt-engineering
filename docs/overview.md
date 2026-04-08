@@ -1,5 +1,7 @@
 # Overview
 
+Documentation index: see the repository **[README.md](../README.md)**.
+
 ## What this repository is
 
 A **.NET 8** solution for experimenting with **LLM-backed workflows** in two complementary ways:
@@ -7,7 +9,7 @@ A **.NET 8** solution for experimenting with **LLM-backed workflows** in two com
 | Track | Entry point | Purpose |
 | --- | --- | --- |
 | **ReAct prompt chain** | `PromptEngineering.Client` | Run a ordered sequence of JSON prompts against **shark attack** rows from `dataset/attacks.csv`. Each step can receive the previous model output as `<prior_run>`. Results are saved as timestamped Markdown under `output/`. |
-| **RAG sample** | `Rag` | Chunk **`.md` / `.txt` / `.csv`** under `src/Rag/documents`, embed them, retrieve **top‑K** chunks (with optional **prose reservation** for dictionary-style `.md`/`.txt`), then answer with a **context-only** chat prompt and **[n] citations**. Prefilled questions live in `src/Rag/questions/`; answers are written under **`answers/`** (see [RAG](rag.md)). |
+| **RAG sample** | `Rag` | Chunk **`.md` / `.txt` / `.csv`** under repository-root **`dataset/`** by default (via **`Rag:DocumentsFolderPath`** + **`Rag:DocumentsPath`** = **`dataset`**), embed them, retrieve **top‑K** chunks (with optional **prose reservation** for dictionary-style `.md`/`.txt`), then answer with a **context-only** chat prompt and **[n] citations**. Prefilled questions live in **`questions/`**; answers are written under **`answers/`** (see [RAG](rag.md)). |
 
 Both tracks use the same **`PromptEngineering.LLM`** layer (HTTP to a DIAL- or OpenAI-compatible API).
 
@@ -21,7 +23,7 @@ Both tracks use the same **`PromptEngineering.LLM`** layer (HTTP to a DIAL- or O
 ## Data and safety notes
 
 - **ReAct track**: Evidence is **injected CSV rows** as XML `<record>` elements. Do not treat saved completions as a substitute for structured sections when aggregating runs (see project rules).
-- **RAG track**: **`.md`**, **`.txt`**, and **`.csv`** under **`Rag:DocumentsPath`** are indexed (CSV is split into row batches for embedding). Specs and offline eval gold under **`src/Rag/metrics/`** are not copied to the build output unless you also place them under **`documents/`**.
+- **RAG track**: **`.md`**, **`.txt`**, and **`.csv`** under the resolved corpus folder (**`Rag:DocumentsFolderPath`** + **`Rag:DocumentsPath`**, default **`dataset`**) are indexed (CSV is split into row batches for embedding). Specs and offline eval gold under repository-root **`metrics/`** are not indexed unless you also place them under **`dataset/`** / **`documents/`** (or point **`DocumentsPath`** at a tree that includes them).
 
 ## Where to go next
 

@@ -29,12 +29,13 @@ For the full flow, schema (Sections A–D), and quality checklist, see **[docs/p
 
 This track is implemented by **`Rag`**:
 
-- **Index**: `.md`, `.txt`, and `.csv` under `src/Rag/documents` (copied to the build output) are **chunked** (CSV as row batches), **embedded** in batches, and stored in an **in-memory** vector index.
+- **Layout**: **`dataset/`** (default RAG corpus, includes **`space_missions.csv`** next to **`attacks.csv`**), **`documents/`** (optional extra corpus), **`questions/`**, **`answers/`**, and **`metrics/`** (reference / eval) live at or under the **repository root**. The **`Rag`** project under **`src/Rag/`** only hosts code and `appsettings.json`; it does not own those folders.
+- **Index**: `.md`, `.txt`, and `.csv` under **`Rag:DocumentsFolderPath`** + **`Rag:DocumentsPath`** (committed default: repo root + **`dataset`**) are **chunked** (CSV as row batches), **embedded** in batches, and stored in an **in-memory** vector index. With the default, **`attacks.csv`** is indexed too; point **`DocumentsPath`** at **`documents`** if you want a separate corpus folder. The `.csproj` does **not** copy data into `bin`.
 - **Query**: the question is embedded; **top‑K** chunks are selected by **cosine similarity**, with **`MinProseChunks`** reserving slots for the best‑matching dictionary-style `.md`/`.txt` chunks when configured. Answers use **context-only** instructions and **[n] citations** to context blocks.
-- **Batch Q&A**: prefilled prompts in `src/Rag/questions/` can be run from the console; answers are written under **`answers/`** (see **[docs/rag.md](docs/rag.md)**).
-- **Configuration**: chunk size, overlap, `TopK`, `MinProseChunks`, `Csv:BatchSize`, batch size, and which **instance** performs embeddings and chat (see `appsettings.json`).
+- **Batch Q&A**: prefilled prompts in **`questions/`** can be run from the console; answers are written under **`answers/`** (see **[docs/rag.md](docs/rag.md)**).
+- **Configuration**: chunk size, overlap, `TopK`, `MinProseChunks`, `Csv:BatchSize`, batch size, and which **instance** performs embeddings and chat (see `src/Rag/appsettings.json`).
 
-Specs and eval gold under **`src/Rag/metrics/`** are for documentation and offline scoring; copy anything you need retrieved into **`documents/`**. Full behavior: **[docs/rag.md](docs/rag.md)**.
+Specs and eval gold under **`metrics/`** are for documentation and offline scoring; copy anything you need retrieved into **`dataset/`** or **`documents/`** (or adjust **`DocumentsFolderPath`** / **`DocumentsPath`**). Full behavior: **[docs/rag.md](docs/rag.md)**.
 
 ---
 
@@ -46,14 +47,17 @@ Specs and eval gold under **`src/Rag/metrics/`** are for documentation and offli
 
 ## Documentation
 
-| Doc | Topics |
+Hands-on guides for this repository. Start with **[Overview](docs/overview.md)**, then **[Getting started](docs/getting-started.md)**.
+
+| Guide | Topics |
 | --- | --- |
-| [docs/README.md](docs/README.md) | Index of all guides |
-| [docs/overview.md](docs/overview.md) | Big-picture summary and capabilities |
-| [docs/getting-started.md](docs/getting-started.md) | Prerequisites, secrets, run commands |
-| [docs/repository-structure.md](docs/repository-structure.md) | Folders, projects, diagram |
-| [docs/prompt-chain.md](docs/prompt-chain.md) | ReAct sequence, JSON/XML, versions, Sections A–D, quality bar |
-| [docs/rag.md](docs/rag.md) | RAG pipeline, settings, limitations |
+| [Overview](docs/overview.md) | What the solution does, two tracks (ReAct vs RAG), shared LLM capabilities |
+| [Getting started](docs/getting-started.md) | Prerequisites, configuration, user secrets, run commands for Client and Rag |
+| [Repository structure](docs/repository-structure.md) | Folders, projects, where data and outputs live (includes diagram) |
+| [Prompt chain (shark / ReAct)](docs/prompt-chain.md) | End-to-end ReAct flow, JSON prompt format, prompt versions, research question, output schema, reasoning cycle, quality bar |
+| [RAG sample](docs/rag.md) | Indexing rules (including CSV rows), `Rag` settings, prose reservation, prefilled questions, retrieval and answering with citations |
+
+Related: [Project rules for prompt authoring](.cursor/rules/project-rules.mdc) (ReAct standard used when editing prompts).
 
 ---
 

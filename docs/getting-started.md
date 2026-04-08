@@ -46,9 +46,15 @@ The committed Client config lists **three** instances (Low / Medium / High). **`
 
 ## Run: `Rag`
 
+Corpus layout (defaults assume you run from a normal `dotnet build` of **`Rag`**, so `AppContext.BaseDirectory` is `src/Rag/bin/{Configuration}/net8.0/`):
+
+- **`dataset/`** (default **`Rag:DocumentsPath`**), **`questions/`**, **`answers/`** — **`space_missions.csv`** lives under **`dataset/`** with **`attacks.csv`**. `appsettings.json` sets **`Rag:DocumentsFolderPath`** to the absolute repository path (committed default: **`C:\Work\learn\ai-architect-practice\prompt-engineering`**) and **`Rag:DocumentsPath`** to **`dataset`**; **`questions`** and **`answers`** name the other subfolders. Nothing is copied into `bin`. You can use a **relative** **`DocumentsFolderPath`** if you prefer (for example **`../../../../../`** from `bin/.../net8.0/`).
+- **`documents/`** — optional extra corpus folder (empty by default); set **`Rag:DocumentsPath`** to **`documents`** if you add files there instead of **`dataset`**.
+- **`metrics/`** — also at the **repository root**; used for specs and offline eval CSV. It is **not** indexed unless you copy files into **`dataset/`** / **`documents/`** or point **`DocumentsPath`** at a tree that includes them.
+
 1. Edit `src/Rag/appsettings.json`:
    - `Rag.InstanceName` must equal one of `SystemSettings.AiServiceSettings.Instances[].Name`
-   - Tune `DocumentsPath`, `QuestionsPath`, `AnswersPath`, chunk sizes, `TopK`, `MinProseChunks`, `Csv:BatchSize`, and `EmbeddingBatchSize` as needed
+   - Tune `DocumentsFolderPath`, `DocumentsPath`, `QuestionsPath`, `AnswersPath`, chunk sizes, `TopK`, `MinProseChunks`, `Csv:BatchSize`, and `EmbeddingBatchSize` as needed
 2. If your provider uses a **separate** embedding model, set **`EmbeddingDeployment`** on that instance (see committed Rag `appsettings.json`).
 
 ```powershell
@@ -82,9 +88,10 @@ dotnet run --project Rag -- "What MissionStatus values appear in the space missi
 
 | Key | Role |
 | --- | --- |
-| `DocumentsPath` | Folder under the app base directory to scan for `.md` / `.txt` / `.csv` |
-| `QuestionsPath` | Prefilled question `.md` files (copied from `src/Rag/questions/`) |
-| `AnswersPath` | Output folder for prefilled and manual runs |
+| `DocumentsFolderPath` | Shared parent for corpus/questions/answers: **absolute** path or relative to `AppContext.BaseDirectory` (committed default: **`C:\Work\learn\ai-architect-practice\prompt-engineering`**) |
+| `DocumentsPath` | Corpus subfolder under `DocumentsFolderPath` (default **`dataset`** — indexes **`space_missions.csv`** and **`attacks.csv`**) |
+| `QuestionsPath` | Prefilled question `.md` subfolder (default **`questions`**) |
+| `AnswersPath` | Answer output subfolder (default **`answers`**) |
 | `ChunkSizeChars` / `ChunkOverlapChars` | Chunking for prose; CSV chunks use a larger effective budget (see [RAG](rag.md)) |
 | `Csv` | Delimiter, quote, header, **`BatchSize`** (rows per CSV chunk) |
 | `EmbeddingBatchSize` | Batch size for `CreateEmbeddingsAsync` |

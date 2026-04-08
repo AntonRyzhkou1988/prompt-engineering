@@ -25,9 +25,9 @@ internal sealed class RagOrchestrator
 
     public async Task<InMemoryVectorStore> BuildIndexAsync(CancellationToken cancellationToken)
     {
-        var docRoot = Path.Combine(AppContext.BaseDirectory, _settings.DocumentsPath);
+        var docRoot = _settings.ResolveDocumentsRoot(AppContext.BaseDirectory);
         if (!Directory.Exists(docRoot))
-            throw new DirectoryNotFoundException($"Documents directory not found: {docRoot}");
+            throw new DirectoryNotFoundException($"Rag corpus directory not found (Rag:DocumentsPath): {docRoot}");
 
         var extensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".md", ".txt", ".csv" };
         var paths = Directory
