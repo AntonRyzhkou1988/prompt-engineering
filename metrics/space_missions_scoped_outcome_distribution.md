@@ -2,7 +2,7 @@
 
 ## Purpose
 
-**Scoped mission outcome distribution (SMOD)** describes how mission outcomes are **split across `MissionStatus` categories** for an explicitly defined row population (for example a single rocket label). It is the quantitative backbone for extraction-and-visualization prompts such as **`questions/question_space_missions_extraction_pie.md`**, which ask for counts or shares plus a **Mermaid pie** chart grounded in evidence.
+**Scoped mission outcome distribution (SMOD)** describes how mission outcomes are **split across `MissionStatus` categories** for an explicitly defined row population (for example a single **`Mission`** label or **`Rocket`** label). It is the quantitative backbone for extraction-and-visualization prompts such as **`questions/question_space_missions_extraction_pie.md`**, which ask for counts or shares plus a **Mermaid pie** chart grounded in evidence.
 
 **Contrast with MSR:** **`metrics/space_missions_mission_success_rate.md`** defines **mission success rate (MSR)** as a single ratio—`Success` over all rows with non-empty `MissionStatus` in the chosen scope. **SMOD** reports the **full** categorical mix (`Success`, `Failure`, `Partial Failure`, `Prelaunch Failure`) so stakeholders see outcome balance, not only the success fraction.
 
@@ -13,14 +13,14 @@ Defined using columns documented in **`docs/applications/space_missions_data_dic
 | Field | Role in this metric |
 | --- | --- |
 | `MissionStatus` | **Primary.** Category label for each counted row; empty values are excluded from the outcome denominator unless you define a separate “unknown” bucket (not part of the canonical four-label mix). |
-| `Rocket` | **Scope key (canonical prompt).** Exact string match on the dataset value; broader families are **not** implied (for example `Vostok` and `Vostok-2` are distinct labels). |
-| `Mission`, `Date` | **Traceability.** Use in RAG answers to show which rows support each count; optional for batch SQL-style runs over the full file. |
+| `Mission` | **Scope key (canonical prompt).** For **`questions/question_space_missions_extraction_pie.md`**, exact string match on **`Mission` = `Vostok 1`**; other mission names (for example `Vostok 2`, `Luna-1`) are out of scope. |
+| `Rocket`, `Date` | **Traceability.** On the canonical row, **`Rocket`** is `Vostok`; use with **`Mission`** and **`Date`** in RAG answers to identify counted rows. |
 
 Other fields (`Company`, `Location`, `Price`, …) may define **alternate** scopes; the same counting rules apply once the population is fixed.
 
 ## Definition
 
-Let **P** be the set of rows that satisfy the stated **scope predicate** (for the reference prompt, **`Rocket` equals exactly `Vostok`**). Let **P′ ⊆ P** be rows where **`MissionStatus` is non-empty** after trimming.
+Let **P** be the set of rows that satisfy the stated **scope predicate** (for the reference prompt, **`Mission` equals exactly `Vostok 1`**). Let **P′ ⊆ P** be rows where **`MissionStatus` is non-empty** after trimming.
 
 For each canonical label **L** ∈ {`Success`, `Failure`, `Partial Failure`, `Prelaunch Failure`}:
 
@@ -50,11 +50,11 @@ These rules are **presentation constraints** for that prompt; they do not change
 
 - **Label semantics:** Same as MSR—the dictionary does not define operational criteria per mission.
 - **Sparse evidence:** If fewer than two categories have positive **Count(L)** in context, the reference prompt asks to **omit** the pie and explain why.
-- **Scope drift:** Mixing in rows outside **P** (for example wrong `Rocket` substring matches) invalidates the metric for the intended question.
+- **Scope drift:** Mixing in rows outside **P** (for example matching `Vostok` on **`Rocket`** while the question scoped **`Mission` = `Vostok 1`**) invalidates the metric for the intended question.
 
 ## Minimal computation checklist
 
-1. State the **scope predicate** explicitly (for the default teaching prompt: **`Rocket` = `Vostok`** exact match).
+1. State the **scope predicate** explicitly (for the default teaching prompt: **`Mission` = `Vostok 1`** exact match on the **`Mission`** column).
 2. Restrict to rows in scope; drop or separately report rows with empty `MissionStatus` for the denominator.
 3. Compute **Count(L)** for each of the four canonical `MissionStatus` values.
 4. Compute **Total outcomes** and **Share(L)** if reporting percentages.
@@ -65,6 +65,6 @@ These rules are **presentation constraints** for that prompt; they do not change
 
 | File | Role |
 | --- | --- |
-| `questions/question_space_missions_extraction_pie.md` | Reference user prompt (Vostok slice + pie). |
+| `questions/question_space_missions_extraction_pie.md` | Reference user prompt (**`Mission` = `Vostok 1`** slice + pie). |
 | `metrics/space_missions_mission_success_rate.md` | MSR definition (success-only ratio in the same scope). |
 | `docs/applications/space_missions_data_dictionary.md` | Column meanings and `MissionStatus` vocabulary. |

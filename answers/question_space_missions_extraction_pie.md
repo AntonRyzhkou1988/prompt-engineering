@@ -1,45 +1,34 @@
 ---
 source: question_space_missions_extraction_pie.md
-generated_utc: 2026-04-08T13:58:40.5477816Z
+generated_utc: 2026-04-08T21:37:09.3337256Z
 ---
 
 ## Field selection and filters
-- Use `MissionStatus` to categorize outcomes exactly as recorded (`Success`, `Failure`, `Partial Failure`, `Prelaunch Failure`) [1][2][3][4].
-- No additional filters (no date/company/location constraints) because the question asks for missions “represented in the retrieved context” (i.e., all rows shown across the provided context blocks) [1][2][3][4].
-- Use only rows with non-empty `MissionStatus` (all retrieved rows shown have a populated `MissionStatus`) [1][2][3][4].
+- Filter: `Mission` equals exactly `Vostok 1` (string match on the `Mission` column) — **no matching rows found in retrieved context** [4].
+- Selected fields intended for identification and counting: `Mission`, `Rocket`, `MissionStatus`, `Date` (but none are available for `Vostok 1` in the retrieved rows) [4].
+- No additional filters (date range, location, rocket) applied because the required `Mission = Vostok 1` rows are missing from the retrieved context [4].
 
 ## Data quality and confidence
-- `MissionStatus` appears consistently populated (no empty `MissionStatus` values visible in the retrieved rows) [1][2][3][4].
-- Outcome labels include at least `Success`, `Failure`, `Partial Failure`, and `Prelaunch Failure` in the retrieved rows [1][2][3][4].
-- The retrieved context is a partial slice of the full CSV (only certain row ranges are shown), so results describe only this retrieved subset, not the full dataset [1][2][3][4].
-- Confidence: **Medium** (counts are exact for the retrieved rows, but representativeness of the subset is unknown) [1][2][3][4].
+- The retrieved context contains a row for `Voskhod 1` (note spelling difference) but **not** `Vostok 1`, so the required slice is empty [4].
+- Because there are zero retrieved rows matching `Mission = Vostok 1`, outcome counts and percentages for that mission are not computable from the provided evidence [4].
+- Confidence: **Low** (missing the key row(s) needed for the requested filter) [4].
 
 ## Extracted table
 
 | MissionStatus | Count | Share of non-empty outcomes |
-|---|---:|---:|
-| Success | 190 | 92.23% |
-| Failure | 13 | 6.31% |
-| Partial Failure | 2 | 0.97% |
-| Prelaunch Failure | 1 | 0.49% |
-| **Total (non-empty MissionStatus)** | **206** | **100.00%** |
-
-(Counts computed by tallying `MissionStatus` across all retrieved rows in blocks [1]–[4].) [1][2][3][4]
+|---|---:|---|
+| Success | 0 | not computable (no `Mission = Vostok 1` rows retrieved) [4] |
+| Failure | 0 | not computable (no `Mission = Vostok 1` rows retrieved) [4] |
+| Partial Failure | 0 | not computable (no `Mission = Vostok 1` rows retrieved) [4] |
+| Prelaunch Failure | 0 | not computable (no `Mission = Vostok 1` rows retrieved) [4] |
 
 ## Self-critique
-- Each category count is **directly supported** by the `MissionStatus` values present in the retrieved rows, but the assistant cannot cite every individual row within the blocks in this response; the evidence is contained within the provided row listings [1][2][3][4].
-- The computed distribution may be biased because the retrieved context includes only specific row ranges (e.g., ~1996–2003 and ~2014–2016 excerpts), not the full CSV [1][2][3][4].
-- No claim is made about the overall dataset distribution beyond the retrieved subset [1][2][3][4].
+- I cannot cite any row where `Mission` is exactly `Vostok 1`; therefore, all category counts for that slice are unsupported beyond stating “no matches in retrieved context” [4].
+- The retrieved rows may omit the `Vostok 1` record(s), so this result should not be interpreted as evidence that `Vostok 1` is absent from the full CSV [4].
+- To answer, the missing piece is at least one retrieved row where `Mission` equals exactly `Vostok 1`, including its `MissionStatus` [4].
 
 ## Chart
-```mermaid
-pie showData
-    title Outcome mix (retrieved rows only; n=206)
-    "Success" : 190
-    "Failure" : 13
-    "Partial Failure" : 2
-    "Prelaunch Failure" : 1
-```
+Chart omitted because there are **no positive counts** from retrieved rows matching `Mission = Vostok 1`, and Mermaid pie slices require positive numbers [4].
 
 ## Summary
-Within the retrieved context blocks, most missions are labeled `Success` (190 of 206), with smaller counts of `Failure` (13), `Partial Failure` (2), and `Prelaunch Failure` (1) [1][2][3][4]. The pie chart visualizes that outcome mix for only the rows shown in the provided context [1][2][3][4]. What remains unknown is how this distribution compares to the full `space_missions.csv`, because most rows are not included in the retrieved context [1][2][3][4].
+No missions with `Mission` exactly `Vostok 1` appear in the retrieved context, so the mission outcome distribution cannot be computed from the provided rows [4]. The context does include `Voskhod 1`, which is a different `Mission` value and out of scope for this request [4]. What remains unknown is the `MissionStatus` (and even presence) of `Vostok 1` in the dataset because the relevant row(s) were not retrieved [4].
