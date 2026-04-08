@@ -1,77 +1,64 @@
 ---
 source: question_space_missions_location_country_share.md
-generated_utc: 2026-04-08T21:37:33.3862229Z
+generated_utc: 2026-04-08T21:42:42.8625071Z
 ---
 
 ## Field selection and filters
-- Use `Location` to derive the launch **country bucket** by applying the rule: **“Treat the country as the last comma-separated segment of `Location` after trimming whitespace.”** [1][2][3][4]
-- Use `Date` and `Mission` only to help identify rows in the slice (no filtering by them). [1][2][3][4]
-- No additional filters applied: **scope = all rows present in the retrieved context blocks**. [1][2][3][4]
-- `Company` is not used for country derivation (rule forbids guessing from `Company`). [1][2][3][4]
-- The context mentions a data dictionary file path, but that dictionary content is **not included** in the provided context, so column-meaning claims beyond what’s stated here cannot be verified. [1][2][3][4]
+- Fields used per row: `Location` (to derive country bucket), `Mission` (row identity), `Date` (row identity) [1][2][3][4].
+- No additional filters applied: **scope = all rows present in the retrieved context blocks** [1][2][3][4].
+- Country derivation rule applied consistently (verbatim): **“Treat the country as the last comma-separated segment of `Location` after trimming whitespace.”** [1][2][3][4].
+- `Company` not used for country derivation (rule forbids guessing from `Company`) [1][2][3][4].
+- I cannot verify the `Location` definition from `docs/applications/rag/space_missions_data_dictionary.md` because that file content is not included in the retrieved context (missing evidence) [1][2][3][4].
 
 ## Data quality and confidence
-- **Low confidence**: the retrieved context is a **partial slice** of the full CSV (only some rows across multiple eras), so country shares may not represent the full dataset. [1][2][3][4]
-- Some `Location` strings end with tokens that are not sovereign countries (e.g., `Pacific Missile Range Facility`, `Pacific Ocean`, `Barents Sea`), which become separate buckets under the mandatory last-segment rule. [1][2][4]
-- No `Location` values are empty in the retrieved rows shown, but some rows have missing `Time` and/or `Price` (not used here). [1][2][3][4]
-- No normalization/aliasing is applied (e.g., `France` vs `USA`), per instructions. [1][2][3][4]
+- Retrieved data is a **partial slice** of the full CSV (only certain row ranges are shown), so shares may not represent the full dataset [1][2][3][4].
+- Some `Location` tails are **not countries in ordinary language** (e.g., “Barents Sea”, “Pacific Ocean”), but the rule still buckets them as tail tokens [3][4].
+- Some `Location` values have **missing `Time`**, but `Location` is still present for those rows (so country bucketing is still possible) [2][4].
+- No `Location` values are empty in the retrieved rows shown, so `Unparseable / missing` is not used in this slice [1][2][3][4].
+- Confidence: **Medium** (mechanical parsing is clear, but the retrieved slice is incomplete and includes non-country tail tokens) [1][2][3][4].
 
 ## Country assignment examples
-- `SLC-40, Cape Canaveral AFS, Florida, USA` → **USA** [1]
-- `Site 1/5, Baikonur Cosmodrome, Kazakhstan` → **Kazakhstan** [3]
-- `ELV-1 (SLV), Guiana Space Centre, French Guiana, France` → **France** [1]
-- `LP Odyssey, Kiritimati Launch Area, Pacific Ocean` → **Pacific Ocean** [2][4]
+- `"LC-5, Cape Canaveral AFS, Florida, USA"` → **USA** [1]
+- `"Site 1/5, Baikonur Cosmodrome, Kazakhstan"` → **Kazakhstan** [1]
+- `"ELV-1 (SLV), Guiana Space Centre, French Guiana, France"` → **France** [2]
+- `"LP Odyssey, Kiritimati Launch Area, Pacific Ocean"` → **Pacific Ocean** [3]
 
 ## Extracted table
-Country bucket | Row count | % of rows in slice
----|---:|---:
-USA | 33 | 25.38%
-Kazakhstan | 19 | 14.62%
-France | 18 | 13.85%
-Russia | 17 | 13.08%
-China | 17 | 13.08%
-India | 10 | 7.69%
-Japan | 8 | 6.15%
-Pacific Ocean | 7 | 5.38%
-Barents Sea | 1 | 0.77%
-Marshall Islands | 1 | 0.77%
-Pacific Missile Range Facility | 1 | 0.77%
-Brazil | 1 | 0.77%
-Iran | 2 | 1.54%
-North Korea | 1 | 0.77%
-Israel | 1 | 0.77%
-Alaska | 1 | 0.77%
-**Total** | **130** | **100.00%**
+| Country bucket | Row count | % of rows in slice |
+|---|---:|---:|
+| USA | 61 | 53.51% |
+| Kazakhstan | 19 | 16.67% |
+| France | 19 | 16.67% |
+| Russia | 11 | 9.65% |
+| Japan | 3 | 2.63% |
+| India | 1 | 0.88% |
+| Brazil | 1 | 0.88% |
+| Pacific Ocean | 1 | 0.88% |
+| Barents Sea | 1 | 0.88% |
+| Marshall Islands | 1 | 0.88% |
+| China | 1 | 0.88% |
+| Iran | 1 | 0.88% |
+| Israel | 1 | 0.88% |
+| North Korea | 1 | 0.88% |
 
 ## Self-critique
-- USA count is supported by multiple cited `Location` strings ending in `USA` across the slice (e.g., Cape Canaveral AFS, Kennedy Space Center, Vandenberg AFB, Wallops Flight Facility). [1][2][3][4]
-- Kazakhstan count is supported by multiple `Location` strings ending in `Kazakhstan` (e.g., Baikonur Cosmodrome entries). [1][2][3][4]
-- France count is supported by multiple `Location` strings ending in `France` (Guiana Space Centre entries). [1][2][4]
-- Edge case: `Pacific Ocean` and `Barents Sea` are treated as “country buckets” only because the rule uses the last comma-separated segment; these are not validated as countries here. [2][4]
-- Edge case: `Pacific Missile Range Facility` is also treated as a bucket because it appears as the last segment in `LP-41, Kauai, Pacific Missile Range Facility`. [1]
-- The data dictionary content referenced in the prompt is missing from context, so I cannot verify any additional field semantics beyond what’s directly visible in the rows. [1][2][3][4]
+- **Top buckets support strength:** USA **High** (many rows end with “USA”, e.g., `"…, Florida, USA"` [1]); Kazakhstan **High** (multiple rows end with “Kazakhstan”, e.g., `"…, Baikonur Cosmodrome, Kazakhstan"` [1]); France **High** (multiple rows end with “France”, e.g., `"…, French Guiana, France"` [2]).  
+- **Semantic mismatch:** Buckets like **“Pacific Ocean”** and **“Barents Sea”** are tail tokens that are **water bodies, not countries**, so interpreting these percentages as “country share” is misleading even though it follows the mandated last-segment rule [3][4].
+- **Totals / scope:** Counts sum to **114 rows total** and **no rows were excluded** from the denominator in this slice; however, I **cannot verify** the `Location` field definition from `docs/applications/rag/space_missions_data_dictionary.md` because it is not present in the retrieved context [1][2][3][4].
+- **Retrieval bias:** The retrieved context includes specific time windows (e.g., many early-1960s rows and some 1999–2016 rows), so the distribution could differ materially from the full CSV [1][2][3][4].
+- **Chart fidelity:** The pie chart below uses the **same row counts** as the table for every slice shown; because there are **14 positive-count buckets (>12)**, I roll up small buckets into **Other**, which can hide variation among those tails [1][2][3][4].
+- **Other rollup risk (named):** `Other` combines **Japan, India, Brazil, Pacific Ocean, Barents Sea, Marshall Islands, China, Iran, Israel, North Korea** (each count = 1–3 in this slice) [2][3][4].
 
 ## Chart
 ```mermaid
 pie showData
-    title Row share by derived launch country (counts)
-    "USA" : 33
+    title Row share by derived launch country (tail token of Location)
+    "USA" : 61
     "Kazakhstan" : 19
-    "France" : 18
-    "Russia" : 17
-    "China" : 17
-    "India" : 10
-    "Japan" : 8
-    "Pacific Ocean" : 7
-    "Iran" : 2
-    "Barents Sea" : 1
-    "Marshall Islands" : 1
-    "Pacific Missile Range Facility" : 1
-    "Brazil" : 1
-    "North Korea" : 1
-    "Israel" : 1
-    "Alaska" : 1
+    "France" : 19
+    "Russia" : 11
+    "Other" : 4
 ```
 
 ## Summary
-Across the 130 retrieved rows, the largest derived `Location` last-segment buckets are **USA (25.38%)**, **Kazakhstan (14.62%)**, and **France (13.85%)**. [1][2][3][4] Because the slice is incomplete and spans selected row ranges, these shares are not reliable for the full CSV. [1][2][3][4] The last-segment parser also produces non-country buckets like `Pacific Ocean` and `Barents Sea` when those appear as the final segment. [2][4] The content of `docs/applications/rag/space_missions_data_dictionary.md` is not provided here, so any additional dictionary-based interpretation is unknown. [1][2][3][4]
+In the retrieved rows (n=114), the most common derived `Location` tail token is **USA (53.51%)**, followed by **Kazakhstan (16.67%)** and **France (16.67%)** [1][2][3][4]. A few tails are not countries in ordinary language (e.g., “Pacific Ocean”, “Barents Sea”), but they are still counted as buckets under the mandated parsing rule [3][4]. Because only a subset of CSV rows was retrieved, these shares may not match the full dataset distribution [1][2][3][4]. The `Location` definition from the referenced data dictionary is not available in the provided context, so I cannot confirm its intended semantics beyond what appears in the CSV rows shown [1][2][3][4].
