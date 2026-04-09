@@ -1,9 +1,10 @@
-using System.Net.Http.Headers;
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using PromptEngineering.LLM;
 using PromptEngineering.LLM.Extensions;
 using PromptEngineering.LLM.Models;
+using System.IO;
+using System.Net.Http.Headers;
+using System.Text.Json;
 
 namespace Rag;
 
@@ -28,23 +29,12 @@ internal sealed class RagOrchestrator
         var datasetPath = _settings.ResolveDatasetPath(AppContext.BaseDirectory);
         var extensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".md", ".txt", ".csv" };
 
-        List<string> paths;
         if (File.Exists(datasetPath))
         {
             var ext = Path.GetExtension(datasetPath);
             if (!extensions.Contains(ext))
                 throw new InvalidOperationException(
                     $"Rag:DatasetPath points to a file with unsupported extension '{ext}'. Use .md, .txt, or .csv: {datasetPath}");
-
-            paths = new List<string> { datasetPath };
-        }
-        else if (Directory.Exists(datasetPath))
-        {
-            paths = Directory
-                .EnumerateFiles(datasetPath, "*.*", SearchOption.AllDirectories)
-                .Where(p => extensions.Contains(Path.GetExtension(p)))
-                .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
-                .ToList();
         }
         else
         {
@@ -53,27 +43,23 @@ internal sealed class RagOrchestrator
         }
 
         var chunks = new List<DocumentChunk>();
-        foreach (var path in paths)
+        var name = Path.GetFileName(datasetPath);
+        if (string.Equals(Path.GetExtension(datasetPath), ".csv", StringComparison.OrdinalIgnoreCase))
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            var name = Path.GetFileName(path);
-            if (string.Equals(Path.GetExtension(path), ".csv", StringComparison.OrdinalIgnoreCase))
-            {
-                foreach (var c in await CsvDocumentChunker.ChunkFileAsync(
-                             path,
-                             name,
-                             _settings.Csv,
-                             _settings.ChunkSizeChars,
-                             _settings.ChunkOverlapChars,
-                             cancellationToken))
-                    chunks.Add(c);
-            }
-            else
-            {
-                var text = await File.ReadAllTextAsync(path, cancellationToken);
-                foreach (var c in TextChunker.ChunkText(name, text, _settings.ChunkSizeChars, _settings.ChunkOverlapChars))
-                    chunks.Add(c);
-            }
+            foreach (var c in await CsvDocumentChunker.ChunkFileAsync(
+                         datasetPath,
+                         name,
+                         _settings.Csv,
+                         _settings.ChunkSizeChars,
+                         _settings.ChunkOverlapChars,
+                         cancellationToken))
+                chunks.Add(c);
+        }
+        else
+        {
+            var text = await File.ReadAllTextAsync(datasetPath, cancellationToken);
+            foreach (var c in TextChunker.ChunkText(name, text, _settings.ChunkSizeChars, _settings.ChunkOverlapChars))
+                chunks.Add(c);
         }
 
         if (chunks.Count == 0)

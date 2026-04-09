@@ -64,7 +64,8 @@ internal static class Program
             Console.WriteLine("Select prefilled mode or manual mode:");
             Console.WriteLine("  [1] Prefilled — all .md files in the questions folder");
             Console.WriteLine("  [2] Manual — enter questions interactively");
-            Console.Write("Choice (1/2): ");
+            Console.WriteLine("  [3] Exit — exit from application");
+            Console.Write("Choice (1/3): ");
 
             string? choice;
             try
@@ -83,16 +84,21 @@ internal static class Program
             if (c == "1")
             {
                 await RunPrefilledAsync(orchestrator, store, ragSettings, cts.Token);
-                break;
+                continue;
             }
 
             if (c == "2")
             {
                 await RunManualAsync(orchestrator, store, ragSettings, cts.Token);
+                continue;
+            }
+
+            if (c == "3")
+            {
                 break;
             }
 
-            Console.WriteLine("Invalid choice. Enter 1 or 2.");
+            Console.WriteLine("Invalid choice. Enter 1 or 2 or 3.");
         }
     }
 
