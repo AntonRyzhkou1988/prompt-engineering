@@ -113,18 +113,18 @@ Only these extensions are indexed (recursive scan under the resolved corpus fold
 
 - **Large corpora**: Everything is **in-memory** (vectors + text). Very large libraries may need a different store; this sample optimizes for clarity.
 - **Large CSV files**: Chunk count scales roughly with row count ÷ **`Csv:BatchSize`** (plus overlap). Raise **`BatchSize`** to reduce embedding calls if your provider allows larger inputs per request.
-- **`metrics/`** and **`docs/applications/`**: Specs (`*.md` under `metrics/`) and offline RAG eval gold (`docs/applications/rag_eval_space_missions_gold.md`) live here for documentation and checklist scoring. They are **not** indexed unless you also copy or place them under the corpus folder (or point **`DocumentsFolderPath`** / **`DocumentsPath`** at a tree that includes them).
+- **`metrics/`** and **`docs/applications/rag/`**: Metric definitions (`*.md` under `metrics/`, currently **`metrics/answer_correctness_score.md`**) and offline RAG eval gold (**`docs/applications/rag/rag_eval_space_missions_gold.md`**) live here for documentation and checklist scoring. They are **not** indexed unless you also copy or place them under the corpus folder (or point **`DocumentsFolderPath`** / **`DocumentsPath`** at a tree that includes them).
 - **Secrets**: Use user secrets on the `Rag` project (`UserSecretsId` in `.csproj`) for API keys and base address.
 
 ## Sample corpora and questions
 
 ### Space missions (default sample in repo)
 
-The checked-in **`dataset/`** folder includes **`space_missions.csv`** (and **`attacks.csv`**, which is also indexed when **`DocumentsPath`** is **`dataset`**). For answers that need **stable field definitions** or metric wording (for example **`MissionStatus`** values, **MSR**), add prose under **`dataset/`** (or **`documents/`**) as well—for example copy **`metrics/space_missions_data_dictionary.md`** next to the CSV or into the corpus folder. Otherwise retrieval may return mostly row chunks, and `MinProseChunks` only reserves slots for `.md`/`.txt` that actually exist in the index.
+The checked-in **`dataset/`** folder includes **`space_missions.csv`** (and **`attacks.csv`**, which is also indexed when **`DocumentsPath`** is **`dataset`**). For answers that need **stable field definitions** (for example **`MissionStatus`** literals or **`Location`** parsing rules), add prose under **`dataset/`** (or **`documents/`**) as well—for example copy **`docs/applications/rag/space_missions_data_dictionary.md`** next to the CSV or into the corpus folder. Otherwise retrieval may return mostly row chunks, and `MinProseChunks` only reserves slots for `.md`/`.txt` that actually exist in the index.
 
-**Metric spec (reference):** `metrics/space_missions_mission_success_rate.md` defines **mission success rate (MSR)** from `MissionStatus`.
+**Human-judged answer quality:** **`metrics/answer_correctness_score.md`** defines **Answer Correctness Score (ACS)** for outputs under **`answers/`**.
 
-**Offline RAG quality:** `metrics/rag_grounded_response_metric.md` describes **GRPR** (grounding pass rate); paired gold items live in **`docs/applications/rag_eval_space_missions_gold.md`**.
+**Automated checklist:** substring and mode checks paired with the prefilled questions live in **`docs/applications/rag/rag_eval_space_missions_gold.md`**.
 
 **Example prefilled prompt:** `questions/question_space_missions_extraction_pie.md` — asks for extraction from context plus a **Mermaid pie** chart; run via prefilled mode after indexing.
 

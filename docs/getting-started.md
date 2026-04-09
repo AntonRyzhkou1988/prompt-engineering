@@ -50,7 +50,7 @@ Corpus layout (defaults assume you run from a normal `dotnet build` of **`Rag`**
 
 - **`dataset/`** (default **`Rag:DocumentsPath`**), **`questions/`**, **`answers/`** — **`space_missions.csv`** lives under **`dataset/`** with **`attacks.csv`**. `appsettings.json` sets **`Rag:DocumentsFolderPath`** to the absolute repository path (committed default: **`C:\Work\learn\ai-architect-practice\prompt-engineering`**) and **`Rag:DocumentsPath`** to **`dataset`**; **`questions`** and **`answers`** name the other subfolders. Nothing is copied into `bin`. You can use a **relative** **`DocumentsFolderPath`** if you prefer (for example **`../../../../../`** from `bin/.../net8.0/`).
 - **`documents/`** — optional extra corpus folder (empty by default); set **`Rag:DocumentsPath`** to **`documents`** if you add files there instead of **`dataset`**.
-- **`metrics/`** — also at the **repository root**; used for specs and offline eval CSV. It is **not** indexed unless you copy files into **`dataset/`** / **`documents/`** or point **`DocumentsPath`** at a tree that includes them.
+- **`metrics/`** — at the **repository root** (metric definitions such as **`answer_correctness_score.md`**). Offline eval gold for space missions lives under **`docs/applications/rag/`**. Neither tree is **indexed** unless you copy files into **`dataset/`** / **`documents/`** or point **`DocumentsPath`** at a tree that includes them.
 
 1. Edit `src/Rag/appsettings.json`:
    - `Rag.InstanceName` must equal one of `SystemSettings.AiServiceSettings.Instances[].Name`

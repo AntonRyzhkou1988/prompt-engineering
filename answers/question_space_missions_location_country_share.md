@@ -1,68 +1,72 @@
 ---
 source: question_space_missions_location_country_share.md
-generated_utc: 2026-04-09T09:50:24.2361346Z
+generated_utc: 2026-04-09T10:21:06.8844067Z
 ---
 
-## Field selection and filters
-- Fields used: `Location` (to derive the country bucket), `Mission` (row identity), and `Date` (row identity) from the retrieved CSV rows. [1][2][3][4]
-- No additional filters applied: **scope = all rows present in retrieved context blocks**. [1][2][3][4]
-- Country derivation rule applied consistently (verbatim): **“Treat the country as the last comma-separated segment of `Location` after trimming whitespace.”** [1][2][3][4]
-- `Company` was not used for country derivation (rule forbids guessing from `Company`). [1][2][3][4]
-- The prompt references `docs/applications/rag/space_missions_data_dictionary.md`, but that file is **not included** in the retrieved context, so I cannot verify column meanings from it. [1][2][3][4]
+### Field selection and filters
 
-## Data quality and confidence
-- Confidence: **Low**, because the retrieved context is a **partial slice** of the full CSV (only some row ranges are shown), so shares may not represent the full dataset. [1][2][3][4]
-- `Location` is present for all retrieved rows shown here; I did not see any empty `Location` values in the retrieved rows. [1][2][3][4]
-- Some derived “country” tails are not countries in ordinary language (e.g., `France` appears as the last segment in `"…, French Guiana, France"`), but per rule we treat the last segment literally. [2][3][4]
-- Some `Location` tails include `USA`, `Kazakhstan`, `Russia`, `Japan`, `Iran`, `India`, `China`, `Brazil`, `Barents Sea`, and `Pacific Ocean`, which mix countries and non-country geographic descriptors. [1][2][3][4]
+*   **`Location`**: This field is the sole source for deriving the launch country, as required by the prompt [1, 2, 3, 4].
+*   **`Mission` / `Date`**: These fields are used to uniquely identify example rows for citation purposes [1, 2, 3, 4].
+*   **Country Derivation Rule**: The country is derived using the mandatory rule: "Treat the **country** as the **last comma-separated segment** of `Location` after trimming whitespace" [1, 2, 3, 4].
+*   **Scope**: The analysis includes all 200 rows present in the retrieved context [1, 2, 3, 4]. No additional filters were applied.
 
-## Country assignment examples
-- `"LC-5, Cape Canaveral AFS, Florida, USA"` → `USA` [1]
-- `"Site 1/5, Baikonur Cosmodrome, Kazakhstan"` → `Kazakhstan` [1]
-- `"ELV-1 (SLV), Guiana Space Centre, French Guiana, France"` → `France` [2]
-- `"LP Odyssey, Kiritimati Launch Area, Pacific Ocean"` → `Pacific Ocean` [3]
+### Data quality and confidence
 
-## Extracted table
-Denominator (rows in slice) = **200** total retrieved rows (100 from rows 101–200, plus 100 from rows 3801–3900). [1][2]
+*   The total analysis scope covers 200 mission rows retrieved from the source file [1, 2, 3, 4].
+*   All 200 rows in the provided context contain a non-empty `Location` field, allowing the derivation rule to be applied in every case [1, 2, 3, 4].
+*   The mechanical application of the "last segment" rule results in some buckets that are not sovereign countries, such as `New Mexico` [4]. This is an expected outcome of the specified rule.
+*   Confidence in the extraction is **High** because the `Location` field is consistently formatted with comma-separated values and the derivation rule is unambiguous and mechanically applied to all rows in the provided slice [1, 2, 3, 4].
+
+### Country assignment examples
+
+*   `Location`: "Site 1/5, Baikonur Cosmodrome, Kazakhstan" [1] was assigned to the bucket **`Kazakhstan`**.
+*   `Location`: "LC-18A, Cape Canaveral AFS, Florida, USA" [1] was assigned to the bucket **`USA`**.
+*   `Location`: "Site 132/2, Plesetsk Cosmodrome, Russia" [3] was assigned to the bucket **`Russia`**.
+*   `Location`: "Vertical Launch Area, Spaceport America, New Mexico" [4] was assigned to the bucket **`New Mexico`**.
+
+### Extracted table
 
 | Country bucket | Row count | % of rows in slice |
-|---|---:|---:|
-| USA | 63 | 31.50% |
-| Kazakhstan | 34 | 17.00% |
-| France | 25 | 12.50% |
-| Russia | 23 | 11.50% |
-| India | 11 | 5.50% |
-| China | 9 | 4.50% |
-| Japan | 5 | 2.50% |
-| Iran | 2 | 1.00% |
-| Barents Sea | 1 | 0.50% |
-| Brazil | 1 | 0.50% |
-| Pacific Ocean | 1 | 0.50% |
-| North Korea | 1 | 0.50% |
-| Marshall Islands | 1 | 0.50% |
-| Unparseable / missing | 0 | 0.00% |
+| :--- | :--- | :--- |
+| USA | 97 | 48.5% |
+| Kazakhstan | 46 | 23.0% |
+| Russia | 26 | 13.0% |
+| China | 20 | 10.0% |
+| New Zealand | 3 | 1.5% |
+| France | 2 | 1.0% |
+| India | 2 | 1.0% |
+| Australia | 1 | 0.5% |
+| Iran | 1 | 0.5% |
+| Japan | 1 | 0.5% |
+| New Mexico | 1 | 0.5% |
+| **Total** | **200** | **100.0%** |
 
-## Self-critique
-- Top buckets support-strength: `USA` **High** (many rows end with “USA,” e.g., `"…, Florida, USA"`), `Kazakhstan` **High** (many rows end with “Kazakhstan,” e.g., `"…, Baikonur Cosmodrome, Kazakhstan"`), `France` **High** (many rows end with “France,” e.g., `"…, French Guiana, France"`), all directly evidenced by repeated `Location` patterns in the retrieved rows. [1][2][3][4]
-- Semantic mismatch: buckets like `Pacific Ocean` (from `"…, Pacific Ocean"`) and `Barents Sea` (from `"…, Barents Sea"`) are **not countries in ordinary language**, so interpreting these percentages as “launch country share” can mislead; they are **tail-token shares** under the mandated parsing rule. [3][4]
-- Totals/scope: counts **sum to 200** and **no rows were excluded** from the denominator; however, the referenced data dictionary path is **not present** in retrieved context, so I cannot verify the formal definition of `Location` from it. [1][2][3][4]
-- Retrieval bias: the slice is not the full CSV (it includes early-1960s rows and mid-2010s rows, plus a small 1999–2001 and 2006–2008 excerpt), so country-tail shares could be substantially different in the complete dataset. [1][2][3][4]
-- Chart fidelity: the pie chart below uses the **same row counts** as the table for every slice shown; no `Other` rollup was used (13 positive buckets ≤ 12? actually 13, so `Other` is required—see next bullet). [1][2]
-- Pie constraint handling: because there are **13** positive-count buckets (>12), the pie rolls up the smallest buckets into `Other`, which risks hiding small-tail categories (`Iran`, `Barents Sea`, `Brazil`, `Pacific Ocean`, `North Korea`, `Marshall Islands`). [2][3][4]
+### Self-critique
 
-## Chart
+*   **Top buckets support:** The top three buckets are **USA** (97 rows) [1, 2, 3, 4], **Kazakhstan** (46 rows) [1, 2, 3, 4], and **Russia** (26 rows) [3, 4]. Support strength for all three is **High**, as numerous `Location` strings in the cited context explicitly end with these country names.
+*   **Semantic mismatch:** The bucket **`New Mexico`** (1 row) [4] is derived from the `Location` "Vertical Launch Area, Spaceport America, New Mexico" [4]. This demonstrates the mechanical nature of the rule, as `New Mexico` is a US state, not a sovereign country. This means percentages should be read as shares of parser outputs, not strictly as a "national launch" summary.
+*   **Totals and scope:** The counts for the 11 derived buckets sum to 200, which is the total number of rows in the retrieved context [1, 2, 3, 4]. No rows were excluded. The prompt mentions a data dictionary, but its contents were not provided, so I cannot verify official field definitions beyond what is stated in the prompt.
+*   **Retrieval bias:** The retrieved context is a partial, non-random sample, containing missions from 1957-1961 [1, 2] and 2019 [4], with a block from 1967-1968 [3]. This specific time-based slicing heavily influences the country shares, likely over-representing early space-race participants (USA, Kazakhstan/USSR) and modern Chinese activity relative to the complete dataset. The results are not generalizable.
+*   **Chart fidelity:** The pie chart below uses the exact percentage values for all 11 buckets as listed in the table. Since there are fewer than 12 buckets with positive counts, no `Other` slice was needed, eliminating the risk of hiding smaller categories.
+
+### Chart
+
 ```mermaid
 pie showData
-    title Row share by derived launch country (tail token of Location)
-    "USA" : 63
-    "Kazakhstan" : 34
-    "France" : 25
-    "Russia" : 23
-    "India" : 11
-    "China" : 9
-    "Japan" : 5
-    "Other" : 30
+    title Row share by derived launch country (200 missions)
+    "USA" : 48.5
+    "Kazakhstan" : 23.0
+    "Russia" : 13.0
+    "China" : 10.0
+    "New Zealand" : 1.5
+    "France" : 1.0
+    "India" : 1.0
+    "Australia" : 0.5
+    "Iran" : 0.5
+    "Japan" : 0.5
+    "New Mexico" : 0.5
 ```
 
-## Summary
-Across the 200 retrieved rows, the most common derived `Location` tail tokens are `USA` (31.50%), `Kazakhstan` (17.00%), and `France` (12.50%). [1][2] Because the country is derived mechanically from the last comma-separated `Location` segment, some buckets are not countries in ordinary language (e.g., `Pacific Ocean`, `Barents Sea`). [3][4] The data dictionary file referenced in the prompt is missing from retrieved context, and the retrieved rows are only a partial slice of the CSV, so the full-dataset country share remains unknown. [1][2][3][4]
+### Summary
+
+Based on the 200 retrieved mission rows, the USA accounts for the largest share of launches at 48.5% [1, 2, 3, 4], followed by Kazakhstan at 23.0% [1, 2, 3, 4]. The required parsing rule mechanically extracts the last segment of the `Location` string, which sometimes results in a non-country bucket like `New Mexico` [4]. Because the provided context is a small and non-random sample of the full dataset, these percentage shares are specific to this slice and do not represent the overall distribution of all space missions.

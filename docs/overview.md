@@ -23,7 +23,11 @@ Both tracks use the same **`PromptEngineering.LLM`** layer (HTTP to a DIAL- or O
 ## Data and safety notes
 
 - **ReAct track**: Evidence is **injected CSV rows** as XML `<record>` elements. Do not treat saved completions as a substitute for structured sections when aggregating runs (see project rules).
-- **RAG track**: **`.md`**, **`.txt`**, and **`.csv`** under the resolved corpus folder (**`Rag:DocumentsFolderPath`** + **`Rag:DocumentsPath`**, default **`dataset`**) are indexed (CSV is split into row batches for embedding). Specs and offline eval gold under repository-root **`metrics/`** are not indexed unless you also place them under **`dataset/`** / **`documents/`** (or point **`DocumentsPath`** at a tree that includes them).
+- **RAG track**: **`.md`**, **`.txt`**, and **`.csv`** under the resolved corpus folder (**`Rag:DocumentsFolderPath`** + **`Rag:DocumentsPath`**, default **`dataset`**) are indexed (CSV is split into row batches for embedding). Metric write-ups under **`metrics/`** and eval gold under **`docs/applications/rag/`** are not indexed unless you also place copies under **`dataset/`** / **`documents/`** (or point **`DocumentsPath`** at a tree that includes them).
+
+## Application-specific RAG docs
+
+Space missions sample under **`docs/applications/rag/`**: [data dictionary](applications/rag/space_missions_data_dictionary.md) (column semantics for `dataset/space_missions.csv`) and [RAG eval gold set](applications/rag/rag_eval_space_missions_gold.md) (automated checks paired with `questions/question_space_missions_*.md`).
 
 ## Where to go next
 

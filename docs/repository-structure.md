@@ -11,7 +11,7 @@
 | `documents/` | Optional extra RAG corpus (`.md`, `.txt`, `.csv`); empty by default—set **`Rag:DocumentsPath`** to **`documents`** if you add files here |
 | `questions/` | RAG prefilled prompts (`*.md`); resolved as **`Rag:DocumentsFolderPath`** + **`Rag:QuestionsPath`** |
 | `answers/` | RAG saved answers from prefilled/manual runs; resolved as **`Rag:DocumentsFolderPath`** + **`Rag:AnswersPath`** |
-| `metrics/` | RAG metric specs and offline eval gold; not indexed unless also under **`dataset/`** / **`documents/`** (or a custom **`DocumentsPath`**) |
+| `metrics/` | RAG metric definitions (for example **`answer_correctness_score.md`**); not indexed unless also under **`dataset/`** / **`documents/`** (or a custom **`DocumentsPath`**) — offline eval gold lives under **`docs/applications/rag/`** |
 | `src/` | .NET projects (see below) |
 | `tests/` | Unit tests (e.g. `ContextService`) |
 | `docs/` | This documentation set |
@@ -34,7 +34,7 @@
 | **`dataset/`** (default **`Rag:DocumentsPath`**) | Committed **`space_missions.csv`** (and **`attacks.csv`**) live here; **Rag** indexes all matching extensions under this folder unless you change config. |
 | **`documents/`**, **`questions/`**, **`answers/`** | **`questions/`** and **`answers/`** are always under repo root. **`documents/`** is optional corpus; default indexing targets **`dataset/`** instead. |
 | **`Rag:DocumentsFolderPath`** + paths | Resolve corpus/questions/answers (see **`docs/rag.md`**). Not copied into `bin`. |
-| **`metrics/`** | Documentation and gold eval CSV only; add or copy files into **`dataset/`** (or **`documents/`**) if they must be retrieved. |
+| **`metrics/`** | Metric specs (Markdown); add or copy files into **`dataset/`** (or **`documents/`**) if they must be retrieved. Gold question/answer checks: **`docs/applications/rag/rag_eval_space_missions_gold.md`**. |
 
 ## Diagram
 
