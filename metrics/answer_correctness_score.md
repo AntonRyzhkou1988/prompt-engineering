@@ -57,17 +57,17 @@ Example: scores **(1, 1, 0.5, 1, 1)** → **ACS_overall = 0.9** (four correct, o
 
 ## Computed scores (checked-in `answers/`)
 
-Scores below apply the rubric in **Definition** to the five files under **`answers/question_space_missions_*.md`** (YAML `generated_utc` in each file: **2026-04-09**). They are **illustrative** for this snapshot; re-score if answers change.
+Scores below apply the rubric in **Definition** to the five files under **`answers/question_space_missions_*.md`**. Each file’s YAML **`generated_utc`** is **2026-04-09** (times vary by run). They are **illustrative** for this snapshot; re-score if answers change.
 
 | item_id | Answer file | ACS (si) | Rationale |
 | --- | --- | ---: | --- |
-| eval-001 | `question_space_missions_extraction_pie.md` | **1** | Correctly scopes `Mission` = `Vostok 1`, reports no matching rows in retrieved context, gives extracted table + omission rationale for the pie, required sections and caveats are complete. |
-| eval-002 | `question_space_missions_company_share.md` | **1** | Trimmed `Company` buckets, denominator and table, top-11 + `Other` pie aligned with self-critique, self-critique themes covered. |
-| eval-003 | `question_space_missions_rocket_row_share.md` | **0.5** | Bucket rule and examples are on-task, but the extracted table contains **duplicate / inconsistent** rocket rows; the model correctly flags this and **omits** the pie—so a major deliverable (single Mermaid pie matching the table) is **missing**. |
-| eval-004 | `question_space_missions_location_country_share.md` | **0.5** | Last-segment country rule, examples, and pie are present, but the **Extracted table** counts **do not sum** to the stated denominator (**200**; bucket counts sum to **177**), and the self-critique text about pie rollup is muddled—material arithmetic gap. |
-| eval-005 | `question_space_missions_mission_status_share.md` | **1** | Outcome buckets, table totals (300) match chart counts, Mermaid pie for positive buckets, retrieval caveats and self-critique themes addressed. |
+| eval-001 | `question_space_missions_extraction_pie.md` | **1** | Scopes `Mission` = `Vostok 1` on retrieved rows; one matching row with `MissionStatus` = `Success`; extracted table across the four outcome literals; Mermaid pie for the non-zero slice; self-critique addresses evidence depth and retrieval scope. |
+| eval-002 | `question_space_missions_company_share.md` | **1** | 200-row slice; verbatim `Company` bucketing; full table with shares; top-11 + `Other` Mermaid pie; self-critique covers dominance, temporal clustering, and non-generalizability. |
+| eval-003 | `question_space_missions_rocket_row_share.md` | **1** | Verbatim `Rocket` bucketing; full table (70 buckets, total **200** rows); Mermaid pie with top 11 + **`Other (59 buckets)`** (11 + 127 = **200**); self-critique notes label fragmentation and chart rollup without omitting the chart. |
+| eval-004 | `question_space_missions_location_country_share.md` | **1** | Last-segment country rule with examples; extracted table **11 buckets totaling 200** rows (counts sum to denominator); Mermaid pie uses same percentages; self-critique flags **`New Mexico`** as a parser artifact and confirms chart–table alignment. |
+| eval-005 | `question_space_missions_mission_status_share.md` | **1** | Four `MissionStatus` buckets over **200** rows (137 + 55 + 7 + 1); table total matches slice; Mermaid pie with count-based slices for all positive buckets; self-critique covers rare bucket noise and retrieval bias. |
 
-**Overall ACS** = (**1** + **1** + **0.5** + **0.5** + **1**) / **5** = **0.8**.
+**Overall ACS** = (**1** + **1** + **1** + **1** + **1**) / **5** = **1.0**.
 
 ## Type
 
@@ -76,7 +76,7 @@ Scores below apply the rubric in **Definition** to the five files under **`answe
 
 ## Usage notes
 
-- **Retrieval-dependent tasks:** A answer that correctly states that evidence is missing (per prompt) may still score **1** if that is the right conclusion and required sections are satisfied; a answer that invents slice statistics should score **0** or **0.5** depending on severity.
+- **Retrieval-dependent tasks:** An answer that correctly states that evidence is missing (per prompt) may still score **1** if that is the right conclusion and required sections are satisfied; an answer that invents slice statistics should score **0** or **0.5** depending on severity.
 - **Consistency:** Use the same judge and the same **key-point checklist** derived from the question file when comparing models or prompts.
 - **Calibration:** Document any team-specific examples of **0 / 0.5 / 1** for borderline cases next to this metric or in evaluation logs.
 
