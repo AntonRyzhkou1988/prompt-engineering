@@ -1,94 +1,85 @@
 ---
 source: question_space_missions_company_share.md
-generated_utc: 2026-04-09T09:49:46.1199775Z
+generated_utc: 2026-04-09T10:19:28.2443082Z
 ---
 
-## Field selection and filters
-- Use `Company` as the bucket key, with the mandatory rule: **bucket = trimmed exact `Company` string; empty after trim → `Unnamed / missing`**. [1][2][3][4]
-- Use `Mission` + `Date` (and sometimes `Location`) to identify rows when citing examples and checking for duplicates. [1][2][3][4]
-- **No additional filters** applied: scope is **all rows present in the retrieved context blocks**. [1][2][3][4]
-- Percentages are computed as **(company row count) / (total retrieved rows in scope)**. [1][2][3][4]
-- No canonicalization/merging of similar-looking company labels (e.g., abbreviations) beyond trimming whitespace. [1][2][3][4]
+### Field selection and filters
 
-## Data quality and confidence
-- Retrieved slice is limited to the rows shown in context blocks (not the full CSV), so shares may not represent the full dataset. [1][2][3][4]
-- No `Company` values appear empty in the retrieved rows, so `Unnamed / missing` is **0** in this slice. [1][2][3][4]
-- Confidence in **counts within the retrieved slice**: **High**, because each row explicitly lists `Company`. [1][2][3][4]
-- Confidence that these shares generalize to the **full CSV**: **Low**, because the retrieved rows are a small, time-clustered subset. [1][2][3][4]
-- The prompt references a data dictionary file, but it is **not included in the retrieved context**, so I cannot verify dictionary-defined semantics beyond what’s visible in the CSV rows. [1][2][3][4]
+*   **Fields used:** The analysis uses the `Company`, `Mission`, and `Date` columns from the provided context to identify and count missions for each operator [1, 2, 3, 4].
+*   **Row scope:** All 200 rows retrieved across the four context blocks are included in the analysis [1, 2, 3, 4].
+*   **Company bucketing rule:** Each unique operator is bucketed based on the verbatim, whitespace-trimmed string in the `Company` column. No merging or canonicalization of names (e.g., `RVSN USSR` and `Roscosmos` are treated as distinct) is performed [1, 2, 3, 4].
 
-## Company assignment examples
-- `Company` = **NASA** → bucket **NASA** (e.g., Mission **STS-103**, Date **1999-12-20**). [1]
-- `Company` = **Arianespace** → bucket **Arianespace** (e.g., Mission **XMM-Newton**, Date **1999-12-10**). [1]
-- `Company` = **SpaceX** → bucket **SpaceX** (e.g., Mission **CRS-5**, Date **2015-01-10**). [2]
-- `Company` = **US Air Force** → bucket **US Air Force** (e.g., Mission **Explorer 10**, Date **1961-03-25**). [3]
+### Data quality and confidence
 
-## Extracted table
-Denominator (rows in slice) = **200** total retrieved rows. [1][2][3][4]
+*   **Confidence:** `High` for the calculations performed on the retrieved 200-row slice; `Low` for generalizing these shares to the entire dataset.
+*   **Data integrity:** The `Company` field is present in all 200 retrieved rows, so there are no missions with missing operator data [1, 2, 3, 4].
+*   **Retrieval bias:** The provided context is heavily clustered into three distinct time periods: 1957-1961 [1, 2], 1967-1968 [3], and 2019 [4]. This significantly skews the results, over-representing operators from the early space race and the modern era, while completely omitting data from the 1970s through the 2010s.
+*   **Dominant operators:** The slice is dominated by a few operators, primarily `RVSN USSR` [1, 2, 3] and `US Air Force` [1, 2, 3], which together account for nearly half of the missions in the retrieved data.
+
+### Company assignment examples
+
+*   A row with `Company` "RVSN USSR" for the `Sputnik-1` mission on `1957-10-04` is counted in the `RVSN USSR` bucket [1].
+*   A row with `Company` "US Air Force" for the `Pioneer 5` mission on `1960-03-11` is counted in the `US Air Force` bucket [2].
+*   A row with `Company` "NASA" for the `Apollo 4` mission on `1967-11-09` is counted in the `NASA` bucket [3].
+*   A row with `Company` "CASC" for the `Yaogan-30-05` mission on `2019-07-26` is counted in the `CASC` bucket [4].
+
+### Extracted table
 
 | Company bucket | Row count | % of rows in slice |
-|---|---:|---:|
-| US Air Force | 86 | 43.0% |
-| RVSN USSR | 25 | 12.5% |
-| CASC | 25 | 12.5% |
-| Arianespace | 22 | 11.0% |
-| NASA | 16 | 8.0% |
-| SpaceX | 10 | 5.0% |
-| VKS RF | 10 | 5.0% |
-| General Dynamics | 9 | 4.5% |
-| ULA | 9 | 4.5% |
-| Lockheed | 8 | 4.0% |
-| MHI | 7 | 3.5% |
-| ISRO | 7 | 3.5% |
-| ILS | 5 | 2.5% |
-| Boeing | 5 | 2.5% |
-| Roscosmos | 5 | 2.5% |
-| Sea Launch | 4 | 2.0% |
-| ISA | 4 | 2.0% |
-| Northrop | 4 | 2.0% |
-| Eurockot | 2 | 1.0% |
-| Blue Origin | 2 | 1.0% |
-| Exos | 2 | 1.0% |
-| ISAS | 1 | 0.5% |
-| AEB | 1 | 0.5% |
-| Kosmotras | 1 | 0.5% |
-| MITT | 2 | 1.0% |
-| Sandia | 1 | 0.5% |
-| KCST | 1 | 0.5% |
-| Rocket Lab | 2 | 1.0% |
-| ExPace | 1 | 0.5% |
-| Landspace | 1 | 0.5% |
-| JAXA | 1 | 0.5% |
-| OneSpace | 1 | 0.5% |
+| :--- | :--- | :--- |
+| RVSN USSR | 59 | 29.5% |
+| US Air Force | 40 | 20.0% |
+| US Navy | 17 | 8.5% |
+| CASC | 14 | 7.0% |
+| NASA | 13 | 6.5% |
+| General Dynamics | 12 | 6.0% |
+| AMBA | 8 | 4.0% |
+| Roscosmos | 7 | 3.5% |
+| ExPace | 5 | 2.5% |
+| SpaceX | 4 | 2.0% |
+| VKS RF | 4 | 2.0% |
+| Rocket Lab | 3 | 1.5% |
+| ISRO | 2 | 1.0% |
+| Arianespace | 2 | 1.0% |
+| ULA | 2 | 1.0% |
+| Northrop | 2 | 1.0% |
+| OKB-586 | 1 | 0.5% |
+| i-Space | 1 | 0.5% |
+| ISA | 1 | 0.5% |
+| MHI | 1 | 0.5% |
+| ILS | 1 | 0.5% |
+| Exos | 1 | 0.5% |
 | Unnamed / missing | 0 | 0.0% |
+| **Total** | **200** | **100.0%** |
 
-## Self-critique
-- **Top buckets (evidence depth):** US Air Force (**High** support; many explicit rows, e.g., **Explorer 10** on **1961-03-25**), RVSN USSR (**High**; many explicit rows, e.g., **Korabl-Sputnik 5** on **1961-03-25**), and CASC (**High**; many explicit rows, e.g., **ChinaSat-22** on **2000-01-25**). [3][3][1]
-- **Label semantics:** Shares are by **exact `Company` string**, so near-duplicates/organizational variants (e.g., **“VKS RF”** vs **“Roscosmos”**) remain separate buckets and should not be interpreted as a single consolidated operator. [2][4]
-- **Totals / scope:** Counts sum to the denominator: 200 total rows in scope; `Unnamed / missing` is explicitly included with count 0. Also, the referenced data dictionary is **missing from retrieved context**, so I cannot verify its formal definition of `Company`. [1][2][3][4]
-- **Retrieval bias:** Retrieved rows are **time-clustered** (notably many from 1961–1962 in one block, plus 1999–2001, 2014–2016, 2018–2019), which can skew which operators appear “largest” versus the full CSV. [1][2][3][4]
-- **Chart fidelity (numeric):** The pie chart below uses **row counts** (not percentages), matching the table’s counts; because there are **more than 12** positive buckets, the pie uses **top 11 + Other**, where **Other = 49** equals the sum of all remaining positive buckets (risk: long-tail operators are hidden in `Other`). [1][2][3][4]
-- **Overlap / double-count hazard:** I cannot confirm from the context alone whether any row is duplicated across blocks; I treated each displayed row as unique, so double-count risk is **Medium** (insufficient evidence to prove no overlap). [1][2][3][4]
+### Self-critique
 
-## Chart
+*   **Top buckets (evidence depth):** Support for the top three buckets is `High`. `RVSN USSR` has 59 rows, with examples like the `Sputnik-1` mission on `1957-10-04` [1]. `US Air Force` has 40 rows, including the `Discoverer 2` mission on `1959-04-13` [1]. `US Navy` has 17 rows, such as the `Vanguard TV3` mission on `1957-12-06` [1]. All are well-supported by multiple retrieved rows.
+*   **Label semantics:** The analysis treats different strings as distinct buckets per the instructions. This means historically or nationally related entities are counted separately, such as `RVSN USSR` [1, 2, 3], `Roscosmos` [4], and `VKS RF` [4] for Russia, or `US Navy` [1], `US Air Force` [1, 2, 3], `NASA` [1, 2, 3], and `AMBA` [1, 3] for the United States. The shares do not represent a unified "national program" view.
+*   **Totals / scope:** The counts for all 22 company buckets sum to 200, which is the total number of rows in the retrieved context [1, 2, 3, 4]. The `Unnamed / missing` bucket has a count of 0 [1, 2, 3, 4]. The data dictionary was not provided in the context, so the formal definition of the `Company` column cannot be verified.
+*   **Retrieval bias:** The retrieved rows are not a random sample but are clustered in three specific periods: 1957-1961 [1, 2], 1967-1968 [3], and 2019 [4]. This temporal bias means the shares are skewed towards operators active during the start of the space race and the modern era, and cannot be considered representative of the full dataset's history.
+*   **Chart fidelity (numeric):** The pie chart uses the same row counts as the table. Because there are 22 buckets with positive counts, the chart displays the top 11 and groups the remaining 11 into an `Other` slice. The `Other` slice has a value of 17, which is the sum of the counts for Rocket Lab (3), ISRO (2), Arianespace (2), ULA (2), Northrop (2), OKB-586 (1), i-Space (1), ISA (1), MHI (1), ILS (1), and Exos (1) [1, 2, 3, 4]. This rollup hides the performance of smaller operators.
+*   **Overlap / double-count hazard:** The risk of double-counting is `Low`. Each context block provides source row numbers (e.g., `row: 1`, `row: 51`, `row: 601`, `row: 4201`) which are unique and non-overlapping across the provided context, indicating distinct records were retrieved [1, 2, 3, 4].
+
+### Chart
+
 ```mermaid
 pie showData
-    title Row share by Company (counts; retrieved slice)
-    "US Air Force" : 86
-    "RVSN USSR" : 25
-    "CASC" : 25
-    "Arianespace" : 22
-    "NASA" : 16
-    "SpaceX" : 10
-    "VKS RF" : 10
-    "General Dynamics" : 9
-    "ULA" : 9
-    "Lockheed" : 8
-    "MHI" : 7
-    "Other" : 49
+    title Row share by Company (from retrieved slice)
+    "RVSN USSR" : 59
+    "US Air Force" : 40
+    "US Navy" : 17
+    "CASC" : 14
+    "NASA" : 13
+    "General Dynamics" : 12
+    "AMBA" : 8
+    "Roscosmos" : 7
+    "ExPace" : 5
+    "SpaceX" : 4
+    "VKS RF" : 4
+    "Other" : 17
 ```
 
-## Summary
-In the retrieved slice of **200** mission rows, **US Air Force** has the largest share (86 rows, 43.0%), followed by **RVSN USSR** and **CASC** (25 rows each, 12.5% each). [1][2][3][4]  
-These shares are by **exact `Company` string**, so similar/related labels are not merged (e.g., “VKS RF” and “Roscosmos” remain separate). [2][4]  
-Because the retrieved rows are a limited, time-clustered subset and the data dictionary was not retrieved, what remains unknown is how these shares compare to the **full** `space_missions.csv` and the dictionary-verified semantics of `Company`. [1][2][3][4]
+### Summary
+
+Based on the 200 retrieved mission rows, `RVSN USSR` is the most frequent operator, accounting for 29.5% of the missions, followed by `US Air Force` with 20.0% [1, 2, 3]. Per the rules, related entities like `RVSN USSR` and `Roscosmos` are counted as separate operators, affecting how national shares are interpreted [1, 2, 3, 4]. The provided data is heavily clustered in the late 1950s, late 1960s, and 2019, so these findings are not representative of the full history of space missions and omit decades of activity [1, 2, 3, 4].
