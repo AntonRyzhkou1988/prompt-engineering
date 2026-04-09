@@ -41,6 +41,12 @@ public record AiServiceSettings
     public required string CompletionsUrl { get; set; }
 
     /// <summary>
+    /// Final path segment for the embeddings endpoint (Azure/OpenAI: "embeddings").
+    /// Full relative URI: {SystemName}/{DeploymentsUrl}/{deployment}/{EmbeddingsUrl}.
+    /// </summary>
+    public string EmbeddingsUrl { get; set; } = "embeddings";
+
+    /// <summary>
     /// Array of instances that can be used to connect to the OpenAI service.
     /// </summary>
     public required List<InstanceSettings> Instances { get; set; }

@@ -56,6 +56,34 @@ public class AiService : IAiService
     }
 
     /// <inheritdoc />
+    public async Task<EmbeddingResponse?> CreateEmbeddingsAsync(
+        string instanceName,
+        EmbeddingRequest request,
+        MediaTypeHeaderValue? mediaType,
+        JsonSerializerOptions? options,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (request.Input.Count == 0)
+            throw new ArgumentException("Embedding input must contain at least one string.", nameof(request));
+
+        var instance = ExtractInstanceSettings(instanceName);
+        var embeddingDeployment = instance.EmbeddingDeployment ?? instance.Deployment;
+
+        var requestUri =
+            $"{_settings.SystemName}/{_settings.DeploymentsUrl}/{embeddingDeployment}/{_settings.EmbeddingsUrl}";
+        var content = JsonContent.Create(request, mediaType, options);
+
+        using var openAiClient = _httpClientFactory.CreateClient(instanceName);
+
+        using var response = await openAiClient.PostAsync(requestUri, content, cancellationToken);
+
+        await EnsureSuccessStatusCodeAsync(response, cancellationToken);
+
+        return await response.Content.ReadFromJsonAsync<EmbeddingResponse>(options: null, cancellationToken);
+    }
+
+    /// <inheritdoc />
     public async Task<Attachment> UploadFileAsync(string instanceName, Stream stream, string contentType, CancellationToken cancellationToken)
     {
         var randomFileName = $"file_{Guid.NewGuid()}";
