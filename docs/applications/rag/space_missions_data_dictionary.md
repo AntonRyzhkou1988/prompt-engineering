@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document summarizes the column definitions for `dataset/space_missions.csv`, as specified in `dataset/space_missions_data_dictionary.csv` when that file exists alongside the CSV. Use it to interpret fields consistently before filtering, grouping, or computing metrics (for example `metrics/space_missions_mission_success_rate.md`).
+This document summarizes the column definitions for `dataset/space_missions.csv`, as specified in `dataset/space_missions_data_dictionary.csv` when that file exists alongside the CSV. Use it to interpret fields consistently before filtering, grouping, or computing metrics (for example success-rate or outcome-mix ratios derived from **`MissionStatus`** as documented below, or holistic scoring with **`metrics/answer_correctness_score.md`** for saved answers).
 
 ## Dataset shape (logical)
 

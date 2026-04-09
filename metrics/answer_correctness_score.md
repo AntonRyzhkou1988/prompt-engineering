@@ -2,7 +2,7 @@
 
 ## Purpose
 
-**Answer Correctness Score (ACS)** is a **quantitative, human-judged** quality metric for model outputs stored under **`answers/`**. It scores how well each answer addresses its paired business question and required structure (tables, charts, grounding), independent of the **automated substring checks** in **`docs/applications/rag_eval_space_missions_gold.md`**.
+**Answer Correctness Score (ACS)** is a **quantitative, human-judged** quality metric for model outputs stored under **`answers/`**. It scores how well each answer addresses its paired business question and required structure (tables, charts, grounding), independent of the **automated substring checks** in **`docs/applications/rag/rag_eval_space_missions_gold.md`**.
 
 Use ACS when you need a coarse **correctness** signal (full / partial / wrong) per question and an **overall** score across a run or benchmark set.
 
@@ -10,7 +10,7 @@ Use ACS when you need a coarse **correctness** signal (full / partial / wrong) p
 
 | Artifact | Role |
 | --- | --- |
-| **`docs/applications/rag_eval_space_missions_gold.md`** | Checklist for **automated** checks: `required_substrings`, `forbidden_substrings`, `must_ground` / `must_abstain`. Fast, rule-based; OR-semantics on required tokens can be lenient. |
+| **`docs/applications/rag/rag_eval_space_missions_gold.md`** | Checklist for **automated** checks: `required_substrings`, `forbidden_substrings`, `must_ground` / `must_abstain`. Fast, rule-based; OR-semantics on required tokens can be lenient. |
 | **`metrics/answer_correctness_score.md` (this file)** | Rubric for **holistic** correctness: whether the answer is right on substance, complete on **key points**, and on-topic. Requires a human (or a separate LLM-as-judge with this rubric). |
 
 ACS does **not** replace gold substring checks; it **complements** them for end-to-end answer quality.
@@ -85,6 +85,6 @@ Scores below apply the rubric in **Definition** to the five files under **`answe
 | File | Role |
 | --- | --- |
 | `metrics/answer_correctness_score.md` | This metric definition (ACS). |
-| `docs/applications/rag_eval_space_missions_gold.md` | Automated substring / mode checks paired with the same five questions. |
+| `docs/applications/rag/rag_eval_space_missions_gold.md` | Automated substring / mode checks paired with the same five questions. |
 | `questions/question_space_missions_*.md` | Source prompts; define **key points** for scoring. |
 | `answers/question_space_missions_*.md` | Model outputs to score with ACS. |
