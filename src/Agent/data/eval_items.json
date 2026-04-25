@@ -1,0 +1,54 @@
+{
+  "items": [
+    {
+      "id": "eval-001",
+      "question": "What is the current temperature in Paris, France? Use tools.",
+      "expected_domains": ["weather"]
+    },
+    {
+      "id": "eval-002",
+      "question": "Give me a 3-day forecast for Berlin using Open-Meteo tools.",
+      "expected_domains": ["weather"]
+    },
+    {
+      "id": "eval-003",
+      "question": "Search for recent news about renewable energy in English.",
+      "expected_domains": ["news"]
+    },
+    {
+      "id": "eval-004",
+      "question": "What are today's top technology headlines in the US?",
+      "expected_domains": ["news"]
+    },
+    {
+      "id": "eval-005",
+      "question": "Compare: current weather in Tokyo and top world news headlines in one answer.",
+      "expected_domains": ["weather", "news"]
+    },
+    {
+      "id": "eval-006",
+      "question": "Weather only: is it windy in Chicago right now? Do not use news tools.",
+      "expected_domains": ["weather"]
+    },
+    {
+      "id": "eval-007",
+      "question": "News only: find articles about space exploration; do not fetch weather.",
+      "expected_domains": ["news"]
+    },
+    {
+      "id": "eval-008",
+      "question": "Summarize London weather and one business headline from a DuckDuckGo web search.",
+      "expected_domains": ["weather", "news"]
+    },
+    {
+      "id": "eval-009",
+      "question": "What is the elevation used for Open-Meteo for Sydney? (Use geocoding or forecast tools.)",
+      "expected_domains": ["weather"]
+    },
+    {
+      "id": "eval-010",
+      "question": "List two science headlines and the current temperature in Madrid.",
+      "expected_domains": ["weather", "news"]
+    }
+  ]
+}

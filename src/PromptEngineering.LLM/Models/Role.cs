@@ -15,6 +15,9 @@ namespace PromptEngineering.LLM.Models
         [EnumMember(Value = "system")]
         System,
         [EnumMember(Value = "user")]
-        User
+        User,
+        /// <summary>Tool result message (OpenAI <c>role: tool</c>).</summary>
+        [EnumMember(Value = "tool")]
+        Tool
     }
 }

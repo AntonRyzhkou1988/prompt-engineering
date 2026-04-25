@@ -2,6 +2,7 @@
 
 namespace PromptEngineering.LLM.Models;
 
+
 public record ChatRequest
 {
     private readonly List<ChatMessage> _messages = new();
@@ -46,8 +47,16 @@ public record ChatRequest
     [JsonPropertyName("response_format")]
     public ResponseFormat? ResponseFormat { get; set; }
 
-    internal void AddMessage(ChatMessage message)
+    /// <summary>
+    /// Tools available to the model (OpenAI chat completions <c>tools</c>).
+    /// </summary>
+    [JsonPropertyName("tools")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<ChatToolDefinition>? Tools { get; set; }
+
+    public void AddMessage(ChatMessage message)
     {
+        ArgumentNullException.ThrowIfNull(message);
         _messages.Add(message);
     }
 }
