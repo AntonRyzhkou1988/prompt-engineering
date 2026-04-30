@@ -26,6 +26,8 @@ builder.Services
     .Bind(builder.Configuration.GetSection(AgentOptions.SectionName));
 
 builder.Services.AddSingleton<ToolDomainMapper>();
+builder.Services.AddSingleton<IWeatherAgentService, OpenMeteoWeatherAgentService>();
+builder.Services.AddSingleton<INewsAgentService, DuckDuckGoNewsAgentService>();
 builder.Services.AddScoped<WeatherNewsAgentService>();
 
 var app = builder.Build();
