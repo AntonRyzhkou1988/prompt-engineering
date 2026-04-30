@@ -114,7 +114,7 @@ Only these extensions are indexed (recursive scan under the resolved corpus fold
 - **Large corpora**: Everything is **in-memory** (vectors + text). Very large libraries may need a different store; this sample optimizes for clarity.
 - **Large CSV files**: Chunk count scales roughly with row count ÷ **`Csv:BatchSize`** (plus overlap). Raise **`BatchSize`** to reduce embedding calls if your provider allows larger inputs per request.
 - **`metrics/`** and **`docs/applications/rag/`**: Metric definitions (`*.md` under `metrics/`, currently **`metrics/answer_correctness_score.md`**) and offline RAG eval gold (**`docs/applications/rag/rag_eval_space_missions_gold.md`**) live here for documentation and checklist scoring. They are **not** indexed unless you also copy or place them under the corpus folder (or point **`DocumentsFolderPath`** / **`DocumentsPath`** at a tree that includes them).
-- **Secrets**: Use user secrets on the `Rag` project (`UserSecretsId` in `.csproj`) for API keys and base address.
+- **Secrets**: Use user secrets on **`Rag`** (same **`SystemSettings:AiServiceSettings`** keys as other executables); see **[Getting started — User secrets](getting-started.md#user-secrets)**.
 
 ## Sample corpora and questions
 

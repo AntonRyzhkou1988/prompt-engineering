@@ -6,27 +6,53 @@
 - Network access to an **EPAM DIAL** deployment or another **OpenAI-compatible** HTTP API
 - API keys (stored in **user secrets**, not committed)
 
-## Secrets (both apps)
+## User secrets
 
-Never commit `BaseAddress` or `ApiKey`. Use [.NET User Secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets) for the `SystemSettings:AiServiceSettings` subtree.
+Never commit **`SystemSettings:AiServiceSettings:BaseAddress`** or **`Instances[*]:ApiKey`**. Each **executable project** has its own [.NET User Secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets) store, keyed by **`UserSecretsId`** in that project’s `.csproj`.
 
-Example (adjust indices to match your `Instances` array):
+Overrides use the **same configuration paths** in every app: the subtree **`SystemSettings:AiServiceSettings`** (same keys as in **`appsettings.json`**).
+
+### Executable projects
+
+| Project | `--project` (from repository root) | `UserSecretsId` |
+| --- | --- | --- |
+| **PromptEngineering.Client** | `src/PromptEngineering.Client/PromptEngineering.Client.csproj` | `PromptEngineering.Client` |
+| **Rag** | `src/Rag/Rag.csproj` | `Rag.Demo` |
+| **Agent** | `src/Agent/Agent.csproj` | `154595eb-806c-479f-a229-4d363d9b9730` |
+
+Use **`dotnet user-secrets`** with **`--project`** so commands work from the repository root (adjust paths if your clone lives elsewhere):
 
 ```powershell
-# Client
-cd src/PromptEngineering.Client
-dotnet user-secrets set "SystemSettings:AiServiceSettings:BaseAddress" "https://..."
-dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:0:ApiKey" "your-key"
-dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:1:ApiKey" "your-key"
-dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:2:ApiKey" "your-key"
+# PromptEngineering.Client — set BaseAddress and one ApiKey per instance index your prompts reference.
+dotnet user-secrets set "SystemSettings:AiServiceSettings:BaseAddress" "https://..." `
+  --project src/PromptEngineering.Client/PromptEngineering.Client.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:0:ApiKey" "your-key" `
+  --project src/PromptEngineering.Client/PromptEngineering.Client.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:1:ApiKey" "your-key" `
+  --project src/PromptEngineering.Client/PromptEngineering.Client.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:2:ApiKey" "your-key" `
+  --project src/PromptEngineering.Client/PromptEngineering.Client.csproj
 ```
 
 ```powershell
-# Rag (match instance index to Rag:InstanceName)
-cd src/Rag
-dotnet user-secrets set "SystemSettings:AiServiceSettings:BaseAddress" "https://..."
-dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:0:ApiKey" "your-key"
+# Rag — match Instances[n]:ApiKey to the instance named by Rag:InstanceName in appsettings.json.
+dotnet user-secrets set "SystemSettings:AiServiceSettings:BaseAddress" "https://..." `
+  --project src/Rag/Rag.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:0:ApiKey" "your-key" `
+  --project src/Rag/Rag.csproj
 ```
+
+```powershell
+# Agent — match Instances[n]:ApiKey to the instance named by Agent:InstanceName in appsettings.json.
+dotnet user-secrets set "SystemSettings:AiServiceSettings:BaseAddress" "https://..." `
+  --project src/Agent/Agent.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:0:ApiKey" "your-key" `
+  --project src/Agent/Agent.csproj
+```
+
+You can instead **`cd`** into **`src/<Project>`** and run **`dotnet user-secrets set "..." "..."`** without **`--project`**; the secret store is always scoped to that **`.csproj`**.
+
+Configuration load order is **`appsettings.json`** then **user secrets** (when present), consistent across **PromptEngineering.Client**, **Rag**, and **Agent**.
 
 ## Run: `PromptEngineering.Client` (ReAct chain)
 

@@ -3,8 +3,9 @@
 ![.NET](https://img.shields.io/badge/.NET-8%2B-512BD4?logo=dotnet)
 ![LLM](https://img.shields.io/badge/LLM-GPT--4o%20%7C%20Claude%20%7C%20Gemini-10a37f)
 ![Data](https://img.shields.io/badge/Data-attacks.csv-blue)
+![MCP](https://img.shields.io/badge/MCP-stdio-6366f1)
 
-**.NET 8** solution for experimenting with **prompt engineering** (structured, versioned prompts and multi-step refinement) and **RAG** (retrieval-augmented answers over your own documents).
+**.NET 8** solution for experimenting with three complementary samples: **prompt engineering** (structured, versioned prompts and multi-step refinement via **`PromptEngineering.Client`**), **RAG** (retrieval-augmented answers over your own documents via **`Rag`**), and a **tool-using agent** (**`Agent`**)—chat completions plus MCP-hosted weather and news tools.
 
 ---
 
@@ -29,19 +30,34 @@ For the full flow, schema (Sections A–D), and quality checklist, see **[docs/p
 
 This track is implemented by **`Rag`**:
 
-- **Layout**: **`dataset/`** (default RAG corpus, includes **`space_missions.csv`** next to **`attacks.csv`**), **`documents/`** (optional extra corpus), **`questions/`**, **`answers/`**, and **`metrics/`** (reference / eval) live at or under the **repository root**. The **`Rag`** project under **`src/Rag/`** only hosts code and `appsettings.json`; it does not own those folders.
+- **Layout**: **`dataset/`** (default RAG corpus, includes **`space_missions.csv`** next to **`attacks.csv`**), **`documents/`** (optional extra corpus), **`questions/`**, **`answers/`**, and **`metrics/`** (offline scoring specs for RAG and Agent—see **Documentation** below) live at or under the **repository root**. The **`Rag`** project under **`src/Rag/`** only hosts code and `appsettings.json`; it does not own those folders.
 - **Index**: `.md`, `.txt`, and `.csv` under **`Rag:DocumentsFolderPath`** + **`Rag:DocumentsPath`** (committed default: repo root + **`dataset`**) are **chunked** (CSV as row batches), **embedded** in batches, and stored in an **in-memory** vector index. With the default, **`attacks.csv`** is indexed too; point **`DocumentsPath`** at **`documents`** if you want a separate corpus folder. The `.csproj` does **not** copy data into `bin`.
 - **Query**: the question is embedded; **top‑K** chunks are selected by **cosine similarity**, with **`MinProseChunks`** reserving slots for the best‑matching dictionary-style `.md`/`.txt` chunks when configured. Answers use **context-only** instructions and **[n] citations** to context blocks.
 - **Batch Q&A**: prefilled prompts in **`questions/`** can be run from the console; answers are written under **`answers/`** (see **[docs/rag.md](docs/rag.md)**).
 - **Configuration**: chunk size, overlap, `TopK`, `MinProseChunks`, `Csv:BatchSize`, batch size, and which **instance** performs embeddings and chat (see `src/Rag/appsettings.json`).
 
-Specs and eval gold under **`metrics/`** are for documentation and offline scoring; copy anything you need retrieved into **`dataset/`** or **`documents/`** (or adjust **`DocumentsFolderPath`** / **`DocumentsPath`**). Full behavior: **[docs/rag.md](docs/rag.md)**.
+Specs under **`metrics/`** (for example RAG **`answer_correctness_score.md`**) and eval gold under **`docs/applications/rag/`** are for documentation and offline scoring; copy anything you need retrieved into **`dataset/`** or **`documents/`** (or adjust **`DocumentsFolderPath`** / **`DocumentsPath`**). Full behavior: **[docs/rag.md](docs/rag.md)**.
+
+---
+
+## Agent (MCP tools)
+
+**Agent** runs **interactive Q&A**: the model may call **weather** tools (Open-Meteo MCP) and **news / web search** tools (DuckDuckGo MCP). The host prints the final answer and the **tools invoked** list.
+
+This track is implemented by **`Agent`** (`src/Agent/`):
+
+- **Runtime**: **`PromptEngineering.LLM`** (`IAiService`) chat completions with **function / tool calling**; tool schemas are loaded from MCP **stdio** sessions configured in **`Agent:OpenMeteo`** and **`Agent:DuckDuckGo`** in [`src/Agent/appsettings.json`](src/Agent/appsettings.json).
+- **Prerequisites**: **Node.js** with **`npx`** on `PATH` (committed defaults spawn MCP servers via `npx`).
+- **Configuration**: **`SystemSettings:AiServiceSettings`** (same pattern as Client/Rag); **`Agent:InstanceName`**, **`Temperature`**, **`MaxFunctionIterations`**; optional **`Agent:ToolRouting`** maps invoked tool names to domains for the **[Tool Routing Accuracy](metrics/agent_tool_routing_accuracy.md)** metric.
+- **Secrets**: Same **`SystemSettings:AiServiceSettings`** user-secrets pattern as Client/Rag—see **[Getting started — User secrets](docs/getting-started.md#user-secrets)** for **`--project src/Agent/Agent.csproj`** examples.
+
+Benchmark prompt and TRA definition: **[src/Agent/Documents/qa.md](src/Agent/Documents/qa.md)** and **[metrics/agent_tool_routing_accuracy.md](metrics/agent_tool_routing_accuracy.md)**.
 
 ---
 
 ## Shared LLM layer
 
-**`PromptEngineering.LLM`** provides **chat** completions, optional **SSE** streaming (aggregated to one completion object), **Polly** retries, timeouts, and **embeddings** (`CreateEmbeddingsAsync`), including optional **`EmbeddingDeployment`** when embedding and chat models differ.
+**`PromptEngineering.LLM`** provides **chat** completions (used by Client, Rag, and **Agent**), optional **SSE** streaming (aggregated to one completion object), **Polly** retries, timeouts, and **embeddings** (`CreateEmbeddingsAsync`), including optional **`EmbeddingDeployment`** when embedding and chat models differ. **Agent** selects an instance by **`Agent:InstanceName`** the same way prompts reference **`InstanceName`** in JSON.
 
 ---
 
@@ -49,13 +65,16 @@ Specs and eval gold under **`metrics/`** are for documentation and offline scori
 
 Hands-on guides for this repository. Start with **[Overview](docs/overview.md)**, then **[Getting started](docs/getting-started.md)**.
 
+**Metrics:** Root **`metrics/`** holds offline scoring specs—for example **[answer_correctness_score.md](metrics/answer_correctness_score.md)** (RAG) and **[agent_tool_routing_accuracy.md](metrics/agent_tool_routing_accuracy.md)** (Agent tool traces). The Agent benchmark prompt lives in **[src/Agent/Documents/qa.md](src/Agent/Documents/qa.md)**.
+
 | Guide | Topics |
 | --- | --- |
 | [Overview](docs/overview.md) | What the solution does, two tracks (ReAct vs RAG), shared LLM capabilities |
-| [Getting started](docs/getting-started.md) | Prerequisites, configuration, user secrets, run commands for Client and Rag |
+| [Getting started](docs/getting-started.md) | Prerequisites, configuration, unified user secrets for Client / Rag / Agent, run commands |
 | [Repository structure](docs/repository-structure.md) | Folders, projects, where data and outputs live (includes diagram) |
 | [Prompt chain (shark / ReAct)](docs/prompt-chain.md) | End-to-end ReAct flow, JSON prompt format, prompt versions, research question, output schema, reasoning cycle, quality bar |
 | [RAG sample](docs/rag.md) | Indexing rules (including CSV rows), `Rag` settings, prose reservation, prefilled questions, retrieval and answering with citations |
+| Agent (this README + config) | MCP weather/news tools, routing metric: [`src/Agent/appsettings.json`](src/Agent/appsettings.json), [`metrics/agent_tool_routing_accuracy.md`](metrics/agent_tool_routing_accuracy.md), [`src/Agent/Documents/qa.md`](src/Agent/Documents/qa.md) |
 
 Related: [Project rules for prompt authoring](.cursor/rules/project-rules.mdc) (ReAct standard used when editing prompts).
 
@@ -73,4 +92,11 @@ cd src
 dotnet run --project Rag
 ```
 
-Configure `appsettings.json` and set API keys via **user secrets** ([Getting started](docs/getting-started.md)).
+```powershell
+cd src
+dotnet run --project Agent -- "What is the weather and the latest news in Paris?"
+```
+
+Without arguments, **`Agent`** prompts for a question on stdin. **`Agent`** needs **`npx`** (see **Agent (MCP tools)** above).
+
+Configure **`appsettings.json`** and override secrets per executable project (**[User secrets](docs/getting-started.md#user-secrets)**).
