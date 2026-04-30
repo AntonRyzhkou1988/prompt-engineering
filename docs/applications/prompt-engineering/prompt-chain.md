@@ -1,5 +1,7 @@
 # Prompt chain (shark attacks / ReAct)
 
+**[Repository README — Documentation](../../../README.md#documentation)** · [Overview](../../overview.md) · [Getting started](../../getting-started.md)
+
 This document describes how **`PromptEngineering.Client`** runs the JSON prompts under `prompts/` against **`dataset/attacks.csv`**, how outputs are shaped, and how quality is judged.
 
 ## End-to-end flow
@@ -143,8 +145,9 @@ If scores stall, use **meta-prompting**: have an LLM revise the prompt (preserve
 
 ## Related rules
 
-Repository Cursor rules expand on ReAct steps, evidence rules, and aggregation behavior: [project-rules.mdc](../.cursor/rules/project-rules.mdc).
+Repository Cursor rules expand on ReAct steps, evidence rules, and aggregation behavior: [project-rules.mdc](../../../.cursor/rules/project-rules.mdc).
 
 ## See also
 
-- [RAG sample](rag.md) — embeddings, CSV row chunks, and retrieval-based answers (contrast with **injected** `<record>` rows in this Client track).
+- [Repository README — Documentation](../../../README.md#documentation) · [Repository structure](../../repository-structure.md)
+- [RAG guide](../rag/rag.md) — **retrieved** chunks from a single corpus file vs **injected** `<record>` XML in this Client track.

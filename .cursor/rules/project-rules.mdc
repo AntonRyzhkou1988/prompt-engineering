@@ -1,11 +1,25 @@
 ---
-description: ReAct and self-reflection prompt engineering standards for dataset analysis tasks
+description: ReAct and self-reflection prompt standards for this repo; aligns with src/PromptEngineering.sln (Client dataset chain, Rag, Agent).
 alwaysApply: true
 ---
 
 # ReAct Prompt Engineering Standard
 
 Use this rule for prompt creation, revision, and review in this repository.
+
+## Repository and solution layout
+
+Entry point: [`src/PromptEngineering.sln`](src/PromptEngineering.sln).
+
+- **PromptEngineering.Model** — Shared models (for example attack / encounter records).
+- **PromptEngineering.LLM** — GenAI / chat completion plumbing.
+- **PromptEngineering.Services** — `IContextService` / `ContextService`: dataset load, prompt assembly with `<data>` and optional `<prior_run>`, completion, per-run Markdown output.
+- **PromptEngineering.Client** — Host that runs the ReAct prompt sequence via `RunReActAsync`.
+- **Rag** — Retrieval-augmented Q&A over chunks from the **single corpus file** configured as `Rag:DatasetPath` (see docs); separate from the shark CSV ReAct chain.
+- **Agent** — Multi-turn flow with **real MCP tools** (weather, news, and so on).
+- **PromptEngineering.Services.Tests** — Tests under `tests/`, grouped in the solution’s `tests` folder.
+
+Narrative setup for the prompt chain: [`docs/applications/prompt-engineering/prompt-chain.md`](../docs/applications/prompt-engineering/prompt-chain.md) and [`docs/overview.md`](../docs/overview.md).
 
 ## Prompt Design Requirements
 
@@ -14,6 +28,7 @@ Use this rule for prompt creation, revision, and review in this repository.
 - State task goals as numbered outcomes, not a single vague request.
 - Add explicit constraints (no fabricated numbers, uncertainty must be disclosed).
 - Enforce strict output schema with sections and bullet-count limits.
+- When the host embeds CSV rows as XML, each `<record>` includes elements such as Year, Country, Area, Type, Activity, Injury, **FatalYN** (from the CSV column `Fatal (Y/N)`), Sex, Age, Time, Species, InvestigatorSource—tie prompt wording to those tags when relevant.
 
 ## ReAct and Self-Reflection Cycle
 
@@ -37,7 +52,11 @@ Every refined prompt should require this minimum flow:
 4. Self-critique each finding for support strength and bias risk.
 5. Revise or remove weak claims before final output.
 
-**Single-turn default:** The standard client sends one user message with embedded records (for example XML `<record>` elements). There is no host-executed tool loop—**do not fabricate tool results**. **Action** means analytical moves the model applies to the provided data in internal reasoning. If a future pipeline adds real tools (search, calculators, APIs), prompts must define those tools explicitly and include few-shot examples of correct use.
+**Modes in this solution:**
+
+- **PromptEngineering.Client + ContextService:** For each JSON prompt in `ContextSettings.ReActSequence`, the host sends **one** user message per step. Records are injected inside `<data>...</data>` as `<record>` XML; the previous step’s assistant text can be injected into `<prior_run>...</prior_run>` on the next step. There is **no** host-executed external tool loop on this path—**do not fabricate tool results**. **Action** means analytical moves the model applies to the provided data in internal reasoning.
+- **Agent:** The host runs a **real** tool loop (MCP). Tool observations are actual tool responses—**do not** invent tool output; define and use tools per the Agent configuration and examples.
+- **Rag:** Ground answers in retrieved chunks from the indexed corpus; do not treat the model’s prior knowledge as a substitute for retrieved context when the task is RAG-scoped.
 
 ## Evidence and Safety Rules
 
@@ -46,9 +65,11 @@ Every refined prompt should require this minimum flow:
 - If evidence is partial, label confidence as `High`, `Medium`, or `Low`.
 - Separate confirmed findings from assumptions or recommendations.
 
-## Pipeline output aggregation
+## Pipeline output and comparison
 
-When the host aggregates multiple run results (for example `IContextService.SummarizeAsync` writing `results.txt`), include **only** stored completion text and explicit placeholders when content is missing (referencing the per-run output path). Do **not** fabricate metrics, do **not** paraphrase or synthesize new findings in that step, and do **not** treat the aggregate file as a substitute for the model’s structured sections (for example v3 Sections A–D). The aggregate exists for **human comparison**, not as additional model output. Per-run headers (for example `## Run: v2` and the saved output path) are host-side labels only.
+`IContextService.RunReActAsync` walks `ContextSettings.ReActSequence` in order. After each completion, the host persists the **first-choice** assistant message to a timestamped Markdown file under the configured output directory (pattern like `completion_{promptStem}_{yyyyMMdd_HHmmss_fff}.md`); the console logs the saved path.
+
+If you add or use **downstream** tooling that concatenates or compares multiple runs: include **only** stored completion text and explicit placeholders when content is missing (reference the per-run output path). Do **not** fabricate metrics, do **not** paraphrase or synthesize new findings in that step, and do **not** treat any aggregate as a substitute for the model’s structured sections (for example v3 Sections A–D in [`prompts/v3.json`](prompts/v3.json)). Any combined file exists for **human comparison**, not as additional model output. Per-run headers (for example `## Run: v2` and the saved output path) are host-side labels only.
 
 ## Iterative Optimization Protocol
 
@@ -83,9 +104,9 @@ Use this skeleton when drafting a new analysis prompt:
 
 ```text
 Act as a senior incident data analyst.
-Analyze dataset/attacks.csv using Year, Country, Type, Activity, Injury, and Fatal (Y/N).
+Analyze dataset/attacks.csv using Year, Country, Type, Activity, Injury, and Fatal (Y/N) in the CSV; in the embedded user message, records appear as <record> XML under <data> with a FatalYN element for fatality.
 Internally use Thought -> Action (analytical steps on the provided records only) -> Observation (what the records show or lack), repeating until claims are stable.
 Then: field selection -> data quality check -> trend extraction -> self-critique -> claim revision.
 Return sections: Key insights, Data quality caveats, Next analyses, Executive summary.
-Rules: no fabricated metrics, no fabricated tool output, include confidence labels, disclose uncertainty.
+Rules: no fabricated metrics, no fabricated tool output on the Client path, include confidence labels, disclose uncertainty.
 ```

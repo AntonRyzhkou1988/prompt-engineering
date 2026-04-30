@@ -43,7 +43,7 @@ Return exactly these sections, in order:
 - **Chart** — One `mermaid` pie block or a one-line statement that the chart is omitted and why.
 - **Summary** — At most 4 sentences: what the evidence shows, what remains unknown.
 
-**Rules:** No fabricated metrics; no invented CSV rows; if evidence is partial, say so; do not treat this file as indexed unless it lives under the configured Rag corpus folder (**`DocumentsFolderPath`** + **`DocumentsPath`**).
+**Rules:** No fabricated metrics; no invented CSV rows; if evidence is partial, say so; do not treat this file as indexed unless your answer can draw from the configured **`Rag:DatasetPath`** corpus (resolved under **`DocumentsFolderPath`**).
 
 ## Question (user-facing)
 

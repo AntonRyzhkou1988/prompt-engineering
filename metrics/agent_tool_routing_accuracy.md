@@ -4,7 +4,7 @@
 
 **Tool Routing Accuracy (TRA)** scores whether the agent invoked tools from the **expected domains** (weather vs news) during a run. It uses **only** the tool names recorded by the host—not prose quality or factual correctness.
 
-In this repository, the **documented benchmark prompt** and an **illustrative reference reply** live in [`src/Agent/Documents/qa.md`](../src/Agent/Documents/qa.md). TRA is defined against that question’s **expected domains**; the **Answer** block in `qa.md` is for human or qualitative checks (correctness, tone), not for TRA.
+In this repository, the **documented benchmark prompt** and an **illustrative reference reply** live in [`docs/applications/agent/agent-weather-news.md`](../docs/applications/agent/agent-weather-news.md). TRA is defined against that question’s **expected domains**; the **Answer** block in that document is for human or qualitative checks (correctness, tone), not for TRA.
 
 ---
 
@@ -62,19 +62,19 @@ Range: **0** … **1**.
 
 ---
 
-## Benchmark tied to `qa.md`
+## Benchmark document (`docs/applications/agent/agent-weather-news.md`)
 
-Canonical path: **[`src/Agent/Documents/qa.md`](../src/Agent/Documents/qa.md)**.
+Canonical path: **[`docs/applications/agent/agent-weather-news.md`](../docs/applications/agent/agent-weather-news.md)**.
 
 ### Content mapping
 
-| Part of `qa.md` | Role in evaluation |
+| Part of benchmark file | Role in evaluation |
 |-----------------|--------------------|
 | **`## Question:`** block | Defines the **user prompt** for the benchmark item. |
 | **`## Answer:`** block | **Illustrative** completion (weather sentence + news bullets). Use for human review or separate answer-quality scoring; **TRA does not read answer text**. |
 | Expected domains (**E**) | Derived from the **question**: it asks for **both** weather and news → **E** = `{ weather, news }`. |
 
-### Benchmark item (verbatim from `qa.md`)
+### Benchmark item (verbatim from benchmark document)
 
 **Question** (the string to pass through the Agent; same idea as [`Program.cs`](../src/Agent/Program.cs) `Usage` / `Example` line after the executable name):
 
@@ -84,7 +84,7 @@ What is the weather and the latest news in Paris?
 
 **Expected domains E:** `weather` **and** `news` (both required for TRA = 1 on this item).
 
-**Reference answer** (in `qa.md` under **`## Answer:`**): weather details (e.g. temperature, conditions, wind) plus a bulleted “latest news” list. That content is **time-sensitive** and **not** the TRA gold standard—only the tool trace **T** vs **E** defines TRA for this item.
+**Reference answer** (under **`## Answer:`** in the benchmark file): weather details (e.g. temperature, conditions, wind) plus a bulleted “latest news” list. That content is **time-sensitive** and **not** the TRA gold standard—only the tool trace **T** vs **E** defines TRA for this item.
 
 ### How to run the benchmark item
 
@@ -107,12 +107,12 @@ Compare printed **--- Tools invoked ---** against **E** using the substring rule
 
 ### Optional qualitative cross-check
 
-After running TRA, you may compare the model’s reply to the **`Answer:`** section in [`qa.md`](../src/Agent/Documents/qa.md) for structure (weather + news bullets)—knowing that headlines and numbers will drift over time.
+After running TRA, you may compare the model’s reply to the **`Answer:`** section in [`docs/applications/agent/agent-weather-news.md`](../docs/applications/agent/agent-weather-news.md) for structure (weather + news bullets)—knowing that headlines and numbers will drift over time.
 
 ---
 
 ## Related artifacts
 
-- Benchmark Q&A: [`src/Agent/Documents/qa.md`](../src/Agent/Documents/qa.md)
+- Benchmark Q&A: [`docs/applications/agent/agent-weather-news.md`](../docs/applications/agent/agent-weather-news.md)
 - Agent entrypoint and tool listing: [`src/Agent/Program.cs`](../src/Agent/Program.cs)
 - Routing implementation: [`src/Agent/ToolDomainMapper.cs`](../src/Agent/ToolDomainMapper.cs), [`src/Agent/appsettings.json`](../src/Agent/appsettings.json)

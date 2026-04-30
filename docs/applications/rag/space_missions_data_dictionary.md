@@ -1,5 +1,7 @@
 # Space missions dataset — data dictionary
 
+**[Repository README — Documentation](../../../README.md#documentation)** · [RAG guide](rag.md)
+
 ## Purpose
 
 This document summarizes the column definitions for `dataset/space_missions.csv`, as specified in `dataset/space_missions_data_dictionary.csv` when that file exists alongside the CSV. Use it to interpret fields consistently before filtering, grouping, or computing metrics (for example success-rate or outcome-mix ratios derived from **`MissionStatus`** as documented below, or holistic scoring with **`metrics/answer_correctness_score.md`** for saved answers).
@@ -70,3 +72,7 @@ Use these literals for denominators/numerators in success-rate or outcome breakd
 ## Source
 
 Canonical field list: `dataset/space_missions_data_dictionary.csv` (when checked in next to `dataset/space_missions.csv`).
+
+## See also
+
+- [RAG guide](rag.md) · [Repository README — Documentation](../../../README.md#documentation) · [Answer Correctness Score](../../../metrics/answer_correctness_score.md)

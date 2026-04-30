@@ -62,7 +62,7 @@ Return exactly these sections, **in order**:
 - **Chart** — One `mermaid` pie block or a one-line statement that the chart is omitted and why.
 - **Summary** — At most **4** sentences: what the evidence shows, what the parser might miss, what remains unknown about the full CSV.
 
-**Rules:** No fabricated row counts; no invented `Location` values; if evidence is partial, say so; do not treat this file as indexed unless it lives under the configured Rag corpus folder (**`DocumentsFolderPath`** + **`DocumentsPath`**).
+**Rules:** No fabricated row counts; no invented `Location` values; if evidence is partial, say so; do not treat this file as indexed unless your answer can draw from the configured **`Rag:DatasetPath`** corpus (resolved under **`DocumentsFolderPath`**).
 
 ## Question (user-facing)
 

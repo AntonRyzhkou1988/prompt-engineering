@@ -20,23 +20,24 @@ This track is implemented by **`PromptEngineering.Client`**:
 - Runs follow a **ReAct-style refinement chain**: each completion can be passed into the next file as **`<prior_run>`**, so later prompts build on earlier analysis instead of starting cold.
 - Completions are written as timestamped Markdown under `output/` for diffing and scoring.
 
-For the full flow, schema (Sections A–D), and quality checklist, see **[docs/prompt-chain.md](docs/prompt-chain.md)** and **[project-rules.mdc](.cursor/rules/project-rules.mdc)**.
+For the full flow, schema (Sections A–D), and quality checklist, see **[docs/applications/prompt-engineering/prompt-chain.md](docs/applications/prompt-engineering/prompt-chain.md)** and **[project-rules.mdc](.cursor/rules/project-rules.mdc)**.
 
 ---
 
 ## RAG (in this repo)
 
-**RAG (retrieval-augmented generation)** means: turn your documents into **vector embeddings**, **retrieve** the pieces most similar to a user question, and **generate** an answer using only (or primarily) that retrieved text as context—reducing reliance on the model’s parametric memory.
+**RAG (retrieval-augmented generation)** means: embed a **single** local corpus file, **retrieve** the chunks most similar to a question, and **generate** an answer using that retrieved text as context.
 
 This track is implemented by **`Rag`**:
 
-- **Layout**: **`dataset/`** (default RAG corpus, includes **`space_missions.csv`** next to **`attacks.csv`**), **`documents/`** (optional extra corpus), **`questions/`**, **`answers/`**, and **`metrics/`** (offline scoring specs for RAG and Agent—see **Documentation** below) live at or under the **repository root**. The **`Rag`** project under **`src/Rag/`** only hosts code and `appsettings.json`; it does not own those folders.
-- **Index**: `.md`, `.txt`, and `.csv` under **`Rag:DocumentsFolderPath`** + **`Rag:DocumentsPath`** (committed default: repo root + **`dataset`**) are **chunked** (CSV as row batches), **embedded** in batches, and stored in an **in-memory** vector index. With the default, **`attacks.csv`** is indexed too; point **`DocumentsPath`** at **`documents`** if you want a separate corpus folder. The `.csproj` does **not** copy data into `bin`.
-- **Query**: the question is embedded; **top‑K** chunks are selected by **cosine similarity**, with **`MinProseChunks`** reserving slots for the best‑matching dictionary-style `.md`/`.txt` chunks when configured. Answers use **context-only** instructions and **[n] citations** to context blocks.
-- **Batch Q&A**: prefilled prompts in **`questions/`** can be run from the console; answers are written under **`answers/`** (see **[docs/rag.md](docs/rag.md)**).
-- **Configuration**: chunk size, overlap, `TopK`, `MinProseChunks`, `Csv:BatchSize`, batch size, and which **instance** performs embeddings and chat (see `src/Rag/appsettings.json`).
+- **Corpus**: **`Rag:DatasetPath`** names **one** file (`.md`, `.txt`, or `.csv`), resolved under **`Rag:DocumentsFolderPath`** unless rooted. Committed default: **`dataset/space_missions.csv`**. To use **`attacks.csv`**, point **`DatasetPath`** at that file instead.
+- **Layout**: **`questions/`** and **`answers/`** sit at the **repository root** (resolved via **`DocumentsFolderPath`**). The **`Rag`** project only hosts code and **`appsettings.json`**.
+- **Index**: that file is **chunked** (CSV as row batches per **`Rag:Csv:BatchSize`**), **embedded**, and stored in an **in-memory** vector index.
+- **Query**: embed the question; **top‑K** chunks with **`MinProseChunks`** prose reservation; **context-only** answer with **`[n]` citations**.
+- **Batch Q&A**: prefilled **`questions/*.md`** from the console; answers under **`answers/`** (see **[docs/applications/rag/rag.md](docs/applications/rag/rag.md)**).
+- **Configuration**: chunking, **`TopK`**, **`MinProseChunks`**, CSV batching, **`InstanceName`** (see **`src/Rag/appsettings.json`**).
 
-Specs under **`metrics/`** (for example RAG **`answer_correctness_score.md`**) and eval gold under **`docs/applications/rag/`** are for documentation and offline scoring; copy anything you need retrieved into **`dataset/`** or **`documents/`** (or adjust **`DocumentsFolderPath`** / **`DocumentsPath`**). Full behavior: **[docs/rag.md](docs/rag.md)**.
+Specs under **`metrics/`** and **[`docs/applications/rag/`](docs/applications/rag/)** are for documentation and offline scoring only; they are **not** retrieved unless their text is inside your **`DatasetPath`** file. Full behavior: **[docs/applications/rag/rag.md](docs/applications/rag/rag.md)**.
 
 ---
 
@@ -51,7 +52,7 @@ This track is implemented by **`Agent`** (`src/Agent/`):
 - **Configuration**: **`SystemSettings:AiServiceSettings`** (same pattern as Client/Rag); **`Agent:InstanceName`**, **`Temperature`**, **`MaxFunctionIterations`**; optional **`Agent:ToolRouting`** maps invoked tool names to domains for the **[Tool Routing Accuracy](metrics/agent_tool_routing_accuracy.md)** metric.
 - **Secrets**: Same **`SystemSettings:AiServiceSettings`** pattern as Client/Rag—step-by-step commands under **[How to run the samples](#how-to-run-the-samples)**; **`UserSecretsId`** reference in **[Getting started](docs/getting-started.md#user-secrets)**.
 
-Benchmark prompt and TRA definition: **[src/Agent/Documents/qa.md](src/Agent/Documents/qa.md)** and **[metrics/agent_tool_routing_accuracy.md](metrics/agent_tool_routing_accuracy.md)**.
+Benchmark prompt and TRA definition: **[docs/applications/agent/agent-weather-news.md](docs/applications/agent/agent-weather-news.md)** and **[metrics/agent_tool_routing_accuracy.md](metrics/agent_tool_routing_accuracy.md)**.
 
 ---
 
@@ -101,7 +102,7 @@ dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:2:ApiKey" ".
 dotnet run --project src/PromptEngineering.Client/PromptEngineering.Client.csproj
 ```
 
-Writes completions under **`output/`** per **`ContextSettings`** in **`appsettings.json`**. See **[docs/prompt-chain.md](docs/prompt-chain.md)**.
+Writes completions under **`output/`** per **`ContextSettings`** in **`appsettings.json`**. See **[docs/applications/prompt-engineering/prompt-chain.md](docs/applications/prompt-engineering/prompt-chain.md)**.
 
 ### 2. Rag
 
@@ -121,7 +122,7 @@ dotnet run --project src/Rag/Rag.csproj
 ```
 
 After indexing, choose prefilled or manual mode in the console; optional one-shot argument:  
-`dotnet run --project src/Rag/Rag.csproj -- "Your question"`. See **[docs/rag.md](docs/rag.md)**.
+`dotnet run --project src/Rag/Rag.csproj -- "Your question"`. See **[docs/applications/rag/rag.md](docs/applications/rag/rag.md)**.
 
 ### 3. Agent (MCP weather + news)
 
@@ -156,17 +157,45 @@ dotnet user-secrets list --project src/Agent/Agent.csproj
 
 ## Documentation
 
-Hands-on guides for this repository. **Run steps:** **[How to run the samples](#how-to-run-the-samples)**. Then read **[Overview](docs/overview.md)** and **[Getting started](docs/getting-started.md)** for deeper configuration.
+This section is the **single index** for repository guides. **Run steps:** [How to run the samples](#how-to-run-the-samples). Shared narrative: [Overview](docs/overview.md), [Getting started](docs/getting-started.md), [Repository structure](docs/repository-structure.md).
 
-**Metrics:** Root **`metrics/`** holds offline scoring specs—for example **[answer_correctness_score.md](metrics/answer_correctness_score.md)** (RAG) and **[agent_tool_routing_accuracy.md](metrics/agent_tool_routing_accuracy.md)** (Agent tool traces). The Agent benchmark prompt lives in **[src/Agent/Documents/qa.md](src/Agent/Documents/qa.md)**.
+### Common guides (`docs/`)
 
-| Guide | Topics |
+| Document | Topics |
 | --- | --- |
-| [Overview](docs/overview.md) | What the solution does, two tracks (ReAct vs RAG), shared LLM capabilities |
-| [Getting started](docs/getting-started.md) | Prerequisites, configuration, unified user secrets for Client / Rag / Agent, run commands |
-| [Repository structure](docs/repository-structure.md) | Folders, projects, where data and outputs live (includes diagram) |
-| [Prompt chain (shark / ReAct)](docs/prompt-chain.md) | End-to-end ReAct flow, JSON prompt format, prompt versions, research question, output schema, reasoning cycle, quality bar |
-| [RAG sample](docs/rag.md) | Indexing rules (including CSV rows), `Rag` settings, prose reservation, prefilled questions, retrieval and answering with citations |
-| Agent (this README + config) | MCP weather/news tools, routing metric: [`src/Agent/appsettings.json`](src/Agent/appsettings.json), [`metrics/agent_tool_routing_accuracy.md`](metrics/agent_tool_routing_accuracy.md), [`src/Agent/Documents/qa.md`](src/Agent/Documents/qa.md) |
+| [Overview](docs/overview.md) | Three tracks, shared LLM behavior, safety notes |
+| [Getting started](docs/getting-started.md) | Prerequisites, user secrets, run commands |
+| [Repository structure](docs/repository-structure.md) | Folders, projects, diagram |
 
-Related: [Project rules for prompt authoring](.cursor/rules/project-rules.mdc) (ReAct standard used when editing prompts).
+### Prompt engineering — `PromptEngineering.Client` (`docs/applications/prompt-engineering/`)
+
+Versioned JSON prompts, shark **`dataset/attacks.csv`**, `<data>` / `<prior_run>`, completions under **`output/`**.
+
+| Document | Topics |
+| --- | --- |
+| [Prompt chain (ReAct)](docs/applications/prompt-engineering/prompt-chain.md) | Flow, JSON schema, Sections A–D, quality checklist |
+
+### RAG — `Rag` (`docs/applications/rag/`)
+
+Single-file corpus indexing, embeddings, retrieval, context-only answers with **`[n]` citations`.
+
+| Document | Topics |
+| --- | --- |
+| [RAG guide](docs/applications/rag/rag.md) | `DatasetPath`, chunking, `TopK`, console behavior |
+| [Space missions data dictionary](docs/applications/rag/space_missions_data_dictionary.md) | Column semantics for **`dataset/space_missions.csv`** |
+| [RAG eval gold (space missions)](docs/applications/rag/rag_eval_space_missions_gold.md) | Automated substring / mode checks for prefilled questions |
+
+### Agent — MCP tools (`docs/applications/agent/`)
+
+Chat with **Open-Meteo** and **DuckDuckGo** via stdio; configure [`src/Agent/appsettings.json`](src/Agent/appsettings.json); requires **Node.js** / **`npx`**.
+
+| Document | Topics |
+| --- | --- |
+| [TRA benchmark — Paris weather & news](docs/applications/agent/agent-weather-news.md) | Canonical benchmark + illustrative answer for [Tool Routing Accuracy](metrics/agent_tool_routing_accuracy.md) |
+
+### Metrics and prompt rules
+
+| Resource | Role |
+| --- | --- |
+| [metrics/](metrics/) | Offline specs (e.g. [answer_correctness_score.md](metrics/answer_correctness_score.md), [agent_tool_routing_accuracy.md](metrics/agent_tool_routing_accuracy.md)); not ingested by **`Rag`** unless that text is inside **`Rag:DatasetPath`** |
+| [project-rules.mdc](.cursor/rules/project-rules.mdc) | ReAct / evidence standard for prompt authoring |

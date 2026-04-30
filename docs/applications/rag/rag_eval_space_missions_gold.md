@@ -1,5 +1,7 @@
 # RAG evaluation gold set — space missions
 
+**[Repository README — Documentation](../../../README.md#documentation)** · [Data dictionary](space_missions_data_dictionary.md)
+
 Structured gold items for scoring RAG answers against `dataset/space_missions.csv`. Each item lists required and forbidden substring checks used by automated evaluators. Gold rows mirror the user-facing questions in `questions/question_space_missions_*.md`.
 
 | item_id | question | expected_answer_mode | required_substrings | forbidden_substrings | case_sensitive | notes |
@@ -16,3 +18,7 @@ Structured gold items for scoring RAG answers against `dataset/space_missions.cs
 - **required_substrings**: Any listed alternative may satisfy the check (OR across `\|`-separated tokens), matching the original CSV pipe convention.
 - **forbidden_substrings**: Hitting any listed substring typically fails the item (OR across tokens).
 - **case_sensitive**: `no` corresponds to CSV value `0`.
+
+## See also
+
+- [RAG guide](rag.md) · [Getting started](../../getting-started.md) · [Answer Correctness Score](../../../metrics/answer_correctness_score.md)

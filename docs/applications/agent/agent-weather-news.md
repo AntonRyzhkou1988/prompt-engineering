@@ -1,3 +1,9 @@
+# Agent benchmark: Paris weather and news
+
+**[Repository README — Documentation](../../../README.md#documentation)** · [Tool Routing Accuracy (TRA)](../../../metrics/agent_tool_routing_accuracy.md)
+
+Canonical TRA benchmark item: question plus an **illustrative** reference answer (time-sensitive).
+
 ## Question:
 
 Agent "What is the weather and the latest news in Paris?"
@@ -11,3 +17,8 @@ Here is the latest news in Paris:
 * Socialist candidate Emmanuel Grégoire has won the Paris mayoral race.
 * Organizers for the French Alps 2030 Winter Olympics are considering Paris and Lyon as possible venues for hockey events.
 * The Paris Entertainment Company has submitted a bid to host the ice hockey events for the 2030 Winter Games.
+
+## See also
+
+- [Getting started](../../getting-started.md) (Agent section)
+- [README — Agent](../../../README.md#agent-mcp-tools)
