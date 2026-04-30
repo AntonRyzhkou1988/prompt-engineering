@@ -28,6 +28,11 @@ namespace PromptEngineering.LLM.Models
         /// the stop sequences provided via the stop parameter
         /// </summary>
         [EnumMember(Value = "stop")]
-        Stop
+        Stop,
+        /// <summary>
+        /// The model requested tool/function calls (OpenAI <c>tool_calls</c>).
+        /// </summary>
+        [EnumMember(Value = "tool_calls")]
+        ToolCalls
     }
 }
