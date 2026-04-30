@@ -49,7 +49,7 @@ This track is implemented by **`Agent`** (`src/Agent/`):
 - **Runtime**: **`PromptEngineering.LLM`** (`IAiService`) chat completions with **function / tool calling**; tool schemas are loaded from MCP **stdio** sessions configured in **`Agent:OpenMeteo`** and **`Agent:DuckDuckGo`** in [`src/Agent/appsettings.json`](src/Agent/appsettings.json).
 - **Prerequisites**: **Node.js** with **`npx`** on `PATH` (committed defaults spawn MCP servers via `npx`).
 - **Configuration**: **`SystemSettings:AiServiceSettings`** (same pattern as Client/Rag); **`Agent:InstanceName`**, **`Temperature`**, **`MaxFunctionIterations`**; optional **`Agent:ToolRouting`** maps invoked tool names to domains for the **[Tool Routing Accuracy](metrics/agent_tool_routing_accuracy.md)** metric.
-- **Secrets**: Same **`SystemSettings:AiServiceSettings`** user-secrets pattern as Client/Rag—see **[Getting started — User secrets](docs/getting-started.md#user-secrets)** for **`--project src/Agent/Agent.csproj`** examples.
+- **Secrets**: Same **`SystemSettings:AiServiceSettings`** pattern as Client/Rag—step-by-step commands under **[How to run the samples](#how-to-run-the-samples)**; **`UserSecretsId`** reference in **[Getting started](docs/getting-started.md#user-secrets)**.
 
 Benchmark prompt and TRA definition: **[src/Agent/Documents/qa.md](src/Agent/Documents/qa.md)** and **[metrics/agent_tool_routing_accuracy.md](metrics/agent_tool_routing_accuracy.md)**.
 
@@ -61,9 +61,102 @@ Benchmark prompt and TRA definition: **[src/Agent/Documents/qa.md](src/Agent/Doc
 
 ---
 
+## How to run the samples
+
+Use a shell at the **repository root** (paths below assume your clone is `prompt-engineering/`). Swap **`https://...`** and API keys for your deployment.
+
+### Prerequisites
+
+| Requirement | Client | Rag | Agent |
+| --- | --- | --- | --- |
+| [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) | Yes | Yes | Yes |
+| LLM API (**OpenAI-compatible** base URL + keys) | Yes | Yes | Yes |
+| **Node.js** + **`npx`** on `PATH` (MCP servers) | No | No | Yes |
+
+Tune paths and **`appsettings.json`** as needed before running (dataset folders, **`Rag:*`** paths, **`Agent:InstanceName`**, and matching **`Instances`** entries). More detail: **[Getting started](docs/getting-started.md)**.
+
+### User secrets
+
+Each executable has its **own** user-secrets store (see **`UserSecretsId`** in each `.csproj`). Running **`dotnet user-secrets init`** below is **optional**—these projects already declare an id—but it is safe if you want an explicit first-time step.
+
+Use the same configuration keys everywhere under **`SystemSettings:AiServiceSettings`**:
+
+- Set **`BaseAddress`** to your API root URL.
+- Set **`Instances:n:ApiKey`** for every index **`n`** you rely on. The **`Name`** of **`Instances[n]`** must match **`InstanceName`** in prompts (**Client**), **`Rag:InstanceName`**, or **`Agent:InstanceName`**.
+
+### 1. PromptEngineering.Client (ReAct chain)
+
+```powershell
+dotnet user-secrets init --project src/PromptEngineering.Client/PromptEngineering.Client.csproj
+
+dotnet user-secrets set "SystemSettings:AiServiceSettings:BaseAddress" "https://..." `
+  --project src/PromptEngineering.Client/PromptEngineering.Client.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:0:ApiKey" "..." `
+  --project src/PromptEngineering.Client/PromptEngineering.Client.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:1:ApiKey" "..." `
+  --project src/PromptEngineering.Client/PromptEngineering.Client.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:2:ApiKey" "..." `
+  --project src/PromptEngineering.Client/PromptEngineering.Client.csproj
+
+dotnet run --project src/PromptEngineering.Client/PromptEngineering.Client.csproj
+```
+
+Writes completions under **`output/`** per **`ContextSettings`** in **`appsettings.json`**. See **[docs/prompt-chain.md](docs/prompt-chain.md)**.
+
+### 2. Rag
+
+```powershell
+dotnet user-secrets init --project src/Rag/Rag.csproj
+
+dotnet user-secrets set "SystemSettings:AiServiceSettings:BaseAddress" "https://..." `
+  --project src/Rag/Rag.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:0:ApiKey" "..." `
+  --project src/Rag/Rag.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:1:ApiKey" "..." `
+  --project src/Rag/Rag.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:2:ApiKey" "..." `
+  --project src/Rag/Rag.csproj
+
+dotnet run --project src/Rag/Rag.csproj
+```
+
+After indexing, choose prefilled or manual mode in the console; optional one-shot argument:  
+`dotnet run --project src/Rag/Rag.csproj -- "Your question"`. See **[docs/rag.md](docs/rag.md)**.
+
+### 3. Agent (MCP weather + news)
+
+Ensure **`npx`** works (MCP packages are pulled on demand). Optional: **`dotnet user-secrets list --project src/Agent/Agent.csproj`** to verify keys.
+
+```powershell
+dotnet user-secrets init --project src/Agent/Agent.csproj
+
+dotnet user-secrets set "SystemSettings:AiServiceSettings:BaseAddress" "https://..." `
+  --project src/Agent/Agent.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:0:ApiKey" "..." `
+  --project src/Agent/Agent.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:1:ApiKey" "..." `
+  --project src/Agent/Agent.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:2:ApiKey" "..." `
+  --project src/Agent/Agent.csproj
+
+dotnet run --project src/Agent/Agent.csproj -- "What is the weather and the latest news in Paris?"
+```
+
+Without the trailing **`-- "..."`** argument, **Agent** reads a question from stdin. If you only use **one** configured instance, setting **`Instances:0:ApiKey`** alone is enough **provided** **`Agent:InstanceName`** matches **`Instances[0].Name`**.
+
+### Verify secrets
+
+```powershell
+dotnet user-secrets list --project src/PromptEngineering.Client/PromptEngineering.Client.csproj
+dotnet user-secrets list --project src/Rag/Rag.csproj
+dotnet user-secrets list --project src/Agent/Agent.csproj
+```
+
+---
+
 ## Documentation
 
-Hands-on guides for this repository. Start with **[Overview](docs/overview.md)**, then **[Getting started](docs/getting-started.md)**.
+Hands-on guides for this repository. **Run steps:** **[How to run the samples](#how-to-run-the-samples)**. Then read **[Overview](docs/overview.md)** and **[Getting started](docs/getting-started.md)** for deeper configuration.
 
 **Metrics:** Root **`metrics/`** holds offline scoring specs—for example **[answer_correctness_score.md](metrics/answer_correctness_score.md)** (RAG) and **[agent_tool_routing_accuracy.md](metrics/agent_tool_routing_accuracy.md)** (Agent tool traces). The Agent benchmark prompt lives in **[src/Agent/Documents/qa.md](src/Agent/Documents/qa.md)**.
 
@@ -77,26 +170,3 @@ Hands-on guides for this repository. Start with **[Overview](docs/overview.md)**
 | Agent (this README + config) | MCP weather/news tools, routing metric: [`src/Agent/appsettings.json`](src/Agent/appsettings.json), [`metrics/agent_tool_routing_accuracy.md`](metrics/agent_tool_routing_accuracy.md), [`src/Agent/Documents/qa.md`](src/Agent/Documents/qa.md) |
 
 Related: [Project rules for prompt authoring](.cursor/rules/project-rules.mdc) (ReAct standard used when editing prompts).
-
----
-
-## Quick start
-
-```powershell
-cd src
-dotnet run --project PromptEngineering.Client
-```
-
-```powershell
-cd src
-dotnet run --project Rag
-```
-
-```powershell
-cd src
-dotnet run --project Agent -- "What is the weather and the latest news in Paris?"
-```
-
-Without arguments, **`Agent`** prompts for a question on stdin. **`Agent`** needs **`npx`** (see **Agent (MCP tools)** above).
-
-Configure **`appsettings.json`** and override secrets per executable project (**[User secrets](docs/getting-started.md#user-secrets)**).
