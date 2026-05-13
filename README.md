@@ -5,7 +5,7 @@
 ![Data](https://img.shields.io/badge/Data-attacks.csv-blue)
 ![MCP](https://img.shields.io/badge/MCP-stdio-6366f1)
 
-**.NET 8** solution for experimenting with three complementary samples: **prompt engineering** (structured, versioned prompts and multi-step refinement via **`PromptEngineering.Client`**), **RAG** (retrieval-augmented answers over your own documents via **`Rag`**), and a **tool-using agent** (**`Agent`**)—chat completions plus MCP-hosted weather and news tools.
+**.NET 8** solution for experimenting with four complementary samples: **prompt engineering** (structured, versioned prompts and multi-step refinement via **`PromptEngineering.Client`**), **RAG** (retrieval-augmented answers over your own documents via **`Rag`**), a **tool-using agent** (**`Agent`**)—chat completions plus MCP-hosted weather and news tools—and **`Security`**, a small console that pairs **vulnerable** vs **mitigated** chat flows for **prompt injection** and **sensitive information disclosure**.
 
 ---
 
@@ -58,7 +58,7 @@ Benchmark prompt and TRA definition: **[docs/applications/agent/agent-weather-ne
 
 ## Shared LLM layer
 
-**`PromptEngineering.LLM`** provides **chat** completions (used by Client, Rag, and **Agent**), optional **SSE** streaming (aggregated to one completion object), **Polly** retries, timeouts, and **embeddings** (`CreateEmbeddingsAsync`), including optional **`EmbeddingDeployment`** when embedding and chat models differ. **Agent** selects an instance by **`Agent:InstanceName`** the same way prompts reference **`InstanceName`** in JSON.
+**`PromptEngineering.LLM`** provides **chat** completions (used by Client, Rag, **Agent**, and **Security**), optional **SSE** streaming (aggregated to one completion object), **Polly** retries, timeouts, and **embeddings** (`CreateEmbeddingsAsync`), including optional **`EmbeddingDeployment`** when embedding and chat models differ. **Agent** and **Security** select an instance by **`Agent:InstanceName`** or **`Security:InstanceName`** the same way prompts reference **`InstanceName`** in JSON.
 
 ---
 
@@ -68,13 +68,13 @@ Use a shell at the **repository root** (paths below assume your clone is `prompt
 
 ### Prerequisites
 
-| Requirement | Client | Rag | Agent |
-| --- | --- | --- | --- |
-| [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) | Yes | Yes | Yes |
-| LLM API (**OpenAI-compatible** base URL + keys) | Yes | Yes | Yes |
-| **Node.js** + **`npx`** on `PATH` (MCP servers) | No | No | Yes |
+| Requirement | Client | Rag | Agent | Security |
+| --- | --- | --- | --- | --- |
+| [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) | Yes | Yes | Yes | Yes |
+| LLM API (**OpenAI-compatible** base URL + keys) | Yes | Yes | Yes | Yes |
+| **Node.js** + **`npx`** on `PATH` (MCP servers) | No | No | Yes | No |
 
-Tune paths and **`appsettings.json`** as needed before running (dataset folders, **`Rag:*`** paths, **`Agent:InstanceName`**, and matching **`Instances`** entries). More detail: **[Getting started](docs/getting-started.md)**.
+Tune paths and **`appsettings.json`** as needed before running (dataset folders, **`Rag:*`** paths, **`Agent:InstanceName`** / **`Security:InstanceName`**, and matching **`Instances`** entries). More detail: **[Getting started](docs/getting-started.md)**.
 
 ### User secrets
 
@@ -83,7 +83,7 @@ Each executable has its **own** user-secrets store (see **`UserSecretsId`** in e
 Use the same configuration keys everywhere under **`SystemSettings:AiServiceSettings`**:
 
 - Set **`BaseAddress`** to your API root URL.
-- Set **`Instances:n:ApiKey`** for every index **`n`** you rely on. The **`Name`** of **`Instances[n]`** must match **`InstanceName`** in prompts (**Client**), **`Rag:InstanceName`**, or **`Agent:InstanceName`**.
+- Set **`Instances:n:ApiKey`** for every index **`n`** you rely on. The **`Name`** of **`Instances[n]`** must match **`InstanceName`** in prompts (**Client**), **`Rag:InstanceName`**, **`Agent:InstanceName`**, or **`Security:InstanceName`**.
 
 ### 1. PromptEngineering.Client (ReAct chain)
 
@@ -145,12 +145,34 @@ dotnet run --project src/Agent/Agent.csproj -- "What is the weather and the late
 
 Without the trailing **`-- "..."`** argument, **Agent** reads a question from stdin. If you only use **one** configured instance, setting **`Instances:0:ApiKey`** alone is enough **provided** **`Agent:InstanceName`** matches **`Instances[0].Name`**.
 
+### 4. Security samples
+
+Console demos for **prompt injection** and **sensitive information disclosure** (vulnerable pattern, then mitigation). Uses **`Security:InstanceName`** and **`Security:Temperature`** in [`src/Security/appsettings.json`](src/Security/appsettings.json). No MCP; chat only.
+
+```powershell
+dotnet user-secrets init --project src/Security/Security.csproj
+
+dotnet user-secrets set "SystemSettings:AiServiceSettings:BaseAddress" "https://..." `
+  --project src/Security/Security.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:0:ApiKey" "..." `
+  --project src/Security/Security.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:1:ApiKey" "..." `
+  --project src/Security/Security.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:2:ApiKey" "..." `
+  --project src/Security/Security.csproj
+
+dotnet run --project src/Security/Security.csproj
+```
+
+Behavior and scenario table: **[docs/applications/security/security-samples.md](docs/applications/security/security-samples.md)**. Risk narratives: **[risk-assessment/prompt-injection.md](risk-assessment/prompt-injection.md)**, **[risk-assessment/sensitive-information-disclosure.md](risk-assessment/sensitive-information-disclosure.md)**.
+
 ### Verify secrets
 
 ```powershell
 dotnet user-secrets list --project src/PromptEngineering.Client/PromptEngineering.Client.csproj
 dotnet user-secrets list --project src/Rag/Rag.csproj
 dotnet user-secrets list --project src/Agent/Agent.csproj
+dotnet user-secrets list --project src/Security/Security.csproj
 ```
 
 ---
@@ -163,7 +185,7 @@ This section is the **single index** for repository guides. **Run steps:** [How 
 
 | Document | Topics |
 | --- | --- |
-| [Overview](docs/overview.md) | Three tracks, shared LLM behavior, safety notes |
+| [Overview](docs/overview.md) | Four tracks, shared LLM behavior, safety notes |
 | [Getting started](docs/getting-started.md) | Prerequisites, user secrets, run commands |
 | [Repository structure](docs/repository-structure.md) | Folders, projects, diagram |
 
@@ -192,6 +214,14 @@ Chat with **Open-Meteo** and **DuckDuckGo** via stdio; configure [`src/Agent/app
 | Document | Topics |
 | --- | --- |
 | [TRA benchmark — Paris weather & news](docs/applications/agent/agent-weather-news.md) | Canonical benchmark + illustrative answer for [Tool Routing Accuracy](metrics/agent_tool_routing_accuracy.md) |
+
+### Security — `Security` (`docs/applications/security/`)
+
+Paired **vulnerable / mitigated** chat completions for **prompt injection** and **sensitive information disclosure**; links to **`risk-assessment/`** narratives.
+
+| Document | Topics |
+| --- | --- |
+| [Security samples](docs/applications/security/security-samples.md) | Demo order, configuration, relation to [`src/Security/`](src/Security/) |
 
 ### Metrics and prompt rules
 

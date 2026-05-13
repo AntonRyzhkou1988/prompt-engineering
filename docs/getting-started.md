@@ -4,12 +4,12 @@
 
 ## Prerequisites
 
-| Requirement | Client | Rag | Agent |
-| --- | --- | --- | --- |
-| [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) or newer | Yes | Yes | Yes |
-| Network + OpenAI-compatible API (e.g. EPAM DIAL) | Yes | Yes | Yes |
-| API keys via **user secrets** (not committed) | Yes | Yes | Yes |
-| **Node.js** + **`npx`** on `PATH` (MCP servers) | No | No | Yes |
+| Requirement | Client | Rag | Agent | Security |
+| --- | --- | --- | --- | --- |
+| [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) or newer | Yes | Yes | Yes | Yes |
+| Network + OpenAI-compatible API (e.g. EPAM DIAL) | Yes | Yes | Yes | Yes |
+| API keys via **user secrets** (not committed) | Yes | Yes | Yes | Yes |
+| **Node.js** + **`npx`** on `PATH` (MCP servers) | No | No | Yes | No |
 
 ## User secrets
 
@@ -24,6 +24,7 @@ Overrides use the **same** subtree everywhere: **`SystemSettings:AiServiceSettin
 | **PromptEngineering.Client** | `src/PromptEngineering.Client/PromptEngineering.Client.csproj` | `PromptEngineering.Client` |
 | **Rag** | `src/Rag/Rag.csproj` | `Rag.Demo` |
 | **Agent** | `src/Agent/Agent.csproj` | `154595eb-806c-479f-a229-4d363d9b9730` |
+| **Security** | `src/Security/Security.csproj` | `4b9e1df6-747a-49b9-8e08-ad7350edd9f4` |
 
 Use **`dotnet user-secrets`** with **`--project`** so commands work from the repository root (adjust paths if your clone location differs):
 
@@ -55,9 +56,21 @@ dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:0:ApiKey" "y
   --project src/Agent/Agent.csproj
 ```
 
+```powershell
+# Security — match Instances[n]:ApiKey to Security:InstanceName in appsettings.json (see src/Security/appsettings.json).
+dotnet user-secrets set "SystemSettings:AiServiceSettings:BaseAddress" "https://..." `
+  --project src/Security/Security.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:0:ApiKey" "your-key" `
+  --project src/Security/Security.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:1:ApiKey" "your-key" `
+  --project src/Security/Security.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:2:ApiKey" "your-key" `
+  --project src/Security/Security.csproj
+```
+
 You may **`cd src/<Project>`** and run **`dotnet user-secrets set`** without **`--project`**; the store is always scoped to that **`.csproj`**.
 
-Configuration load order: **`appsettings.json`**, then **user secrets** when present (same for Client, Rag, Agent).
+Configuration load order: **`appsettings.json`**, then **user secrets** when present (same for Client, Rag, Agent, **Security**).
 
 ## Run: `PromptEngineering.Client` (ReAct chain)
 
@@ -115,6 +128,17 @@ dotnet run --project Agent -- "What is the weather and the latest news in Paris?
 
 MCP sessions, **`Agent:InstanceName`**, and the TRA benchmark: **[README — Agent](../README.md#agent-mcp-tools)**, **[applications/agent/agent-weather-news.md](applications/agent/agent-weather-news.md)**, **[metrics/agent_tool_routing_accuracy.md](../metrics/agent_tool_routing_accuracy.md)**.
 
+## Run: `Security` (security demos)
+
+Chat-only console: **four** fixed scenarios (prompt injection ×2, sensitive disclosure ×2). No stdin. Configure **`Security:InstanceName`** and **`Security:Temperature`** in **`src/Security/appsettings.json`**; set API keys like **Agent** (see above).
+
+```powershell
+cd src
+dotnet run --project Security
+```
+
+Full walkthrough: **[applications/security/security-samples.md](applications/security/security-samples.md)** · risk narratives: **[`risk-assessment/`](../risk-assessment/)**.
+
 ## Configuration reference (abbreviated)
 
 ### Client: `ContextSettings`
@@ -142,3 +166,12 @@ MCP sessions, **`Agent:InstanceName`**, and the TRA benchmark: **[README — Age
 | `InstanceName` | Instance used for **both** embeddings and chat |
 
 See **[RAG guide](applications/rag/rag.md)** for the full pipeline and notes.
+
+### Security: `Security` section
+
+| Key | Role |
+| --- | --- |
+| `InstanceName` | Chat instance (**`Instances[n].Name`**) |
+| `Temperature` | Passed into each demo **`ChatRequest`** |
+
+See **[Security samples](applications/security/security-samples.md)**.
