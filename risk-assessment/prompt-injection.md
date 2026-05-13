@@ -1,5 +1,7 @@
 # Prompt injection
 
+Runnable **vulnerable / mitigated** pair in this repo: [`src/Security/Program.cs`](../src/Security/Program.cs) (`PromptInjection`, `PromptInjectionSafe`) — see **[Security samples](../docs/applications/security/security-samples.md)**.
+
 ## 📊 Prompt Injection Risk Assessment (Before Mitigation)
 
 | Aspect | Assessment (Vulnerable Code) |

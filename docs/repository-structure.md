@@ -14,9 +14,10 @@
 | `questions/` | RAG prefilled prompts (`*.md`) — **`DocumentsFolderPath`** + **`QuestionsPath`** |
 | `answers/` | RAG saved answers — **`DocumentsFolderPath`** + **`AnswersPath`** |
 | `metrics/` | Offline scoring specs (**`answer_correctness_score.md`**, **`agent_tool_routing_accuracy.md`**, …); **not** indexed by Rag unless copied into the **`DatasetPath`** file |
+| `risk-assessment/` | Narrative risk notes (**prompt injection**, **sensitive information disclosure**) aligned with the **`Security`** console demos |
 | `src/` | .NET projects ([solution](../src/PromptEngineering.sln)) |
 | `tests/` | Unit tests (e.g. **`PromptEngineering.Services.Tests`**) |
-| **`docs/`** | Common guides plus **`docs/applications/`** (**prompt-engineering**, **rag**, **agent**) — full index: [README.md](../README.md#documentation) |
+| **`docs/`** | Common guides plus **`docs/applications/`** (**prompt-engineering**, **rag**, **agent**, **security**) — full index: [README.md](../README.md#documentation) |
 
 ## Solution projects
 
@@ -28,6 +29,7 @@
 | `PromptEngineering.Model` | Shared domain types |
 | `Rag` | Console: single-file index, retrieve, answer |
 | `Agent` | Console: MCP tool-using chat — **`src/Agent/appsettings.json`** |
+| `Security` | Console: paired **vulnerable / mitigated** chat demos (**prompt injection**, **sensitive disclosure**) — **`src/Security/`**, [Security samples](applications/security/security-samples.md) |
 | `PromptEngineering.Services.Tests` | Service tests |
 
 ## RAG paths (mental model)
@@ -38,7 +40,7 @@
 | **`Rag:DatasetPath`** | **One** indexed **`.md`**, **`.txt`**, or **`.csv`** (committed default: **`dataset/space_missions.csv`**) |
 | **`questions/`**, **`answers/`** | Sibling folders under repo root by default; resolved via **`DocumentsFolderPath`** |
 
-Offline RAG eval: **[`applications/rag/rag_eval_space_missions_gold.md`](applications/rag/rag_eval_space_missions_gold.md)**. Agent TRA sample: **[`applications/agent/agent-weather-news.md`](applications/agent/agent-weather-news.md)**.
+Offline RAG eval: **[`applications/rag/rag_eval_space_missions_gold.md`](applications/rag/rag_eval_space_missions_gold.md)**. Agent TRA sample: **[`applications/agent/agent-weather-news.md`](applications/agent/agent-weather-news.md)**. Security demos: **[`applications/security/security-samples.md`](applications/security/security-samples.md)**.
 
 ## Diagram
 
@@ -70,6 +72,7 @@ graph TD
     SRC --> MODEL["PromptEngineering.Model"]
     SRC --> RAG["Rag"]
     SRC --> AGENT["Agent"]
+    SRC --> SECURITY["Security"]
 
     RAG -->|"DatasetPath file"| DATASET
     RAG -->|"questions"| QUESTIONS

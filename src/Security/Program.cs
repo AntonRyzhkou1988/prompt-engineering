@@ -20,7 +20,7 @@ var settings = new HostApplicationBuilderSettings
 };
 var builder = Host.CreateApplicationBuilder(settings);
 
-// Overrides values from appsettings.json; uses UserSecretsId from Agent.csproj (dotnet user-secrets set).
+// Overrides values from appsettings.json; uses UserSecretsId from Security.csproj (dotnet user-secrets set).
 builder.Configuration.AddUserSecrets(Assembly.GetExecutingAssembly(), optional: true);
 
 builder.Logging.ClearProviders();

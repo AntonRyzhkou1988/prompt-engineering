@@ -1,5 +1,7 @@
 # Sensitive information disclosure (LLM)
 
+Runnable **vulnerable / mitigated** pair in this repo: [`src/Security/Program.cs`](../src/Security/Program.cs) (`SensitiveInformationDisclosure`, `SensitiveInformationDisclosureSafe`) — see **[Security samples](../docs/applications/security/security-samples.md)**.
+
 ## 📊 Sensitive Information Disclosure Risk Assessment (Before Mitigation)
 
 | Aspect | Assessment (Vulnerable Code) |
