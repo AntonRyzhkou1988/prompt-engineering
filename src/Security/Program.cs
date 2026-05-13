@@ -2,7 +2,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.VisualBasic;
 using PromptEngineering.LLM;
 using PromptEngineering.LLM.Configurations;
 using PromptEngineering.LLM.Extensions;
@@ -48,16 +47,18 @@ var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLo
 var securityOpt = scope.ServiceProvider.GetRequiredService<IConfiguration>().GetRequiredSection(SecurityOptions.SectionName).Get<SecurityOptions>();
 var systemOpt = scope.ServiceProvider.GetRequiredService<IConfiguration>().GetRequiredSection("SystemSettings").Get<SystemSettings>();
 
-// 1. Prompt Injection Attack Simulation
+// Security demos (run in order): each pair shows a vulnerable pattern, then a mitigation aligned with this sample host.
+
+// 1 — Prompt injection: system prompt embeds a secret; adversarial user text ("ignore prior instructions…") can override intent and elicit it.
 await PromptInjection();
 
-// 2. Prompt Injection Attack Prevention with Guardrails (e.g., content filtering, response validation) - not implemented in this snippet but would involve adding checks before sending the prompt and after receiving the response to ensure that the secret is not revealed and that the response adheres to expected formats or content guidelines.
+// 2 — Same scenario mitigated: stronger system constraints, guardrail, heuristic input screening (IsInjectionAttempt), then completion.
 await PromptInjectionSafe();
 
-// 3. Sensitive information disclosure (LLM) — vulnerable pattern (internal context may leak into the reply)
+// 3 — Sensitive data disclosure: realistic internal CRM row is merged into the system message; a normal user question can still produce paste-ready balances or internal notes.
 await SensitiveInformationDisclosure();
 
-// 4. Sensitive information disclosure (LLM) — mitigated pattern (redacted context, policy, response check)
+// 4 — Same user ask mitigated: CRM fields redacted before model ingress, explicit reply policy in the system prompt, and a simple post-check that logs if the raw balance string appears in output.
 await SensitiveInformationDisclosureSafe();
 
 async Task PromptInjection()
@@ -235,7 +236,7 @@ async Task SensitiveInformationDisclosureSafe()
 
 bool IsInjectionAttempt(string userPrompt)
 {
-    string[] bannedMarkers = { "ignore", "forget", "pretend", "system override", "<<SYSTEM", "debug mode", "reveal" };
+    string[] bannedMarkers = ["ignore", "forget", "pretend", "system override", "<<SYSTEM", "debug mode", "reveal"];
     string lowerInput = userPrompt.ToLower();
     return bannedMarkers.Any(marker => lowerInput.Contains(marker));
 }
