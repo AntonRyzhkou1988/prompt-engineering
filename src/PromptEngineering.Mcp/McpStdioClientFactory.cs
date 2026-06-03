@@ -1,9 +1,9 @@
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Client;
 
-namespace Agent;
+namespace PromptEngineering.Mcp;
 
-internal static class McpStdioClientFactory
+public static class McpStdioClientFactory
 {
     public static async Task<McpClient> CreateAsync(
         McpTransportOptions mcp,
@@ -28,9 +28,6 @@ internal static class McpStdioClientFactory
         return await McpClient.CreateAsync(transport, null, loggerFactory, cancellationToken).ConfigureAwait(false);
     }
 
-    /// <summary>
-    /// For each key in <paramref name="configured"/>, if the value is empty, use the process environment variable when set.
-    /// </summary>
     private static Dictionary<string, string> MergeEnvironmentFromProcess(Dictionary<string, string> configured)
     {
         var env = new Dictionary<string, string>(configured, StringComparer.Ordinal);

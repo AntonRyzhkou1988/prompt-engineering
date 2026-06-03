@@ -2,14 +2,14 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using PromptEngineering.Mcp;
 
-namespace Agent;
+namespace Chatbot.Services;
 
-public sealed class OpenMeteoWeatherAgentService : IWeatherAgentService
+public sealed class SpaceMissionsMcpAgentService : ISpaceMissionsMcpAgentService
 {
-    private readonly IOptions<AgentOptions> _options;
+    private readonly IOptions<SpaceMissionsAgentOptions> _options;
     private readonly ILoggerFactory _loggerFactory;
 
-    public OpenMeteoWeatherAgentService(IOptions<AgentOptions> options, ILoggerFactory loggerFactory)
+    public SpaceMissionsMcpAgentService(IOptions<SpaceMissionsAgentOptions> options, ILoggerFactory loggerFactory)
     {
         _options = options;
         _loggerFactory = loggerFactory;
@@ -18,7 +18,7 @@ public sealed class OpenMeteoWeatherAgentService : IWeatherAgentService
     public async Task<IMcpBackendSession> ConnectAsync(CancellationToken cancellationToken = default)
     {
         var client = await McpStdioClientFactory.CreateAsync(
-                _options.Value.OpenMeteo,
+                _options.Value.SpaceMissionsMcp,
                 _loggerFactory,
                 cancellationToken)
             .ConfigureAwait(false);

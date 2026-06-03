@@ -2,9 +2,9 @@ using System.Text.Json;
 using ModelContextProtocol.Client;
 using PromptEngineering.LLM.Models;
 
-namespace Agent;
+namespace PromptEngineering.Mcp;
 
-internal static class McpChatToolMapper
+public static class McpChatToolMapper
 {
     public static List<ChatToolDefinition> ToDefinitions(IReadOnlyList<McpClientTool> tools)
     {

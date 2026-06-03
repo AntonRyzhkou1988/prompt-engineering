@@ -18,10 +18,10 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.6" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.6" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.6" />
-    <PackageReference Include="ModelContextProtocol.Core" Version="1.2.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\PromptEngineering.LLM\PromptEngineering.LLM.csproj" />
+    <ProjectReference Include="..\PromptEngineering.Mcp\PromptEngineering.Mcp.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,8 +1,8 @@
 using PromptEngineering.Mcp;
 
-namespace Agent;
+namespace Chatbot.Services;
 
-public interface INewsAgentService
+public interface ISpaceMissionsMcpAgentService
 {
     Task<IMcpBackendSession> ConnectAsync(CancellationToken cancellationToken = default);
 }

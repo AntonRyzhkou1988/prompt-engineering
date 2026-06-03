@@ -9,15 +9,17 @@ using PromptEngineering.LLM.Models;
 using PromptEngineering.Mcp;
 using LlmRole = PromptEngineering.LLM.Models.Role;
 
-namespace Agent;
+namespace Chatbot.Services;
 
-public sealed class WeatherNewsAgentService
+public sealed class SpaceMissionsAgentService
 {
     private const string SystemPrompt =
         """
-        You are a concise assistant. For current weather, forecasts, or atmospheric conditions, call the Open-Meteo MCP tools.
-        For news headlines, web search, or current events, call the DuckDuckGo MCP tools (e.g. duckduckgo_web_search).
-        Use tools for factual data; do not invent temperatures or URLs. If a tool errors, say so briefly.
+        You are a concise space launch data analyst for dataset/space_missions.csv.
+        For any factual question about launches, companies, rockets, locations, dates, or mission outcomes, call the space missions MCP tools.
+        Use get_space_missions_schema when you need column definitions.
+        Use filter_space_missions, aggregate_space_missions, or count_space_missions to ground answers in tool results.
+        Do not invent counts, percentages, or mission facts. If tool results are partial (row caps), say so.
         """;
 
     private static readonly MediaTypeHeaderValue JsonMedia = new("application/json");
@@ -26,51 +28,44 @@ public sealed class WeatherNewsAgentService
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
-    private readonly IOptions<AgentOptions> _options;
+    private readonly IOptions<SpaceMissionsAgentOptions> _options;
     private readonly IOptions<AiServiceSettings> _aiSettings;
     private readonly IAiService _ai;
-    private readonly IWeatherAgentService _weatherAgent;
-    private readonly INewsAgentService _newsAgent;
-    private readonly ILogger<WeatherNewsAgentService> _logger;
+    private readonly ISpaceMissionsMcpAgentService _mcpAgent;
+    private readonly ILogger<SpaceMissionsAgentService> _logger;
 
-    public WeatherNewsAgentService(
-        IOptions<AgentOptions> options,
+    public SpaceMissionsAgentService(
+        IOptions<SpaceMissionsAgentOptions> options,
         IOptions<AiServiceSettings> aiSettings,
         IAiService ai,
-        IWeatherAgentService weatherAgent,
-        INewsAgentService newsAgent,
-        ILogger<WeatherNewsAgentService> logger)
+        ISpaceMissionsMcpAgentService mcpAgent,
+        ILogger<SpaceMissionsAgentService> logger)
     {
         _options = options;
         _aiSettings = aiSettings;
         _ai = ai;
-        _weatherAgent = weatherAgent;
-        _newsAgent = newsAgent;
+        _mcpAgent = mcpAgent;
         _logger = logger;
     }
 
-    public async Task<AgentRunResult> RunAsync(string userQuestion, CancellationToken cancellationToken = default)
+    public async Task<SpaceMissionsAgentRunResult> RunAsync(string userQuestion, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userQuestion);
 
         var opts = _options.Value;
         var instanceName = opts.InstanceName.Trim();
         if (string.IsNullOrWhiteSpace(instanceName))
-            throw new InvalidOperationException("Agent:InstanceName is not set.");
+            throw new InvalidOperationException("SpaceMissionsAgent:InstanceName is not set.");
 
         var deployment = ResolveDeployment(instanceName);
         var maxIterations = Math.Max(1, opts.MaxFunctionIterations);
 
-        await using var weatherSession = await _weatherAgent.ConnectAsync(cancellationToken).ConfigureAwait(false);
-        await using var newsSession = await _newsAgent.ConnectAsync(cancellationToken).ConfigureAwait(false);
-
-        var toolDefinitions = new List<ChatToolDefinition>(weatherSession.ToolDefinitions.Count + newsSession.ToolDefinitions.Count);
-        toolDefinitions.AddRange(weatherSession.ToolDefinitions);
-        toolDefinitions.AddRange(newsSession.ToolDefinitions);
+        await using var session = await _mcpAgent.ConnectAsync(cancellationToken).ConfigureAwait(false);
+        var toolDefinitions = session.ToolDefinitions.ToList();
 
         _logger.LogInformation(
-            "MCP tools loaded: Open-Meteo={OpenMeteoCount}, DuckDuckGo={DdgCount}, tool definitions={DefCount}",
-            weatherSession.Tools.Count, newsSession.Tools.Count, toolDefinitions.Count);
+            "Space missions MCP tools loaded: {ToolCount} tool definitions",
+            toolDefinitions.Count);
 
         var conversation = new List<ChatMessage>
         {
@@ -101,7 +96,7 @@ public sealed class WeatherNewsAgentService
             if (assistantMessage.ToolCalls is not { Count: > 0 } calls)
             {
                 var text = assistantMessage.Content?.Trim() ?? string.Empty;
-                return new AgentRunResult(text, invokedToolNames);
+                return new SpaceMissionsAgentRunResult(text, invokedToolNames);
             }
 
             foreach (var call in calls)
@@ -114,14 +109,7 @@ public sealed class WeatherNewsAgentService
                 var argsJson = call.Function?.Arguments ?? "{}";
                 var toolCallId = call.Id ?? Guid.NewGuid().ToString("N");
 
-                var result = await InvokeToolAsync(
-                        weatherSession,
-                        newsSession,
-                        name,
-                        argsJson,
-                        cancellationToken)
-                    .ConfigureAwait(false);
-
+                var result = await session.CallToolAsync(name, argsJson, cancellationToken).ConfigureAwait(false);
                 var content = McpCallToolResultFormatter.ToModelText(result);
                 conversation.Add(new ChatMessage
                 {
@@ -133,7 +121,7 @@ public sealed class WeatherNewsAgentService
         }
 
         var last = conversation.LastOrDefault(m => m.Role == LlmRole.Assistant);
-        return new AgentRunResult(last?.Content?.Trim() ?? string.Empty, invokedToolNames);
+        return new SpaceMissionsAgentRunResult(last?.Content?.Trim() ?? string.Empty, invokedToolNames);
     }
 
     private string ResolveDeployment(string instanceName)
@@ -144,21 +132,6 @@ public sealed class WeatherNewsAgentService
             throw new InvalidOperationException($"No AI instance named '{instanceName}' in SystemSettings:AiServiceSettings:Instances.");
         return inst.Deployment;
     }
-
-    private static async Task<CallToolResult> InvokeToolAsync(
-        IMcpBackendSession weatherSession,
-        IMcpBackendSession newsSession,
-        string toolName,
-        string argumentsJson,
-        CancellationToken cancellationToken)
-    {
-        if (weatherSession.Tools.Any(t => t.Name == toolName))
-            return await weatherSession.CallToolAsync(toolName, argumentsJson, cancellationToken).ConfigureAwait(false);
-        if (newsSession.Tools.Any(t => t.Name == toolName))
-            return await newsSession.CallToolAsync(toolName, argumentsJson, cancellationToken).ConfigureAwait(false);
-
-        throw new InvalidOperationException($"Unknown tool name '{toolName}'.");
-    }
 }
 
-public sealed record AgentRunResult(string AnswerText, IReadOnlyList<string> ToolNamesInvoked);
+public sealed record SpaceMissionsAgentRunResult(string AnswerText, IReadOnlyList<string> ToolNamesInvoked);

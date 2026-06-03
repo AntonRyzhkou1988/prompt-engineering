@@ -2,7 +2,7 @@ using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 using PromptEngineering.LLM.Models;
 
-namespace Agent;
+namespace PromptEngineering.Mcp;
 
 public interface IMcpBackendSession : IAsyncDisposable
 {
@@ -11,7 +11,7 @@ public interface IMcpBackendSession : IAsyncDisposable
     Task<CallToolResult> CallToolAsync(string toolName, string argumentsJson, CancellationToken cancellationToken = default);
 }
 
-internal sealed class McpBackendSession : IMcpBackendSession
+public sealed class McpBackendSession : IMcpBackendSession
 {
     private readonly McpClient _client;
 
