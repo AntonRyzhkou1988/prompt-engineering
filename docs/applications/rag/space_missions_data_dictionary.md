@@ -75,4 +75,4 @@ Canonical field list: `dataset/space_missions_data_dictionary.csv` (when checked
 
 ## See also
 
-- [RAG guide](rag.md) · [Repository README — Documentation](../../../README.md#documentation) · [Answer Correctness Score](../../../metrics/answer_correctness_score.md)
+- [RAG guide](rag.md) · [Space Missions MCP server](../space-missions-mcp/space-missions-mcp.md) (tool-based access to the same CSV) · [MCP tool reference](../space-missions-mcp/space-missions-mcp-tools.md) · [Repository README — Documentation](../../../README.md#documentation) · [Answer Correctness Score](../../../metrics/answer_correctness_score.md)

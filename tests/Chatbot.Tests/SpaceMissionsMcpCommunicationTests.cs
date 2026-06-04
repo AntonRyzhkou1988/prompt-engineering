@@ -51,10 +51,14 @@ public sealed class SpaceMissionsMcpCommunicationTests
 
         var toolNames = session.Tools.Select(t => t.Name).ToList();
         Assert.That(toolNames, Does.Contain("get_space_missions_schema"));
+        Assert.That(toolNames, Does.Contain("get_space_missions_summary"));
         Assert.That(toolNames, Does.Contain("filter_space_missions"));
         Assert.That(toolNames, Does.Contain("aggregate_space_missions"));
+        Assert.That(toolNames, Does.Contain("aggregate_space_missions_by_launch_country"));
+        Assert.That(toolNames, Does.Contain("compute_space_mission_success_rate"));
         Assert.That(toolNames, Does.Contain("count_space_missions"));
-        Assert.That(session.ToolDefinitions, Has.Count.EqualTo(4));
+        Assert.That(toolNames, Does.Contain("list_space_mission_distinct_values"));
+        Assert.That(session.ToolDefinitions, Has.Count.EqualTo(8));
     }
 
     [Test]

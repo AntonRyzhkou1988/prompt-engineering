@@ -17,7 +17,7 @@ public sealed class SpaceMissionQueryServiceAggregateTests
     [Test]
     public void Aggregate_ByMissionStatus_ReturnsExpectedBuckets()
     {
-        var result = _service.Aggregate("MissionStatus", null);
+        var result = _service.Aggregate("MissionStatus", null, SpaceMissionQueryService.DefaultMaxBuckets);
 
         Assert.That(result.GroupByColumn, Is.EqualTo("MissionStatus"));
         Assert.That(result.TotalRows, Is.EqualTo(20));
@@ -30,7 +30,7 @@ public sealed class SpaceMissionQueryServiceAggregateTests
     [Test]
     public void Aggregate_PercentagesSumToOneHundred()
     {
-        var result = _service.Aggregate("Company", null);
+        var result = _service.Aggregate("Company", null, SpaceMissionQueryService.DefaultMaxBuckets);
 
         var sum = result.Buckets.Sum(b => b.Percentage);
         Assert.That(sum, Is.EqualTo(100).Within(0.01));
@@ -39,7 +39,7 @@ public sealed class SpaceMissionQueryServiceAggregateTests
     [Test]
     public void Aggregate_InvalidColumn_ThrowsArgumentException()
     {
-        Assert.Throws<ArgumentException>(() => _service.Aggregate("NotAColumn", null));
+        Assert.Throws<ArgumentException>(() => _service.Aggregate("NotAColumn", null, SpaceMissionQueryService.DefaultMaxBuckets));
     }
 
     [Test]

@@ -4,12 +4,13 @@
 
 ## Prerequisites
 
-| Requirement | Client | Rag | Agent | Security |
-| --- | --- | --- | --- | --- |
-| [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) or newer | Yes | Yes | Yes | Yes |
-| Network + OpenAI-compatible API (e.g. EPAM DIAL) | Yes | Yes | Yes | Yes |
-| API keys via **user secrets** (not committed) | Yes | Yes | Yes | Yes |
-| **Node.js** + **`npx`** on `PATH` (MCP servers) | No | No | Yes | No |
+| Requirement | Client | Rag | Agent | Chatbot | Security |
+| --- | --- | --- | --- | --- | --- |
+| [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) or newer | Yes | Yes | Yes | Yes | Yes |
+| Network + OpenAI-compatible API (e.g. EPAM DIAL) | Yes | Yes | Yes | Yes | Yes |
+| API keys via **user secrets** (not committed) | Yes | Yes | Yes | Yes | Yes |
+| **Node.js** + **`npx`** on `PATH` (external MCP) | No | No | Yes | No | No |
+| Bot registration secrets (Teams / playground) | No | No | No | Yes | No |
 
 ## User secrets
 
@@ -148,6 +149,29 @@ dotnet run --project Agent -- "What is the weather and the latest news in Paris?
 
 MCP sessions, **`Agent:InstanceName`**, and the TRA benchmark: **[README — Agent](../README.md#agent-mcp-tools)**, **[applications/agent/agent-weather-news.md](applications/agent/agent-weather-news.md)**, **[metrics/agent_tool_routing_accuracy.md](../metrics/agent_tool_routing_accuracy.md)**.
 
+## Run: `Chatbot` (Space Missions MCP)
+
+**`Chatbot`** is an ASP.NET host that spawns **`SpaceMissions.McpServer`** over stdio (**.NET only**—no Node for this MCP). Configure LLM keys and optional bot secrets like other executables (see Chatbot block under [User secrets](#user-secrets)).
+
+1. Build the MCP server (or run Chatbot once so publish copies **`mcp-server/SpaceMissions.McpServer.dll`**):
+
+```powershell
+dotnet build src/SpaceMissions.McpServer/SpaceMissions.McpServer.csproj
+dotnet build src/Chatbot/Chatbot.csproj
+```
+
+2. Edit **`src/Chatbot/appsettings.json`**: **`SpaceMissionsAgent:InstanceName`**, **`McpProjectPath`**, **`DatasetPath`**.
+
+```powershell
+dotnet run --project src/Chatbot/Chatbot.csproj
+```
+
+Architecture, all eight tools, and JSON response shapes: **[Space Missions MCP guide](applications/space-missions-mcp/space-missions-mcp.md)** · **[tool reference](applications/space-missions-mcp/space-missions-mcp-tools.md)**.
+
+```powershell
+dotnet test tests/Chatbot.Tests/Chatbot.Tests.csproj --filter "FullyQualifiedName~SpaceMissions"
+```
+
 ## Run: `Security` (security demos)
 
 Chat-only console: **four** fixed scenarios (prompt injection ×2, sensitive disclosure ×2). No stdin. Configure **`Security:InstanceName`** and **`Security:Temperature`** in **`src/Security/appsettings.json`**; set API keys like **Agent** (see above).
@@ -195,3 +219,16 @@ See **[RAG guide](applications/rag/rag.md)** for the full pipeline and notes.
 | `Temperature` | Passed into each demo **`ChatRequest`** |
 
 See **[Security samples](applications/security/security-samples.md)**.
+
+### Chatbot: `SpaceMissionsAgent` section
+
+| Key | Role |
+| --- | --- |
+| `InstanceName` | Chat instance (`Instances[n].Name`) |
+| `Temperature` | Passed into each completion |
+| `MaxFunctionIterations` | Tool-call rounds per turn |
+| `McpProjectPath` | `.csproj`, built `.dll`, or executable for the MCP child process |
+| `DatasetPath` | Repo-relative `space_missions.csv` (also passed as `SPACE_MISSIONS_DATASET_PATH` to MCP) |
+| `SpaceMissionsMcp` | Optional transport overrides (`Name`, `Command`, `Arguments`, `WorkingDirectory`) |
+
+See **[Space Missions MCP guide](applications/space-missions-mcp/space-missions-mcp.md)**.

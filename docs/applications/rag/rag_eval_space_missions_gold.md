@@ -1,6 +1,6 @@
 # RAG evaluation gold set — space missions
 
-**[Repository README — Documentation](../../../README.md#documentation)** · [Data dictionary](space_missions_data_dictionary.md)
+**[Repository README — Documentation](../../../README.md#documentation)** · [Data dictionary](space_missions_data_dictionary.md) · [Space Missions MCP tools](../space-missions-mcp/space-missions-mcp-tools.md)
 
 Structured gold items for scoring RAG answers against `dataset/space_missions.csv`. Each item lists required and forbidden substring checks used by automated evaluators. Gold rows mirror the user-facing questions in `questions/question_space_missions_*.md`.
 
