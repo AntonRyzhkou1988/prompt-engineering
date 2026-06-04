@@ -24,6 +24,7 @@ Overrides use the **same** subtree everywhere: **`SystemSettings:AiServiceSettin
 | **PromptEngineering.Client** | `src/PromptEngineering.Client/PromptEngineering.Client.csproj` | `PromptEngineering.Client` |
 | **Rag** | `src/Rag/Rag.csproj` | `Rag.Demo` |
 | **Agent** | `src/Agent/Agent.csproj` | `154595eb-806c-479f-a229-4d363d9b9730` |
+| **Chatbot** | `src/Chatbot/Chatbot.csproj` | `99d67b05-4b65-406d-8db2-25f30764f940` |
 | **Security** | `src/Security/Security.csproj` | `4b9e1df6-747a-49b9-8e08-ad7350edd9f4` |
 
 Use **`dotnet user-secrets`** with **`--project`** so commands work from the repository root (adjust paths if your clone location differs):
@@ -68,9 +69,28 @@ dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:2:ApiKey" "y
   --project src/Security/Security.csproj
 ```
 
+```powershell
+# Chatbot — match Instances[n]:ApiKey to SpaceMissionsAgent:InstanceName in appsettings.json.
+# For M365 Agents Playground, also set bot registration secrets (override appsettings.Playground.json).
+dotnet user-secrets set "SystemSettings:AiServiceSettings:BaseAddress" "https://..." `
+  --project src/Chatbot/Chatbot.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:0:ApiKey" "your-key" `
+  --project src/Chatbot/Chatbot.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:1:ApiKey" "your-key" `
+  --project src/Chatbot/Chatbot.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:2:ApiKey" "your-key" `
+  --project src/Chatbot/Chatbot.csproj
+dotnet user-secrets set "Connections:BotServiceConnection:Settings:ClientId" "your-bot-app-id" `
+  --project src/Chatbot/Chatbot.csproj
+dotnet user-secrets set "Connections:BotServiceConnection:Settings:ClientSecret" "your-bot-client-secret" `
+  --project src/Chatbot/Chatbot.csproj
+dotnet user-secrets set "TokenValidation:Audiences:0" "your-bot-app-id" `
+  --project src/Chatbot/Chatbot.csproj
+```
+
 You may **`cd src/<Project>`** and run **`dotnet user-secrets set`** without **`--project`**; the store is always scoped to that **`.csproj`**.
 
-Configuration load order: **`appsettings.json`**, then **user secrets** when present (same for Client, Rag, Agent, **Security**).
+Configuration load order: **`appsettings.json`**, then **user secrets** when present (same for Client, Rag, Agent, **Chatbot**, **Security**).
 
 ## Run: `PromptEngineering.Client` (ReAct chain)
 

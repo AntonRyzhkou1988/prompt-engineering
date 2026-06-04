@@ -1,3 +1,4 @@
+using System.Reflection;
 using Chatbot;
 using Chatbot.Bot;
 using Chatbot.Services;
@@ -7,6 +8,9 @@ using Microsoft.Agents.Builder;
 using PromptEngineering.LLM.Configurations;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Overrides appsettings.json; uses UserSecretsId from Chatbot.csproj (dotnet user-secrets set).
+builder.Configuration.AddUserSecrets(Assembly.GetExecutingAssembly(), optional: true);
 
 builder.Services.AddControllers();
 builder.Services.AddHttpClient("WebClient", client => client.Timeout = TimeSpan.FromSeconds(600));
@@ -24,7 +28,10 @@ builder.Services.AddGenAi(builder.Configuration);
 builder.Services
     .AddOptions<SpaceMissionsAgentOptions>()
     .Bind(builder.Configuration.GetSection(SpaceMissionsAgentOptions.SectionName))
-    .PostConfigure(options => SpaceMissionsPathResolver.ApplyAbsolutePaths(options, builder.Environment.ContentRootPath));
+    .PostConfigure(options => SpaceMissionsPathResolver.ApplyAbsolutePaths(
+        options,
+        builder.Environment.ContentRootPath,
+        AppContext.BaseDirectory));
 builder.Services.AddSingleton<ISpaceMissionsMcpAgentService, SpaceMissionsMcpAgentService>();
 builder.Services.AddScoped<SpaceMissionsAgentService>();
 

@@ -5,31 +5,49 @@ namespace Chatbot;
 public static class SpaceMissionsPathResolver
 {
     public const string DatasetPathEnvVar = "SPACE_MISSIONS_DATASET_PATH";
+    public const string BundledMcpServerFolderName = "mcp-server";
+    public const string McpServerAssemblyFileName = "SpaceMissions.McpServer.dll";
 
-    public static void ApplyAbsolutePaths(SpaceMissionsAgentOptions options, string contentRootPath)
+    public static void ApplyAbsolutePaths(
+        SpaceMissionsAgentOptions options,
+        string contentRootPath,
+        string? applicationBasePath = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentException.ThrowIfNullOrWhiteSpace(contentRootPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(options.McpProjectPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(options.DatasetPath);
 
+        applicationBasePath ??= AppContext.BaseDirectory;
+
         var repoRoot = !string.IsNullOrWhiteSpace(options.RepoRoot)
             ? Path.GetFullPath(options.RepoRoot)
             : FindRepoRoot(contentRootPath);
 
-        var projectPath = ToAbsolutePath(repoRoot, options.McpProjectPath);
+        var launchPath = ResolveMcpServerLaunchPath(repoRoot, applicationBasePath, options.McpProjectPath);
         var datasetPath = ToAbsolutePath(repoRoot, options.DatasetPath);
 
         var mcp = options.SpaceMissionsMcp;
-        mcp.WorkingDirectory = repoRoot;
 
         if (string.IsNullOrWhiteSpace(mcp.Name))
             mcp.Name = "space-missions-mcp";
 
-        ConfigureLaunchCommand(mcp, projectPath);
+        ConfigureLaunchCommand(mcp, launchPath);
 
         mcp.Environment ??= new Dictionary<string, string>(StringComparer.Ordinal);
         mcp.Environment[DatasetPathEnvVar] = datasetPath;
+    }
+
+    public static string? GetBundledMcpServerDllPath(string applicationBasePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(applicationBasePath);
+
+        var bundledDll = Path.Combine(
+            applicationBasePath,
+            BundledMcpServerFolderName,
+            McpServerAssemblyFileName);
+
+        return File.Exists(bundledDll) ? Path.GetFullPath(bundledDll) : null;
     }
 
     public static string FindRepoRoot(string startPath)
@@ -47,9 +65,44 @@ public static class SpaceMissionsPathResolver
             "Could not locate repository root containing dataset/space_missions.csv.");
     }
 
-    private static void ConfigureLaunchCommand(McpTransportOptions mcp, string projectPath)
+    public static string ResolveMcpServerLaunchPath(
+        string repoRoot,
+        string applicationBasePath,
+        string configuredProjectPath)
     {
-        if (projectPath.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+        var bundledDll = GetBundledMcpServerDllPath(applicationBasePath);
+        if (bundledDll is not null)
+            return bundledDll;
+
+        foreach (var configuration in new[] { "Debug", "Release" })
+        {
+            var builtDll = Path.Combine(
+                repoRoot,
+                "src",
+                "SpaceMissions.McpServer",
+                "bin",
+                configuration,
+                "net8.0",
+                McpServerAssemblyFileName);
+
+            if (File.Exists(builtDll))
+                return Path.GetFullPath(builtDll);
+        }
+
+        return ToAbsolutePath(repoRoot, configuredProjectPath);
+    }
+
+    private static void ConfigureLaunchCommand(McpTransportOptions mcp, string launchPath)
+    {
+        if (launchPath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+        {
+            mcp.Command = "dotnet";
+            mcp.Arguments = ["exec", launchPath];
+            mcp.WorkingDirectory = Path.GetDirectoryName(launchPath)!;
+            return;
+        }
+
+        if (launchPath.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
         {
             mcp.Command = "dotnet";
             mcp.Arguments =
@@ -57,20 +110,15 @@ public static class SpaceMissionsPathResolver
                 "run",
                 "--no-launch-profile",
                 "--project",
-                projectPath
+                launchPath
             ];
+            mcp.WorkingDirectory = Path.GetDirectoryName(launchPath)!;
             return;
         }
 
-        if (projectPath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
-        {
-            mcp.Command = "dotnet";
-            mcp.Arguments = ["exec", projectPath];
-            return;
-        }
-
-        mcp.Command = projectPath;
+        mcp.Command = launchPath;
         mcp.Arguments = [];
+        mcp.WorkingDirectory = Path.GetDirectoryName(launchPath) ?? AppContext.BaseDirectory;
     }
 
     private static string ToAbsolutePath(string repoRoot, string path)
