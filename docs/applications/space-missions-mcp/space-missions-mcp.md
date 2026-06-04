@@ -192,6 +192,7 @@ Fixtures: **`tests/*/Fixtures/space_missions_sample.csv`** (20 rows).
 | Document | Topics |
 | --- | --- |
 | [Tool reference](space-missions-mcp-tools.md) | All eight tools, filters, limits, JSON examples |
+| [Sample user questions](mcp-questions.md) | 69 prompts mapped to tools (smoke / eval) |
 | [Space missions data dictionary](../rag/space_missions_data_dictionary.md) | Column semantics |
 | [RAG guide](../rag/rag.md) | Chunked retrieval over the same CSV |
 | [RAG eval gold](../rag/rag_eval_space_missions_gold.md) | Scoring prefilled space-missions questions |

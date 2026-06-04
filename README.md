@@ -250,6 +250,7 @@ Eight stdio tools over **`dataset/space_missions.csv`**; **`Chatbot`** runs the 
 | --- | --- |
 | [Space Missions MCP guide](docs/applications/space-missions-mcp/space-missions-mcp.md) | Architecture, dataset path, Chatbot configuration, evidence rules |
 | [Tool reference](docs/applications/space-missions-mcp/space-missions-mcp-tools.md) | All eight tools, filters, limits, JSON shapes |
+| [Sample user questions](docs/applications/space-missions-mcp/mcp-questions.md) | Chatbot smoke / eval prompts per tool |
 
 ### Security — `Security` (`docs/applications/security/`)
 

@@ -291,4 +291,5 @@ flowchart TD
 ## See also
 
 - [Server guide](space-missions-mcp.md) — architecture, configuration, Chatbot wiring
+- [Sample user questions](mcp-questions.md) — prompts mapped to each tool (smoke / eval)
 - [RAG eval gold](../rag/rag_eval_space_missions_gold.md) — eval-004 (launch country) and related checks
