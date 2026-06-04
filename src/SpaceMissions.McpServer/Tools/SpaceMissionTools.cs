@@ -6,19 +6,12 @@ using PromptEngineering.SpaceMissions;
 namespace SpaceMissions.McpServer.Tools;
 
 [McpServerToolType]
-public sealed class SpaceMissionTools
+public sealed class SpaceMissionTools(ISpaceMissionQueryService queryService)
 {
-    private readonly ISpaceMissionQueryService _queryService;
-
-    public SpaceMissionTools(ISpaceMissionQueryService queryService)
-    {
-        _queryService = queryService;
-    }
-
     [McpServerTool(Name = "get_space_missions_schema"), Description("Return column names and descriptions for dataset/space_missions.csv.")]
     public string GetSpaceMissionsSchema()
     {
-        var schema = _queryService.GetSchema()
+        var schema = queryService.GetSchema()
             .Select(c => new { c.Name, c.Description });
         return JsonSerializer.Serialize(schema);
     }
@@ -36,7 +29,7 @@ public sealed class SpaceMissionTools
         [Description("Maximum rows to return (default 50, max 200).")] int limit = SpaceMissionQueryService.DefaultLimit)
     {
         var filter = BuildFilter(company, locationContains, rocket, mission, rocketStatus, missionStatus, dateFrom, dateTo);
-        var rows = _queryService.Filter(filter, limit);
+        var rows = queryService.Filter(filter, limit);
         return JsonSerializer.Serialize(new
         {
             returned = rows.Count,
@@ -63,7 +56,7 @@ public sealed class SpaceMissionTools
         try
         {
             var filter = BuildFilter(company, locationContains, rocket, mission, rocketStatus, missionStatus, dateFrom, dateTo);
-            var result = _queryService.Aggregate(groupBy, filter);
+            var result = queryService.Aggregate(groupBy, filter);
             return JsonSerializer.Serialize(result);
         }
         catch (ArgumentException ex)
@@ -84,7 +77,7 @@ public sealed class SpaceMissionTools
         [Description("Optional inclusive end date (YYYY-MM-DD).")] string? dateTo = null)
     {
         var filter = BuildFilter(company, locationContains, rocket, mission, rocketStatus, missionStatus, dateFrom, dateTo);
-        return JsonSerializer.Serialize(new { count = _queryService.Count(filter) });
+        return JsonSerializer.Serialize(new { count = queryService.Count(filter) });
     }
 
     private static SpaceMissionFilter? BuildFilter(

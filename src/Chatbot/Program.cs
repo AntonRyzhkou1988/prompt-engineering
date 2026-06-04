@@ -23,7 +23,8 @@ builder.AddAgent<EchoBot>();
 builder.Services.AddGenAi(builder.Configuration);
 builder.Services
     .AddOptions<SpaceMissionsAgentOptions>()
-    .Bind(builder.Configuration.GetSection(SpaceMissionsAgentOptions.SectionName));
+    .Bind(builder.Configuration.GetSection(SpaceMissionsAgentOptions.SectionName))
+    .PostConfigure(options => SpaceMissionsPathResolver.ApplyAbsolutePaths(options, builder.Environment.ContentRootPath));
 builder.Services.AddSingleton<ISpaceMissionsMcpAgentService, SpaceMissionsMcpAgentService>();
 builder.Services.AddScoped<SpaceMissionsAgentService>();
 

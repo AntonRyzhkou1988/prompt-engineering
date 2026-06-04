@@ -19,7 +19,11 @@ public static class McpStdioClientFactory
         };
 
         if (!string.IsNullOrWhiteSpace(mcp.WorkingDirectory))
-            transportOptions.WorkingDirectory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, mcp.WorkingDirectory));
+        {
+            transportOptions.WorkingDirectory = Path.IsPathRooted(mcp.WorkingDirectory)
+                ? Path.GetFullPath(mcp.WorkingDirectory)
+                : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, mcp.WorkingDirectory));
+        }
 
         if (env.Count > 0)
             transportOptions.EnvironmentVariables = env.ToDictionary(kv => kv.Key, kv => (string?)kv.Value);
