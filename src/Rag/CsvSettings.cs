@@ -1,6 +1,6 @@
 namespace Rag;
 
-internal sealed class CsvSettings
+public sealed class CsvSettings
 {
     public string Delimiter { get; set; } = ",";
 

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using ModelContextProtocol.Protocol;
 using PromptEngineering.LLM;
 using PromptEngineering.LLM.Models;
+using PromptEngineering.Mcp;
 using LlmRole = PromptEngineering.LLM.Models.Role;
 
 namespace Agent;

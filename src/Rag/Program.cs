@@ -24,7 +24,6 @@ internal static class Program
 
         var ragSettings = configuration.GetRequiredSection("Rag").Get<RagSettings>()
             ?? throw new InvalidOperationException("Configuration section 'Rag' is missing or invalid.");
-        ragSettings.Validate();
         ragSettings.EnsureDatasetExists(AppContext.BaseDirectory);
 
         var datasetPath = ragSettings.ResolveDatasetPath(AppContext.BaseDirectory);
@@ -33,9 +32,10 @@ internal static class Program
         await using var provider = new ServiceCollection()
             .AddLogging(b => b.AddSimpleConsole(o => o.SingleLine = true))
             .AddGenAi(configuration)
-            .AddSingleton(ragSettings)
-            .AddSingleton<RagOrchestrator>()
+            .AddRag(configuration)
             .BuildServiceProvider();
+
+        ragSettings = provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<RagSettings>>().Value;
 
         var orchestrator = provider.GetRequiredService<RagOrchestrator>();
 

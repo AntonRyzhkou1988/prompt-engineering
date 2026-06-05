@@ -5,7 +5,7 @@
 ![Data](https://img.shields.io/badge/Data-attacks.csv-blue)
 ![MCP](https://img.shields.io/badge/MCP-stdio-6366f1)
 
-**.NET 8** solution for experimenting with four complementary samples: **prompt engineering** (structured, versioned prompts and multi-step refinement via **`PromptEngineering.Client`**), **RAG** (retrieval-augmented answers over your own documents via **`Rag`**), a **tool-using agent** (**`Agent`**)—chat completions plus MCP-hosted weather and news tools—and **`Security`**, a small console that pairs **vulnerable** vs **mitigated** chat flows for **prompt injection** and **sensitive information disclosure**.
+**.NET 8** solution for experimenting with complementary samples: **prompt engineering** (structured, versioned prompts via **`PromptEngineering.Client`**), **RAG** (retrieval-augmented answers via **`Rag`**), **tool-using agents** (**`Agent`** for weather/news MCP; **`Chatbot`** + **`SpaceMissions.McpServer`** for grounded space-launch CSV queries), and **`Security`** (paired **vulnerable** vs **mitigated** chat flows for **prompt injection** and **sensitive information disclosure**).
 
 ---
 
@@ -56,6 +56,17 @@ Benchmark prompt and TRA definition: **[docs/applications/agent/agent-weather-ne
 
 ---
 
+## Space Missions MCP (`SpaceMissions.McpServer` + `Chatbot`)
+
+**`SpaceMissions.McpServer`** is a **stdio MCP** process that exposes **eight** tools over **`dataset/space_missions.csv`** (filter, aggregate, launch-country share, success rate, distinct values, schema/summary). **`Chatbot`** hosts the LLM tool loop for bot channels (Teams / M365 Agents Playground).
+
+- **Runtime:** In-memory CSV via **`PromptEngineering.SpaceMissions`**; child process receives **`SPACE_MISSIONS_DATASET_PATH`** from **`Chatbot`** path resolution.
+- **Configuration:** **`SpaceMissionsAgent`** in [`src/Chatbot/appsettings.json`](src/Chatbot/appsettings.json); LLM keys like other samples.
+- **Prerequisites:** **.NET 8** only for this MCP (unlike **Agent**, no **Node.js** / **`npx`**).
+- **Documentation:** **[docs/applications/space-missions-mcp/space-missions-mcp.md](docs/applications/space-missions-mcp/space-missions-mcp.md)** (architecture, run, Chatbot wiring) · **[tool reference](docs/applications/space-missions-mcp/space-missions-mcp-tools.md)**.
+
+---
+
 ## Shared LLM layer
 
 **`PromptEngineering.LLM`** provides **chat** completions (used by Client, Rag, **Agent**, and **Security**), optional **SSE** streaming (aggregated to one completion object), **Polly** retries, timeouts, and **embeddings** (`CreateEmbeddingsAsync`), including optional **`EmbeddingDeployment`** when embedding and chat models differ. **Agent** and **Security** select an instance by **`Agent:InstanceName`** or **`Security:InstanceName`** the same way prompts reference **`InstanceName`** in JSON.
@@ -68,11 +79,12 @@ Use a shell at the **repository root** (paths below assume your clone is `prompt
 
 ### Prerequisites
 
-| Requirement | Client | Rag | Agent | Security |
-| --- | --- | --- | --- | --- |
-| [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) | Yes | Yes | Yes | Yes |
-| LLM API (**OpenAI-compatible** base URL + keys) | Yes | Yes | Yes | Yes |
-| **Node.js** + **`npx`** on `PATH` (MCP servers) | No | No | Yes | No |
+| Requirement | Client | Rag | Agent | Chatbot | Security |
+| --- | --- | --- | --- | --- | --- |
+| [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) | Yes | Yes | Yes | Yes | Yes |
+| LLM API (**OpenAI-compatible** base URL + keys) | Yes | Yes | Yes | Yes | Yes |
+| **Node.js** + **`npx`** on `PATH` (external MCP) | No | No | Yes | No | No |
+| Bot registration (Teams / playground) | No | No | No | Yes | No |
 
 Tune paths and **`appsettings.json`** as needed before running (dataset folders, **`Rag:*`** paths, **`Agent:InstanceName`** / **`Security:InstanceName`**, and matching **`Instances`** entries). More detail: **[Getting started](docs/getting-started.md)**.
 
@@ -145,7 +157,21 @@ dotnet run --project src/Agent/Agent.csproj -- "What is the weather and the late
 
 Without the trailing **`-- "..."`** argument, **Agent** reads a question from stdin. If you only use **one** configured instance, setting **`Instances:0:ApiKey`** alone is enough **provided** **`Agent:InstanceName`** matches **`Instances[0].Name`**.
 
-### 4. Security samples
+### 4. Chatbot (Space Missions MCP)
+
+```powershell
+dotnet user-secrets set "SystemSettings:AiServiceSettings:BaseAddress" "https://..." `
+  --project src/Chatbot/Chatbot.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:2:ApiKey" "..." `
+  --project src/Chatbot/Chatbot.csproj
+
+dotnet build src/SpaceMissions.McpServer/SpaceMissions.McpServer.csproj
+dotnet run --project src/Chatbot/Chatbot.csproj
+```
+
+Set bot **`ClientId`** / **`ClientSecret`** via user secrets when using the Bot Framework (see **[Getting started](docs/getting-started.md#user-secrets)**). Full guide: **[docs/applications/space-missions-mcp/space-missions-mcp.md](docs/applications/space-missions-mcp/space-missions-mcp.md)**.
+
+### 5. Security samples
 
 Console demos for **prompt injection** and **sensitive information disclosure** (vulnerable pattern, then mitigation). Uses **`Security:InstanceName`** and **`Security:Temperature`** in [`src/Security/appsettings.json`](src/Security/appsettings.json). No MCP; chat only.
 
@@ -172,6 +198,7 @@ Behavior and scenario table: **[docs/applications/security/security-samples.md](
 dotnet user-secrets list --project src/PromptEngineering.Client/PromptEngineering.Client.csproj
 dotnet user-secrets list --project src/Rag/Rag.csproj
 dotnet user-secrets list --project src/Agent/Agent.csproj
+dotnet user-secrets list --project src/Chatbot/Chatbot.csproj
 dotnet user-secrets list --project src/Security/Security.csproj
 ```
 
@@ -185,7 +212,7 @@ This section is the **single index** for repository guides. **Run steps:** [How 
 
 | Document | Topics |
 | --- | --- |
-| [Overview](docs/overview.md) | Four tracks, shared LLM behavior, safety notes |
+| [Overview](docs/overview.md) | Sample tracks, shared LLM behavior, safety notes |
 | [Getting started](docs/getting-started.md) | Prerequisites, user secrets, run commands |
 | [Repository structure](docs/repository-structure.md) | Folders, projects, diagram |
 
@@ -214,6 +241,16 @@ Chat with **Open-Meteo** and **DuckDuckGo** via stdio; configure [`src/Agent/app
 | Document | Topics |
 | --- | --- |
 | [TRA benchmark — Paris weather & news](docs/applications/agent/agent-weather-news.md) | Canonical benchmark + illustrative answer for [Tool Routing Accuracy](metrics/agent_tool_routing_accuracy.md) |
+
+### Space missions MCP — `SpaceMissions.McpServer` + `Chatbot` (`docs/applications/space-missions-mcp/`)
+
+Eight stdio tools over **`dataset/space_missions.csv`**; **`Chatbot`** runs the LLM tool loop. **.NET only** (no Node for this MCP).
+
+| Document | Topics |
+| --- | --- |
+| [Space Missions MCP guide](docs/applications/space-missions-mcp/space-missions-mcp.md) | Architecture, dataset path, Chatbot configuration, evidence rules |
+| [Tool reference](docs/applications/space-missions-mcp/space-missions-mcp-tools.md) | All eight tools, filters, limits, JSON shapes |
+| [Sample user questions](docs/applications/space-missions-mcp/mcp-questions.md) | Chatbot smoke / eval prompts per tool |
 
 ### Security — `Security` (`docs/applications/security/`)
 

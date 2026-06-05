@@ -11,8 +11,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PromptEngineering.LLM\PromptEngineering.LLM.csproj" />
-    <ProjectReference Include="..\PromptEngineering.Model\PromptEngineering.Model.csproj" />
-    <ProjectReference Include="..\PromptEngineering.Services\PromptEngineering.Services.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -22,6 +20,8 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.8" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.8" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.8" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.8" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.8" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,0 +1,21 @@
+Company,Location,Date,Time,Rocket,Mission,RocketStatus,Price,MissionStatus
+RVSN USSR,"Site 1/5, Baikonur Cosmodrome, Kazakhstan",1957-10-04,19:28:00,Sputnik 8K71PS,Sputnik-1,Retired,,Success
+US Navy,"LC-18A, Cape Canaveral AFS, Florida, USA",1957-12-06,16:44:00,Vanguard,Vanguard TV3,Retired,,Failure
+AMBA,"LC-26A, Cape Canaveral AFS, Florida, USA",1958-02-01,03:48:00,Juno I,Explorer 1,Retired,,Success
+NASA,"SLC-17A, Cape Canaveral AFS, Florida, USA",1958-10-11,08:42:00,Thor-DM 18 Able I,Pioneer 1,Retired,,Partial Failure
+SpaceX,"LC-39A, Kennedy Space Center, Florida, USA",2020-05-30,19:22:00,Falcon 9,Demo-2,Active,62,Success
+SpaceX,"LC-39A, Kennedy Space Center, Florida, USA",2020-11-15,00:27:00,Falcon 9,Crew-1,Active,62,Success
+SpaceX,"SLC-40, Cape Canaveral SFS, Florida, USA",2021-06-03,17:29:00,Falcon 9,Starlink V1.0 L28,Active,62,Success
+NASA,"LC-39A, Kennedy Space Center, Florida, USA",2021-11-10,02:03:00,Falcon 9,Crew-3,Active,,Success
+Blue Origin,"Launch Site One, Corn Ranch, Texas, USA",2021-07-20,13:12:00,New Shepard,NS-16,Active,,Success
+ISRO,"Satish Dhawan Space Centre, India",2013-11-05,09:08:00,PSLV-XL,Mars Orbiter Mission,Active,,Success
+ISRO,"Satish Dhawan Space Centre, India",2017-02-15,03:58:00,PSLV-C37,Cartosat-2D,Active,,Success
+ESA,"Guiana Space Centre, French Guiana",2016-11-17,13:06:00,Ariane 5 ECA,Galileo,Active,,Partial Failure
+ESA,"Guiana Space Centre, French Guiana",2018-07-25,11:25:00,Ariane 5 ECA,Galileo,Active,,Success
+Roscosmos,"Site 31/6, Baikonur Cosmodrome, Kazakhstan",2020-10-14,05:45:00,Soyuz 2.1a,Soyuz MS-17,Active,,Success
+Roscosmos,"Site 31/6, Baikonur Cosmodrome, Kazakhstan",2021-04-09,07:42:00,Soyuz 2.1a,Soyuz MS-18,Active,,Prelaunch Failure
+US Navy,"LC-18A, Cape Canaveral AFS, Florida, USA",1958-02-05,07:33:00,Vanguard,Vanguard TV3BU,Retired,,Failure
+AMBA,"LC-5, Cape Canaveral AFS, Florida, USA",1958-08-24,06:17:00,Juno I,Explorer 5,Retired,,Failure
+NASA,"SLC-17A, Cape Canaveral AFS, Florida, USA",1958-11-08,07:30:00,Thor-DM 18 Able I,Pioneer 2,Retired,,Failure
+SpaceX,"LC-39A, Kennedy Space Center, Florida, USA",2022-04-08,15:17:00,Falcon 9,Ax-1,Active,62,Success
+SpaceX,"LC-39A, Kennedy Space Center, Florida, USA",2022-04-27,07:52:00,Falcon 9,Crew-4,Active,62,Success

@@ -1,9 +1,9 @@
 using System.Text.Json;
 using ModelContextProtocol.Protocol;
 
-namespace Agent;
+namespace PromptEngineering.Mcp;
 
-internal static class McpCallToolResultFormatter
+public static class McpCallToolResultFormatter
 {
     public static string ToModelText(CallToolResult result)
     {

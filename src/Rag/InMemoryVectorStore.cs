@@ -1,6 +1,6 @@
 namespace Rag;
 
-internal sealed class InMemoryVectorStore
+public sealed class InMemoryVectorStore
 {
     private readonly List<VectorRecord> _records = new();
 

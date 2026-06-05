@@ -1,3 +1,5 @@
+using PromptEngineering.Mcp;
+
 namespace Agent;
 
 public interface IWeatherAgentService

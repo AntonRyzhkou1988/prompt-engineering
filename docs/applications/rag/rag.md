@@ -107,6 +107,7 @@ The repo ships **`dataset/space_missions.csv`**. For stable field meanings (**`M
 
 - **Human-judged quality:** [`metrics/answer_correctness_score.md`](../../../metrics/answer_correctness_score.md) (outputs in **`answers/`**).
 - **Automated check table:** [`rag_eval_space_missions_gold.md`](rag_eval_space_missions_gold.md).
+- **MCP tool access (same CSV):** [Space Missions MCP server](../space-missions-mcp/space-missions-mcp.md) — deterministic queries via **`Chatbot`** instead of chunk retrieval.
 
 ### Optional pattern (other domains)
 
@@ -117,3 +118,4 @@ You can point **`DatasetPath`** at any single large **`.csv`** or narrative **`.
 - [Repository README — Documentation](../../../README.md#documentation)
 - [Overview](../../overview.md) · [Getting started](../../getting-started.md) · [Repository structure](../../repository-structure.md)
 - [Prompt chain](../prompt-engineering/prompt-chain.md) — contrasts **injected** `<record>` rows (Client) with **retrieved** chunks (Rag)
+- [Space Missions MCP](../space-missions-mcp/space-missions-mcp.md) · [tool reference](../space-missions-mcp/space-missions-mcp-tools.md)

@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>99d67b05-4b65-406d-8db2-25f30764f940</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Agents.Authentication.Msal" Version="1.*" />
+    <PackageReference Include="Microsoft.Agents.Hosting.AspNetCore" Version="1.*" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PromptEngineering.LLM\PromptEngineering.LLM.csproj" />
+    <ProjectReference Include="..\PromptEngineering.Mcp\PromptEngineering.Mcp.csproj" />
+    <ProjectReference Include="..\Rag\Rag.csproj" />
+    <ProjectReference Include="..\SpaceMissions.McpServer\SpaceMissions.McpServer.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+
+  <Target Name="CopySpaceMissionsMcpServerToOutput" AfterTargets="Build">
+    <PropertyGroup>
+      <_McpServerOutputDir>$(MSBuildThisFileDirectory)..\SpaceMissions.McpServer\bin\$(Configuration)\$(TargetFramework)\</_McpServerOutputDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <_McpServerOutputFiles Include="$(_McpServerOutputDir)**\*.*" />
+    </ItemGroup>
+    <MakeDir Directories="$(OutputPath)mcp-server\" />
+    <Copy SourceFiles="@(_McpServerOutputFiles)" DestinationFolder="$(OutputPath)mcp-server\%(RecursiveDir)" SkipUnchangedFiles="true" Condition="'@(_McpServerOutputFiles)' != ''" />
+  </Target>
+
+</Project>

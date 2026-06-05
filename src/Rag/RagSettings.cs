@@ -5,7 +5,7 @@ namespace Rag;
 /// <see cref="DatasetPath"/> is the corpus entry: a <b>single file</b> (<c>.md</c>, <c>.txt</c>, <c>.csv</c>) or a <b>directory</b> whose matching files are indexed recursively.
 /// <see cref="QuestionsPath"/> and <see cref="AnswersPath"/> are folder names (or relative segments) under <see cref="DocumentsFolderPath"/>.
 /// </summary>
-internal sealed class RagSettings
+public sealed class RagSettings
 {
     /// <summary>Shared parent directory for questions, answers, and relative <see cref="DatasetPath"/> (committed default: absolute repository root on this machine).</summary>
     public string DocumentsFolderPath { get; set; } = @"C:\Work\learn\ai-architect-practice\prompt-engineering";
@@ -38,15 +38,15 @@ internal sealed class RagSettings
     public CsvSettings Csv { get; set; } = new();
 
     /// <summary>Resolves <see cref="DatasetPath"/> to an absolute file or directory path.</summary>
-    internal string ResolveDatasetPath(string baseDirectory) =>
+    public string ResolveDatasetPath(string baseDirectory) =>
         Path.IsPathRooted(DatasetPath)
             ? Path.GetFullPath(DatasetPath)
             : Path.GetFullPath(Path.Combine(ResolveContentRoot(baseDirectory), DatasetPath));
 
-    internal string ResolveQuestionsRoot(string baseDirectory) =>
+    public string ResolveQuestionsRoot(string baseDirectory) =>
         Path.GetFullPath(Path.Combine(ResolveContentRoot(baseDirectory), QuestionsPath));
 
-    internal string ResolveAnswersRoot(string baseDirectory) =>
+    public string ResolveAnswersRoot(string baseDirectory) =>
         Path.GetFullPath(Path.Combine(ResolveContentRoot(baseDirectory), AnswersPath));
 
     /// <summary>When <see cref="DocumentsFolderPath"/> is rooted, it is the content root; otherwise it is combined with <paramref name="baseDirectory"/>.</summary>
@@ -55,7 +55,7 @@ internal sealed class RagSettings
             ? DocumentsFolderPath
             : Path.Combine(baseDirectory, DocumentsFolderPath);
 
-    internal void Validate()
+    public void Validate()
     {
         if (ChunkSizeChars <= 0)
             throw new ArgumentOutOfRangeException(nameof(ChunkSizeChars), "Chunk size must be positive.");
@@ -85,7 +85,7 @@ internal sealed class RagSettings
     }
 
     /// <summary>Throws if <see cref="ResolveDatasetPath"/> does not exist as a file or directory.</summary>
-    internal void EnsureDatasetExists(string baseDirectory)
+    public void EnsureDatasetExists(string baseDirectory)
     {
         var path = ResolveDatasetPath(baseDirectory);
         if (File.Exists(path) || Directory.Exists(path))

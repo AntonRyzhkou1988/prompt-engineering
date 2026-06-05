@@ -7,7 +7,7 @@
 | Path | Role |
 | --- | --- |
 | `dataset/attacks.csv` | Source data for **PromptEngineering.Client** (shark attacks) |
-| `dataset/space_missions.csv` | Tabular sample file for **Rag** when **`Rag:DatasetPath`** points at it |
+| `dataset/space_missions.csv` | Tabular sample for **Rag** (`Rag:DatasetPath`) and **SpaceMissions.McpServer** / **Chatbot** MCP tools |
 | `prompts/*.json` | Prompt definitions and **`ReActSequence`** (Client) |
 | `output/` | Default Client completion output (`completion_<stem>_<timestamp>.md`) |
 | `documents/` | Optional extra files; use as **`Rag:DatasetPath`** target if you keep a corpus here |
@@ -17,7 +17,7 @@
 | `risk-assessment/` | Narrative risk notes (**prompt injection**, **sensitive information disclosure**) aligned with the **`Security`** console demos |
 | `src/` | .NET projects ([solution](../src/PromptEngineering.sln)) |
 | `tests/` | Unit tests (e.g. **`PromptEngineering.Services.Tests`**) |
-| **`docs/`** | Common guides plus **`docs/applications/`** (**prompt-engineering**, **rag**, **agent**, **security**) — full index: [README.md](../README.md#documentation) |
+| **`docs/`** | Common guides plus **`docs/applications/`** (**prompt-engineering**, **rag**, **agent**, **space-missions-mcp**, **security**) — full index: [README.md](../README.md#documentation) |
 
 ## Solution projects
 
@@ -29,6 +29,9 @@
 | `PromptEngineering.Model` | Shared domain types |
 | `Rag` | Console: single-file index, retrieve, answer |
 | `Agent` | Console: MCP tool-using chat — **`src/Agent/appsettings.json`** |
+| `SpaceMissions.McpServer` | Stdio MCP server: eight tools over **`dataset/space_missions.csv`** — [Space Missions MCP](applications/space-missions-mcp/space-missions-mcp.md) |
+| `PromptEngineering.SpaceMissions` | CSV load, filter, aggregate, launch-country and success-rate queries (library for MCP server) |
+| `Chatbot` | ASP.NET bot host; **RAG index** + **SpaceMissions.McpServer** MCP tool loop — **`src/Chatbot/appsettings.json`** |
 | `Security` | Console: paired **vulnerable / mitigated** chat demos (**prompt injection**, **sensitive disclosure**) — **`src/Security/`**, [Security samples](applications/security/security-samples.md) |
 | `PromptEngineering.Services.Tests` | Service tests |
 
@@ -40,7 +43,7 @@
 | **`Rag:DatasetPath`** | **One** indexed **`.md`**, **`.txt`**, or **`.csv`** (committed default: **`dataset/space_missions.csv`**) |
 | **`questions/`**, **`answers/`** | Sibling folders under repo root by default; resolved via **`DocumentsFolderPath`** |
 
-Offline RAG eval: **[`applications/rag/rag_eval_space_missions_gold.md`](applications/rag/rag_eval_space_missions_gold.md)**. Agent TRA sample: **[`applications/agent/agent-weather-news.md`](applications/agent/agent-weather-news.md)**. Security demos: **[`applications/security/security-samples.md`](applications/security/security-samples.md)**.
+Offline RAG eval: **[`applications/rag/rag_eval_space_missions_gold.md`](applications/rag/rag_eval_space_missions_gold.md)**. Agent TRA sample: **[`applications/agent/agent-weather-news.md`](applications/agent/agent-weather-news.md)**. Space missions MCP: **[`applications/space-missions-mcp/space-missions-mcp.md`](applications/space-missions-mcp/space-missions-mcp.md)**. Security demos: **[`applications/security/security-samples.md`](applications/security/security-samples.md)**.
 
 ## Diagram
 
@@ -72,7 +75,14 @@ graph TD
     SRC --> MODEL["PromptEngineering.Model"]
     SRC --> RAG["Rag"]
     SRC --> AGENT["Agent"]
+    SRC --> MCP_SM["SpaceMissions.McpServer"]
+    SRC --> LIB_SM["PromptEngineering.SpaceMissions"]
+    SRC --> CHATBOT["Chatbot"]
     SRC --> SECURITY["Security"]
+
+    MCP_SM --> LIB_SM
+    CHATBOT -->|stdio MCP| MCP_SM
+    MCP_SM -->|"SPACE_MISSIONS_DATASET_PATH"| DS_SPACE
 
     RAG -->|"DatasetPath file"| DATASET
     RAG -->|"questions"| QUESTIONS

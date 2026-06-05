@@ -4,12 +4,13 @@
 
 ## Prerequisites
 
-| Requirement | Client | Rag | Agent | Security |
-| --- | --- | --- | --- | --- |
-| [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) or newer | Yes | Yes | Yes | Yes |
-| Network + OpenAI-compatible API (e.g. EPAM DIAL) | Yes | Yes | Yes | Yes |
-| API keys via **user secrets** (not committed) | Yes | Yes | Yes | Yes |
-| **Node.js** + **`npx`** on `PATH` (MCP servers) | No | No | Yes | No |
+| Requirement | Client | Rag | Agent | Chatbot | Security |
+| --- | --- | --- | --- | --- | --- |
+| [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) or newer | Yes | Yes | Yes | Yes | Yes |
+| Network + OpenAI-compatible API (e.g. EPAM DIAL) | Yes | Yes | Yes | Yes | Yes |
+| API keys via **user secrets** (not committed) | Yes | Yes | Yes | Yes | Yes |
+| **Node.js** + **`npx`** on `PATH` (external MCP) | No | No | Yes | No | No |
+| Bot registration secrets (Teams / playground) | No | No | No | Yes | No |
 
 ## User secrets
 
@@ -24,6 +25,7 @@ Overrides use the **same** subtree everywhere: **`SystemSettings:AiServiceSettin
 | **PromptEngineering.Client** | `src/PromptEngineering.Client/PromptEngineering.Client.csproj` | `PromptEngineering.Client` |
 | **Rag** | `src/Rag/Rag.csproj` | `Rag.Demo` |
 | **Agent** | `src/Agent/Agent.csproj` | `154595eb-806c-479f-a229-4d363d9b9730` |
+| **Chatbot** | `src/Chatbot/Chatbot.csproj` | `99d67b05-4b65-406d-8db2-25f30764f940` |
 | **Security** | `src/Security/Security.csproj` | `4b9e1df6-747a-49b9-8e08-ad7350edd9f4` |
 
 Use **`dotnet user-secrets`** with **`--project`** so commands work from the repository root (adjust paths if your clone location differs):
@@ -68,9 +70,28 @@ dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:2:ApiKey" "y
   --project src/Security/Security.csproj
 ```
 
+```powershell
+# Chatbot — match Instances[n]:ApiKey to SpaceMissionsAgent:InstanceName in appsettings.json.
+# For M365 Agents Playground, also set bot registration secrets (override appsettings.Playground.json).
+dotnet user-secrets set "SystemSettings:AiServiceSettings:BaseAddress" "https://..." `
+  --project src/Chatbot/Chatbot.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:0:ApiKey" "your-key" `
+  --project src/Chatbot/Chatbot.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:1:ApiKey" "your-key" `
+  --project src/Chatbot/Chatbot.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:2:ApiKey" "your-key" `
+  --project src/Chatbot/Chatbot.csproj
+dotnet user-secrets set "Connections:BotServiceConnection:Settings:ClientId" "your-bot-app-id" `
+  --project src/Chatbot/Chatbot.csproj
+dotnet user-secrets set "Connections:BotServiceConnection:Settings:ClientSecret" "your-bot-client-secret" `
+  --project src/Chatbot/Chatbot.csproj
+dotnet user-secrets set "TokenValidation:Audiences:0" "your-bot-app-id" `
+  --project src/Chatbot/Chatbot.csproj
+```
+
 You may **`cd src/<Project>`** and run **`dotnet user-secrets set`** without **`--project`**; the store is always scoped to that **`.csproj`**.
 
-Configuration load order: **`appsettings.json`**, then **user secrets** when present (same for Client, Rag, Agent, **Security**).
+Configuration load order: **`appsettings.json`**, then **user secrets** when present (same for Client, Rag, Agent, **Chatbot**, **Security**).
 
 ## Run: `PromptEngineering.Client` (ReAct chain)
 
@@ -128,6 +149,32 @@ dotnet run --project Agent -- "What is the weather and the latest news in Paris?
 
 MCP sessions, **`Agent:InstanceName`**, and the TRA benchmark: **[README — Agent](../README.md#agent-mcp-tools)**, **[applications/agent/agent-weather-news.md](applications/agent/agent-weather-news.md)**, **[metrics/agent_tool_routing_accuracy.md](../metrics/agent_tool_routing_accuracy.md)**.
 
+## Run: `Chatbot` (hybrid RAG + Space Missions MCP)
+
+**`Chatbot`** is an ASP.NET host that combines **retrieval-augmented context** from the [`Rag`](applications/rag/rag.md) stack with **stdio MCP tools** from **`SpaceMissions.McpServer`** (**.NET only**—no Node for this MCP). On startup it builds an in-memory vector index once from **`Rag:DatasetPath`**; each user message retrieves top‑K chunks and runs an LLM tool loop against the MCP server. Configure LLM keys and optional bot secrets like other executables (see Chatbot block under [User secrets](#user-secrets)).
+
+1. Build the MCP server (or run Chatbot once so publish copies **`mcp-server/SpaceMissions.McpServer.dll`**):
+
+```powershell
+dotnet build src/SpaceMissions.McpServer/SpaceMissions.McpServer.csproj
+dotnet build src/Chatbot/Chatbot.csproj
+```
+
+2. Edit **`src/Chatbot/appsettings.json`**:
+   - **`SpaceMissionsAgent:InstanceName`**, **`McpProjectPath`**, **`DatasetPath`**
+   - **`Rag:InstanceName`** — must match an **`Instances[].Name`** that has **`EmbeddingDeployment`** (same instance can serve chat and embeddings)
+   - **`Rag:DatasetPath`** — corpus file to index (committed default: **`dataset/space_missions.csv`**)
+
+```powershell
+dotnet run --project src/Chatbot/Chatbot.csproj
+```
+
+First startup listens on **`/api/messages` immediately** while the RAG index builds in the background; poll **`GET /ready`** (503 until indexed, 200 with chunk count when ready). Architecture, all eight MCP tools, and JSON response shapes: **[Space Missions MCP guide](applications/space-missions-mcp/space-missions-mcp.md)** · **[tool reference](applications/space-missions-mcp/space-missions-mcp-tools.md)** · **[RAG guide](applications/rag/rag.md)**.
+
+```powershell
+dotnet test tests/Chatbot.Tests/Chatbot.Tests.csproj --filter "FullyQualifiedName~SpaceMissions"
+```
+
 ## Run: `Security` (security demos)
 
 Chat-only console: **four** fixed scenarios (prompt injection ×2, sensitive disclosure ×2). No stdin. Configure **`Security:InstanceName`** and **`Security:Temperature`** in **`src/Security/appsettings.json`**; set API keys like **Agent** (see above).
@@ -175,3 +222,22 @@ See **[RAG guide](applications/rag/rag.md)** for the full pipeline and notes.
 | `Temperature` | Passed into each demo **`ChatRequest`** |
 
 See **[Security samples](applications/security/security-samples.md)**.
+
+### Chatbot: `SpaceMissionsAgent` and `Rag` sections
+
+| Key | Role |
+| --- | --- |
+| `SpaceMissionsAgent:InstanceName` | Chat instance for MCP tool loop (`Instances[n].Name`) |
+| `SpaceMissionsAgent:Temperature` | Passed into each completion |
+| `SpaceMissionsAgent:MaxFunctionIterations` | Tool-call rounds per turn |
+| `SpaceMissionsAgent:MinRetrievalSimilarity` | Drop retrieved chunks below this cosine score (default `0.35`) so partial CSV rows do not mislead the model |
+| `SpaceMissionsAgent:McpProjectPath` | `.csproj`, built `.dll`, or executable for the MCP child process |
+| `SpaceMissionsAgent:DatasetPath` | Repo-relative `space_missions.csv` (also passed as `SPACE_MISSIONS_DATASET_PATH` to MCP) |
+| `SpaceMissionsAgent:SpaceMissionsMcp` | Optional transport overrides (`Name`, `Command`, `Arguments`, `WorkingDirectory`) |
+| `Rag:DocumentsFolderPath` | Leave empty to auto-resolve repository root; anchors relative **`Rag:DatasetPath`** |
+| `Rag:DatasetPath` | **Single** corpus file indexed at startup (`.md` / `.txt` / `.csv`) |
+| `Rag:ChunkSizeChars` / `ChunkOverlapChars` / `TopK` / `MinProseChunks` / `Csv` | Same as standalone **`Rag`** console (see [RAG guide](applications/rag/rag.md)) |
+| `Rag:EmbeddingBatchSize` | Batch size for index build embeddings |
+| `Rag:InstanceName` | Instance for embeddings at index build and per-message retrieval |
+
+See **[Space Missions MCP guide](applications/space-missions-mcp/space-missions-mcp.md)** and **[RAG guide](applications/rag/rag.md)**.
