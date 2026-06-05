@@ -149,9 +149,9 @@ dotnet run --project Agent -- "What is the weather and the latest news in Paris?
 
 MCP sessions, **`Agent:InstanceName`**, and the TRA benchmark: **[README — Agent](../README.md#agent-mcp-tools)**, **[applications/agent/agent-weather-news.md](applications/agent/agent-weather-news.md)**, **[metrics/agent_tool_routing_accuracy.md](../metrics/agent_tool_routing_accuracy.md)**.
 
-## Run: `Chatbot` (Space Missions MCP)
+## Run: `Chatbot` (hybrid RAG + Space Missions MCP)
 
-**`Chatbot`** is an ASP.NET host that spawns **`SpaceMissions.McpServer`** over stdio (**.NET only**—no Node for this MCP). Configure LLM keys and optional bot secrets like other executables (see Chatbot block under [User secrets](#user-secrets)).
+**`Chatbot`** is an ASP.NET host that combines **retrieval-augmented context** from the [`Rag`](applications/rag/rag.md) stack with **stdio MCP tools** from **`SpaceMissions.McpServer`** (**.NET only**—no Node for this MCP). On startup it builds an in-memory vector index once from **`Rag:DatasetPath`**; each user message retrieves top‑K chunks and runs an LLM tool loop against the MCP server. Configure LLM keys and optional bot secrets like other executables (see Chatbot block under [User secrets](#user-secrets)).
 
 1. Build the MCP server (or run Chatbot once so publish copies **`mcp-server/SpaceMissions.McpServer.dll`**):
 
@@ -160,13 +160,16 @@ dotnet build src/SpaceMissions.McpServer/SpaceMissions.McpServer.csproj
 dotnet build src/Chatbot/Chatbot.csproj
 ```
 
-2. Edit **`src/Chatbot/appsettings.json`**: **`SpaceMissionsAgent:InstanceName`**, **`McpProjectPath`**, **`DatasetPath`**.
+2. Edit **`src/Chatbot/appsettings.json`**:
+   - **`SpaceMissionsAgent:InstanceName`**, **`McpProjectPath`**, **`DatasetPath`**
+   - **`Rag:InstanceName`** — must match an **`Instances[].Name`** that has **`EmbeddingDeployment`** (same instance can serve chat and embeddings)
+   - **`Rag:DatasetPath`** — corpus file to index (committed default: **`dataset/space_missions.csv`**)
 
 ```powershell
 dotnet run --project src/Chatbot/Chatbot.csproj
 ```
 
-Architecture, all eight tools, and JSON response shapes: **[Space Missions MCP guide](applications/space-missions-mcp/space-missions-mcp.md)** · **[tool reference](applications/space-missions-mcp/space-missions-mcp-tools.md)**.
+First startup listens on **`/api/messages` immediately** while the RAG index builds in the background; poll **`GET /ready`** (503 until indexed, 200 with chunk count when ready). Architecture, all eight MCP tools, and JSON response shapes: **[Space Missions MCP guide](applications/space-missions-mcp/space-missions-mcp.md)** · **[tool reference](applications/space-missions-mcp/space-missions-mcp-tools.md)** · **[RAG guide](applications/rag/rag.md)**.
 
 ```powershell
 dotnet test tests/Chatbot.Tests/Chatbot.Tests.csproj --filter "FullyQualifiedName~SpaceMissions"
@@ -220,15 +223,21 @@ See **[RAG guide](applications/rag/rag.md)** for the full pipeline and notes.
 
 See **[Security samples](applications/security/security-samples.md)**.
 
-### Chatbot: `SpaceMissionsAgent` section
+### Chatbot: `SpaceMissionsAgent` and `Rag` sections
 
 | Key | Role |
 | --- | --- |
-| `InstanceName` | Chat instance (`Instances[n].Name`) |
-| `Temperature` | Passed into each completion |
-| `MaxFunctionIterations` | Tool-call rounds per turn |
-| `McpProjectPath` | `.csproj`, built `.dll`, or executable for the MCP child process |
-| `DatasetPath` | Repo-relative `space_missions.csv` (also passed as `SPACE_MISSIONS_DATASET_PATH` to MCP) |
-| `SpaceMissionsMcp` | Optional transport overrides (`Name`, `Command`, `Arguments`, `WorkingDirectory`) |
+| `SpaceMissionsAgent:InstanceName` | Chat instance for MCP tool loop (`Instances[n].Name`) |
+| `SpaceMissionsAgent:Temperature` | Passed into each completion |
+| `SpaceMissionsAgent:MaxFunctionIterations` | Tool-call rounds per turn |
+| `SpaceMissionsAgent:MinRetrievalSimilarity` | Drop retrieved chunks below this cosine score (default `0.35`) so partial CSV rows do not mislead the model |
+| `SpaceMissionsAgent:McpProjectPath` | `.csproj`, built `.dll`, or executable for the MCP child process |
+| `SpaceMissionsAgent:DatasetPath` | Repo-relative `space_missions.csv` (also passed as `SPACE_MISSIONS_DATASET_PATH` to MCP) |
+| `SpaceMissionsAgent:SpaceMissionsMcp` | Optional transport overrides (`Name`, `Command`, `Arguments`, `WorkingDirectory`) |
+| `Rag:DocumentsFolderPath` | Leave empty to auto-resolve repository root; anchors relative **`Rag:DatasetPath`** |
+| `Rag:DatasetPath` | **Single** corpus file indexed at startup (`.md` / `.txt` / `.csv`) |
+| `Rag:ChunkSizeChars` / `ChunkOverlapChars` / `TopK` / `MinProseChunks` / `Csv` | Same as standalone **`Rag`** console (see [RAG guide](applications/rag/rag.md)) |
+| `Rag:EmbeddingBatchSize` | Batch size for index build embeddings |
+| `Rag:InstanceName` | Instance for embeddings at index build and per-message retrieval |
 
-See **[Space Missions MCP guide](applications/space-missions-mcp/space-missions-mcp.md)**.
+See **[Space Missions MCP guide](applications/space-missions-mcp/space-missions-mcp.md)** and **[RAG guide](applications/rag/rag.md)**.

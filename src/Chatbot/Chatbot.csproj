@@ -16,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\PromptEngineering.LLM\PromptEngineering.LLM.csproj" />
     <ProjectReference Include="..\PromptEngineering.Mcp\PromptEngineering.Mcp.csproj" />
+    <ProjectReference Include="..\Rag\Rag.csproj" />
     <ProjectReference Include="..\SpaceMissions.McpServer\SpaceMissions.McpServer.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>

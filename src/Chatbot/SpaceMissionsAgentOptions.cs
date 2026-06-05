@@ -12,6 +12,12 @@ public sealed class SpaceMissionsAgentOptions
 
     public int MaxFunctionIterations { get; set; } = 7;
 
+    /// <summary>
+    /// Minimum cosine similarity (0–1) for a retrieved chunk to be included in the system prompt.
+    /// Chunks below this threshold are dropped so partial CSV rows do not mislead the model.
+    /// </summary>
+    public float MinRetrievalSimilarity { get; set; } = 0.35f;
+
     /// <summary>Repo-relative or absolute path to the MCP server project, DLL, or executable.</summary>
     public string McpProjectPath { get; set; } = "src/SpaceMissions.McpServer/SpaceMissions.McpServer.csproj";
 

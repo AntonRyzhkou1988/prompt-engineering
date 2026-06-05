@@ -1,14 +1,14 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using PromptEngineering.LLM;
 using PromptEngineering.LLM.Extensions;
 using PromptEngineering.LLM.Models;
-using System.IO;
 using System.Net.Http.Headers;
 using System.Text.Json;
 
 namespace Rag;
 
-internal sealed class RagOrchestrator
+public sealed class RagOrchestrator
 {
     private static readonly MediaTypeHeaderValue JsonMedia = new("application/json");
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.General);
@@ -17,10 +17,10 @@ internal sealed class RagOrchestrator
     private readonly RagSettings _settings;
     private readonly ILogger<RagOrchestrator> _logger;
 
-    public RagOrchestrator(IAiService ai, RagSettings settings, ILogger<RagOrchestrator> logger)
+    public RagOrchestrator(IAiService ai, IOptions<RagSettings> options, ILogger<RagOrchestrator> logger)
     {
         _ai = ai;
-        _settings = settings;
+        _settings = options.Value;
         _logger = logger;
     }
 
@@ -107,7 +107,10 @@ internal sealed class RagOrchestrator
         return store;
     }
 
-    public async Task<string> AnswerAsync(InMemoryVectorStore store, string question, CancellationToken cancellationToken)
+    public async Task<RagRetrievalResult> RetrieveContextAsync(
+        InMemoryVectorStore store,
+        string question,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(store);
         if (string.IsNullOrWhiteSpace(question))
@@ -144,13 +147,20 @@ internal sealed class RagOrchestrator
 
         var contextBlocks = top
             .Select((x, idx) => $"[{idx + 1}] (source: {x.Record.SourceFileName})\n{x.Record.Text.Trim()}");
-        var context = string.Join("\n---\n", contextBlocks);
+        var contextText = string.Join("\n---\n", contextBlocks);
+
+        return new RagRetrievalResult(contextText, top);
+    }
+
+    public async Task<string> AnswerAsync(InMemoryVectorStore store, string question, CancellationToken cancellationToken)
+    {
+        var retrieval = await RetrieveContextAsync(store, question, cancellationToken).ConfigureAwait(false);
 
         var userMessage =
             "Use only the context below to answer. If the answer is not contained in the context, say you do not know and say what is missing.\n\n" +
             "For every non-obvious factual claim (field meanings, units, URIs, dates, names, numbers), add a bracket citation like [1] or [2] pointing to the context block that supports it.\n\n" +
             "Context:\n" +
-            context +
+            retrieval.ContextText +
             "\n\nQuestion:\n" +
             question.Trim();
 

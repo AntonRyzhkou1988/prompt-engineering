@@ -31,7 +31,7 @@
 | `Agent` | Console: MCP tool-using chat — **`src/Agent/appsettings.json`** |
 | `SpaceMissions.McpServer` | Stdio MCP server: eight tools over **`dataset/space_missions.csv`** — [Space Missions MCP](applications/space-missions-mcp/space-missions-mcp.md) |
 | `PromptEngineering.SpaceMissions` | CSV load, filter, aggregate, launch-country and success-rate queries (library for MCP server) |
-| `Chatbot` | ASP.NET bot host; spawns **SpaceMissions.McpServer** for space-missions Q&A — **`src/Chatbot/appsettings.json`** |
+| `Chatbot` | ASP.NET bot host; **RAG index** + **SpaceMissions.McpServer** MCP tool loop — **`src/Chatbot/appsettings.json`** |
 | `Security` | Console: paired **vulnerable / mitigated** chat demos (**prompt injection**, **sensitive disclosure**) — **`src/Security/`**, [Security samples](applications/security/security-samples.md) |
 | `PromptEngineering.Services.Tests` | Service tests |
 

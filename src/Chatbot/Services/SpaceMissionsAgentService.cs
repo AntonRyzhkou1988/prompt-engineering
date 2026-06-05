@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
@@ -7,22 +8,37 @@ using ModelContextProtocol.Protocol;
 using PromptEngineering.LLM;
 using PromptEngineering.LLM.Models;
 using PromptEngineering.Mcp;
+using Rag;
 using LlmRole = PromptEngineering.LLM.Models.Role;
 
 namespace Chatbot.Services;
 
-public sealed class SpaceMissionsAgentService
+public sealed class SpaceMissionsAgentService(
+    IOptions<SpaceMissionsAgentOptions> options,
+    IOptions<AiServiceSettings> aiSettings,
+    IAiService ai,
+    ISpaceMissionsMcpAgentService mcpAgent,
+    RagOrchestrator ragOrchestrator,
+    RagIndexStore ragIndexStore,
+    ILogger<SpaceMissionsAgentService> logger)
 {
-    private const string SystemPrompt =
+    private const string HybridSystemPromptTemplate =
         """
         You are a concise space launch data analyst for dataset/space_missions.csv.
-        For any factual question about launches, companies, rockets, locations, dates, or mission outcomes, call the space missions MCP tools.
+        Retrieved context from the corpus is below. Use it for explanations and cite non-obvious claims with [n].
+        For exact counts, filters, aggregates, success rates, distinct values, or paginated row lists, call the space missions MCP tools.
         Use get_space_missions_schema for column definitions and get_space_missions_summary for dataset overview.
-        Use list_space_mission_distinct_values to discover filter values before exact-match filters.
+        Use list_space_mission_distinct_values to discover filter values (column + optional search) before exact-match filters.
         Use filter_space_missions (with offset for pagination), count_space_missions, and aggregate_space_missions for row-level and grouped analysis.
         Use aggregate_space_missions_by_launch_country for country share questions (last comma segment of Location).
         Use compute_space_mission_success_rate for success-rate questions instead of manual division.
-        Do not invent counts, percentages, or mission facts. If tool results are partial (row caps or bucket rollups), say so.
+        Do not invent counts, percentages, or mission facts. Prefer MCP tools over guessing from partial context.
+        If tool results are partial (row caps or bucket rollups), say so.
+
+        {0}
+
+        ## Retrieved context
+        {1}
         """;
 
     private static readonly MediaTypeHeaderValue JsonMedia = new("application/json");
@@ -31,48 +47,54 @@ public sealed class SpaceMissionsAgentService
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
-    private readonly IOptions<SpaceMissionsAgentOptions> _options;
-    private readonly IOptions<AiServiceSettings> _aiSettings;
-    private readonly IAiService _ai;
-    private readonly ISpaceMissionsMcpAgentService _mcpAgent;
-    private readonly ILogger<SpaceMissionsAgentService> _logger;
-
-    public SpaceMissionsAgentService(
-        IOptions<SpaceMissionsAgentOptions> options,
-        IOptions<AiServiceSettings> aiSettings,
-        IAiService ai,
-        ISpaceMissionsMcpAgentService mcpAgent,
-        ILogger<SpaceMissionsAgentService> logger)
-    {
-        _options = options;
-        _aiSettings = aiSettings;
-        _ai = ai;
-        _mcpAgent = mcpAgent;
-        _logger = logger;
-    }
-
     public async Task<SpaceMissionsAgentRunResult> RunAsync(string userQuestion, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userQuestion);
 
-        var opts = _options.Value;
+        var opts = options.Value;
         var instanceName = opts.InstanceName.Trim();
         if (string.IsNullOrWhiteSpace(instanceName))
             throw new InvalidOperationException("SpaceMissionsAgent:InstanceName is not set.");
 
+        // RAG
+        EnsureRagIndexReady();
+
         var deployment = ResolveDeployment(instanceName);
         var maxIterations = Math.Max(1, opts.MaxFunctionIterations);
 
-        await using var session = await _mcpAgent.ConnectAsync(cancellationToken).ConfigureAwait(false);
+        var retrieval = await ragOrchestrator
+            .RetrieveContextAsync(ragIndexStore.Index!, userQuestion, cancellationToken)
+            .ConfigureAwait(false);
+
+        var filteredChunks = FilterRetrievedChunks(retrieval.RankedChunks, opts.MinRetrievalSimilarity);
+        var contextSection = filteredChunks.Count == 0
+            ? "(No relevant chunks above similarity threshold; rely on MCP tools for evidence.)"
+            : RagContextFormatter.FormatContextBlocks(filteredChunks);
+
+        // MCP
+        var toolHints = SpaceMissionToolRoutingHints.BuildHints(userQuestion);
+        var routingSection = string.IsNullOrWhiteSpace(toolHints)
+            ? string.Empty
+            : toolHints + Environment.NewLine;
+
+        var systemPrompt = string.Format(
+            HybridSystemPromptTemplate,
+            routingSection,
+            contextSection);
+
+        await using var session = await mcpAgent.ConnectAsync(cancellationToken).ConfigureAwait(false);
         var toolDefinitions = session.ToolDefinitions.ToList();
 
-        _logger.LogInformation(
-            "Space missions MCP tools loaded: {ToolCount} tool definitions",
-            toolDefinitions.Count);
+        logger.LogInformation(
+            "Space missions MCP tools loaded: {ToolCount} tool definitions; retrieved {RetrievedCount} chunk(s), kept {KeptCount} above similarity {MinSimilarity:F2}",
+            toolDefinitions.Count,
+            retrieval.RankedChunks.Count,
+            filteredChunks.Count,
+            opts.MinRetrievalSimilarity);
 
         var conversation = new List<ChatMessage>
         {
-            new() { Role = LlmRole.System, Content = SystemPrompt },
+            new() { Role = LlmRole.System, Content = systemPrompt },
             new() { Role = LlmRole.User, Content = userQuestion }
         };
 
@@ -89,7 +111,7 @@ public sealed class SpaceMissionsAgentService
             foreach (var m in conversation)
                 request.AddMessage(m);
 
-            var completion = await _ai.CompleteChatAsync(instanceName, request, JsonMedia, JsonOptions, cancellationToken)
+            var completion = await ai.CompleteChatAsync(instanceName, request, JsonMedia, JsonOptions, cancellationToken)
                 .ConfigureAwait(false);
             if (completion?.Choices?.FirstOrDefault()?.Message is not { } assistantMessage)
                 throw new InvalidOperationException("Chat API returned no message.");
@@ -127,13 +149,50 @@ public sealed class SpaceMissionsAgentService
         return new SpaceMissionsAgentRunResult(last?.Content?.Trim() ?? string.Empty, invokedToolNames);
     }
 
+    private void EnsureRagIndexReady()
+    {
+        if (ragIndexStore.IsReady)
+            return;
+
+        if (ragIndexStore.IsBuilding)
+            throw new RagIndexNotReadyException("The knowledge index is still building. Please try again in a moment.");
+
+        if (ragIndexStore.BuildError is { } buildError)
+            throw new RagIndexNotReadyException("The knowledge index failed to build.", buildError);
+
+        throw new RagIndexNotReadyException("The knowledge index is not available.");
+    }
+
+    private static IReadOnlyList<(VectorRecord Record, float Similarity)> FilterRetrievedChunks(
+        IReadOnlyList<(VectorRecord Record, float Similarity)> rankedChunks,
+        float minSimilarity)
+    {
+        if (minSimilarity <= 0f)
+            return rankedChunks;
+
+        return rankedChunks
+            .Where(x => x.Similarity >= minSimilarity)
+            .ToList();
+    }
+
     private string ResolveDeployment(string instanceName)
     {
-        var inst = _aiSettings.Value.Instances.FirstOrDefault(x =>
+        var inst = aiSettings.Value.Instances.FirstOrDefault(x =>
             x.Name.Equals(instanceName, StringComparison.Ordinal));
         if (inst is null)
             throw new InvalidOperationException($"No AI instance named '{instanceName}' in SystemSettings:AiServiceSettings:Instances.");
         return inst.Deployment;
+    }
+}
+
+public sealed class RagIndexNotReadyException : Exception
+{
+    public RagIndexNotReadyException(string message) : base(message)
+    {
+    }
+
+    public RagIndexNotReadyException(string message, Exception innerException) : base(message, innerException)
+    {
     }
 }
 

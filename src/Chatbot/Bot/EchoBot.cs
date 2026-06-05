@@ -9,14 +9,17 @@ namespace Chatbot.Bot;
 public class EchoBot : AgentApplication
 {
     private readonly SpaceMissionsAgentService _agentService;
+    private readonly RagIndexStore _ragIndexStore;
     private readonly ILogger<EchoBot> _logger;
 
     public EchoBot(
         AgentApplicationOptions options,
         SpaceMissionsAgentService agentService,
+        RagIndexStore ragIndexStore,
         ILogger<EchoBot> logger) : base(options)
     {
         _agentService = agentService;
+        _ragIndexStore = ragIndexStore;
         _logger = logger;
 
         OnConversationUpdate(ConversationUpdateEvents.MembersAdded, WelcomeMessageAsync);
@@ -29,8 +32,15 @@ public class EchoBot : AgentApplication
         {
             if (member.Id != turnContext.Activity.Recipient.Id)
             {
+                var readiness = _ragIndexStore.IsReady
+                    ? "The dataset index is ready."
+                    : _ragIndexStore.IsBuilding
+                        ? "The dataset index is still building — first answers may take a moment."
+                        : "The dataset index is not ready yet.";
+
                 await turnContext.SendActivityAsync(
-                    MessageFactory.Text("Hello! Ask me about space missions from dataset/space_missions.csv."),
+                    MessageFactory.Text(
+                        $"Hello! Ask about space missions — I combine retrieved dataset context with MCP tools for precise counts, distinct values, and filters. {readiness}"),
                     cancellationToken);
             }
         }
@@ -49,11 +59,20 @@ public class EchoBot : AgentApplication
 
         try
         {
+            await turnContext.SendActivityAsync(new Activity { Type = ActivityTypes.Typing }, cancellationToken);
+
             var result = await _agentService.RunAsync(question, cancellationToken);
             var answer = string.IsNullOrWhiteSpace(result.AnswerText)
                 ? "I could not produce an answer from the space missions data."
                 : result.AnswerText;
             await turnContext.SendActivityAsync(MessageFactory.Text(answer), cancellationToken);
+        }
+        catch (RagIndexNotReadyException ex)
+        {
+            _logger.LogWarning(ex, "RAG index not ready for question.");
+            await turnContext.SendActivityAsync(
+                MessageFactory.Text(ex.Message),
+                cancellationToken);
         }
         catch (Exception ex)
         {

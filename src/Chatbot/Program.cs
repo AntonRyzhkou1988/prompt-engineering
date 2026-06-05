@@ -6,6 +6,7 @@ using Microsoft.Agents.Hosting.AspNetCore;
 using Microsoft.Agents.Storage;
 using Microsoft.Agents.Builder;
 using PromptEngineering.LLM.Configurations;
+using Rag;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +26,11 @@ builder.AddAgentApplicationOptions();
 builder.AddAgent<EchoBot>();
 
 builder.Services.AddGenAi(builder.Configuration);
+builder.Services.AddRag(builder.Configuration);
+builder.Services.PostConfigure<RagSettings>(options =>
+    RagPathResolver.ApplyAbsolutePaths(options, builder.Environment.ContentRootPath));
+builder.Services.AddSingleton<RagIndexStore>();
+builder.Services.AddHostedService<RagIndexBackgroundService>();
 builder.Services
     .AddOptions<SpaceMissionsAgentOptions>()
     .Bind(builder.Configuration.GetSection(SpaceMissionsAgentOptions.SectionName))
@@ -53,7 +59,19 @@ app.MapPost("/api/messages", async (HttpRequest request, HttpResponse response, 
 
 if (app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "Playground")
 {
-    app.MapGet("/", () => "Space Missions Agent");
+    app.MapGet("/", () => "Space Missions Agent (RAG + MCP)");
+    app.MapGet("/ready", (RagIndexStore store) =>
+    {
+        if (store.IsReady)
+            return Results.Ok(new { status = "ready", chunks = store.Index!.Count });
+
+        if (store.IsBuilding)
+            return Results.Json(new { status = "building" }, statusCode: StatusCodes.Status503ServiceUnavailable);
+
+        return Results.Json(
+            new { status = "failed", error = store.BuildError?.Message ?? "Index unavailable" },
+            statusCode: StatusCodes.Status503ServiceUnavailable);
+    });
     app.UseDeveloperExceptionPage();
     app.MapControllers().AllowAnonymous();
 }
