@@ -162,11 +162,17 @@ Without the trailing **`-- "..."`** argument, **Agent** reads a question from st
 ```powershell
 dotnet user-secrets set "SystemSettings:AiServiceSettings:BaseAddress" "https://..." `
   --project src/Chatbot/Chatbot.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:0:ApiKey" "..." `
+  --project src/Chatbot/Chatbot.csproj
+dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:1:ApiKey" "..." `
+  --project src/Chatbot/Chatbot.csproj
 dotnet user-secrets set "SystemSettings:AiServiceSettings:Instances:2:ApiKey" "..." `
   --project src/Chatbot/Chatbot.csproj
 
 dotnet build src/SpaceMissions.McpServer/SpaceMissions.McpServer.csproj
 dotnet run --project src/Chatbot/Chatbot.csproj
+
+teamsapptester start --app-endpoint http://127.0.0.1:5130/api/messages
 ```
 
 Set bot **`ClientId`** / **`ClientSecret`** via user secrets when using the Bot Framework (see **[Getting started](docs/getting-started.md#user-secrets)**). Full guide: **[docs/applications/space-missions-mcp/space-missions-mcp.md](docs/applications/space-missions-mcp/space-missions-mcp.md)**.
