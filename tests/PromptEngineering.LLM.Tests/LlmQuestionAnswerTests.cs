@@ -21,7 +21,7 @@ public sealed class LlmQuestionAnswerTests
     public async Task CompleteChatAsync_UserQuestion_ReturnsExpectedAnswer()
     {
         // 0. setup: initialize api-key (string)
-        const string apiKey = "";
+        const string apiKey = "test-api-key";
         const string expectedAnswer = "4";
 
         var handler = new StubHttpMessageHandler(
