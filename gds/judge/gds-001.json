@@ -1,0 +1,11 @@
+{
+  "itemId": "gds-001",
+  "score": 0.5,
+  "passed": true,
+  "reasoning": "The agent correctly identified all nine columns in the dataset. However, it failed to meet two verification criteria: it did not mention the total number of rows (4630) or the date range of the missions in the dataset.",
+  "toolsInvoked": [
+    "get_space_missions_schema"
+  ],
+  "toolRoutingPassed": true,
+  "generatedUtc": "2026-06-06T19:43:43.5084707Z"
+}

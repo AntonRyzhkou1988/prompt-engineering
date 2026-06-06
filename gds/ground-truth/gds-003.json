@@ -1,0 +1,43 @@
+{
+  "itemId": "gds-003",
+  "generatedUtc": "2026-06-06T13:55:20.3470555Z",
+  "mcpCalls": [
+    {
+      "tool": "list_space_mission_distinct_values",
+      "arguments": {
+        "column": "Rocket",
+        "search": "Falcon",
+        "limit": 100
+      },
+      "response": {
+        "column": "Rocket",
+        "totalDistinct": 7,
+        "returned": 7,
+        "values": [
+          "Falcon 1",
+          "Falcon 9 Block 3",
+          "Falcon 9 Block 4",
+          "Falcon 9 Block 5",
+          "Falcon 9 v1.0",
+          "Falcon 9 v1.1",
+          "Falcon Heavy"
+        ],
+        "warnings": []
+      }
+    }
+  ],
+  "keyFacts": {
+    "column": "Rocket",
+    "totalDistinct": 7,
+    "returned": 7,
+    "values": [
+      "Falcon 1",
+      "Falcon 9 Block 3",
+      "Falcon 9 Block 4",
+      "Falcon 9 Block 5",
+      "Falcon 9 v1.0",
+      "Falcon 9 v1.1",
+      "Falcon Heavy"
+    ]
+  }
+}

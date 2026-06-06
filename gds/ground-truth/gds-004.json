@@ -1,0 +1,250 @@
+{
+  "itemId": "gds-004",
+  "generatedUtc": "2026-06-06T13:55:20.3538765Z",
+  "mcpCalls": [
+    {
+      "tool": "filter_space_missions",
+      "arguments": {
+        "companyContains": "SpaceX",
+        "dateFrom": "2020-01-01",
+        "limit": 10
+      },
+      "response": {
+        "returned": 10,
+        "totalMatching": 96,
+        "limit": 10,
+        "offset": 0,
+        "warnings": [],
+        "rows": [
+          {
+            "company": "SpaceX",
+            "location": "SLC-40, Cape Canaveral AFS, Florida, USA",
+            "date": "2020-01-07",
+            "time": "02:19:00",
+            "rocket": "Falcon 9 Block 5",
+            "mission": "Starlink V1 L2",
+            "rocketStatus": "Active",
+            "price": "67",
+            "missionStatus": "Success"
+          },
+          {
+            "company": "SpaceX",
+            "location": "LC-39A, Kennedy Space Center, Florida, USA",
+            "date": "2020-01-19",
+            "time": "15:30:00",
+            "rocket": "Falcon 9 Block 5",
+            "mission": "Crew Dragon Inflight Abort Test",
+            "rocketStatus": "Active",
+            "price": "67",
+            "missionStatus": "Success"
+          },
+          {
+            "company": "SpaceX",
+            "location": "SLC-40, Cape Canaveral AFS, Florida, USA",
+            "date": "2020-01-29",
+            "time": "14:06:00",
+            "rocket": "Falcon 9 Block 5",
+            "mission": "Starlink V1 L3",
+            "rocketStatus": "Active",
+            "price": "67",
+            "missionStatus": "Success"
+          },
+          {
+            "company": "SpaceX",
+            "location": "SLC-40, Cape Canaveral AFS, Florida, USA",
+            "date": "2020-02-17",
+            "time": "15:05:00",
+            "rocket": "Falcon 9 Block 5",
+            "mission": "Starlink V1 L4",
+            "rocketStatus": "Active",
+            "price": "67",
+            "missionStatus": "Success"
+          },
+          {
+            "company": "SpaceX",
+            "location": "SLC-40, Cape Canaveral AFS, Florida, USA",
+            "date": "2020-03-07",
+            "time": "04:50:00",
+            "rocket": "Falcon 9 Block 5",
+            "mission": "CRS-20",
+            "rocketStatus": "Active",
+            "price": "67",
+            "missionStatus": "Success"
+          },
+          {
+            "company": "SpaceX",
+            "location": "LC-39A, Kennedy Space Center, Florida, USA",
+            "date": "2020-03-18",
+            "time": "12:16:00",
+            "rocket": "Falcon 9 Block 5",
+            "mission": "Starlink V1 L5",
+            "rocketStatus": "Active",
+            "price": "67",
+            "missionStatus": "Success"
+          },
+          {
+            "company": "SpaceX",
+            "location": "LC-39A, Kennedy Space Center, Florida, USA",
+            "date": "2020-04-22",
+            "time": "19:30:00",
+            "rocket": "Falcon 9 Block 5",
+            "mission": "Starlink V1 L6",
+            "rocketStatus": "Active",
+            "price": "67",
+            "missionStatus": "Success"
+          },
+          {
+            "company": "SpaceX",
+            "location": "LC-39A, Kennedy Space Center, Florida, USA",
+            "date": "2020-05-30",
+            "time": "19:22:00",
+            "rocket": "Falcon 9 Block 5",
+            "mission": "SpaceX Demo-2",
+            "rocketStatus": "Active",
+            "price": "67",
+            "missionStatus": "Success"
+          },
+          {
+            "company": "SpaceX",
+            "location": "SLC-40, Cape Canaveral AFS, Florida, USA",
+            "date": "2020-06-04",
+            "time": "01:25:00",
+            "rocket": "Falcon 9 Block 5",
+            "mission": "Starlink V1 L7",
+            "rocketStatus": "Active",
+            "price": "67",
+            "missionStatus": "Success"
+          },
+          {
+            "company": "SpaceX",
+            "location": "SLC-40, Cape Canaveral AFS, Florida, USA",
+            "date": "2020-06-13",
+            "time": "09:21:00",
+            "rocket": "Falcon 9 Block 5",
+            "mission": "Starlink V1 L8 \u0026 SkySat 16 to 18",
+            "rocketStatus": "Active",
+            "price": "67",
+            "missionStatus": "Success"
+          }
+        ]
+      }
+    }
+  ],
+  "keyFacts": {
+    "returned": 10,
+    "totalMatching": 96,
+    "limit": 10,
+    "sampleRows": [
+      {
+        "company": "SpaceX",
+        "location": "SLC-40, Cape Canaveral AFS, Florida, USA",
+        "date": "2020-01-07",
+        "time": "02:19:00",
+        "rocket": "Falcon 9 Block 5",
+        "mission": "Starlink V1 L2",
+        "rocketStatus": "Active",
+        "price": "67",
+        "missionStatus": "Success"
+      },
+      {
+        "company": "SpaceX",
+        "location": "LC-39A, Kennedy Space Center, Florida, USA",
+        "date": "2020-01-19",
+        "time": "15:30:00",
+        "rocket": "Falcon 9 Block 5",
+        "mission": "Crew Dragon Inflight Abort Test",
+        "rocketStatus": "Active",
+        "price": "67",
+        "missionStatus": "Success"
+      },
+      {
+        "company": "SpaceX",
+        "location": "SLC-40, Cape Canaveral AFS, Florida, USA",
+        "date": "2020-01-29",
+        "time": "14:06:00",
+        "rocket": "Falcon 9 Block 5",
+        "mission": "Starlink V1 L3",
+        "rocketStatus": "Active",
+        "price": "67",
+        "missionStatus": "Success"
+      },
+      {
+        "company": "SpaceX",
+        "location": "SLC-40, Cape Canaveral AFS, Florida, USA",
+        "date": "2020-02-17",
+        "time": "15:05:00",
+        "rocket": "Falcon 9 Block 5",
+        "mission": "Starlink V1 L4",
+        "rocketStatus": "Active",
+        "price": "67",
+        "missionStatus": "Success"
+      },
+      {
+        "company": "SpaceX",
+        "location": "SLC-40, Cape Canaveral AFS, Florida, USA",
+        "date": "2020-03-07",
+        "time": "04:50:00",
+        "rocket": "Falcon 9 Block 5",
+        "mission": "CRS-20",
+        "rocketStatus": "Active",
+        "price": "67",
+        "missionStatus": "Success"
+      },
+      {
+        "company": "SpaceX",
+        "location": "LC-39A, Kennedy Space Center, Florida, USA",
+        "date": "2020-03-18",
+        "time": "12:16:00",
+        "rocket": "Falcon 9 Block 5",
+        "mission": "Starlink V1 L5",
+        "rocketStatus": "Active",
+        "price": "67",
+        "missionStatus": "Success"
+      },
+      {
+        "company": "SpaceX",
+        "location": "LC-39A, Kennedy Space Center, Florida, USA",
+        "date": "2020-04-22",
+        "time": "19:30:00",
+        "rocket": "Falcon 9 Block 5",
+        "mission": "Starlink V1 L6",
+        "rocketStatus": "Active",
+        "price": "67",
+        "missionStatus": "Success"
+      },
+      {
+        "company": "SpaceX",
+        "location": "LC-39A, Kennedy Space Center, Florida, USA",
+        "date": "2020-05-30",
+        "time": "19:22:00",
+        "rocket": "Falcon 9 Block 5",
+        "mission": "SpaceX Demo-2",
+        "rocketStatus": "Active",
+        "price": "67",
+        "missionStatus": "Success"
+      },
+      {
+        "company": "SpaceX",
+        "location": "SLC-40, Cape Canaveral AFS, Florida, USA",
+        "date": "2020-06-04",
+        "time": "01:25:00",
+        "rocket": "Falcon 9 Block 5",
+        "mission": "Starlink V1 L7",
+        "rocketStatus": "Active",
+        "price": "67",
+        "missionStatus": "Success"
+      },
+      {
+        "company": "SpaceX",
+        "location": "SLC-40, Cape Canaveral AFS, Florida, USA",
+        "date": "2020-06-13",
+        "time": "09:21:00",
+        "rocket": "Falcon 9 Block 5",
+        "mission": "Starlink V1 L8 \u0026 SkySat 16 to 18",
+        "rocketStatus": "Active",
+        "price": "67",
+        "missionStatus": "Success"
+      }
+    ]
+  }
+}

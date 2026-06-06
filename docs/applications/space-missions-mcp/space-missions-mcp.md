@@ -185,6 +185,20 @@ dotnet test tests/SpaceMissions.McpServer.Tests/SpaceMissions.McpServer.Tests.cs
 dotnet test tests/Chatbot.Tests/Chatbot.Tests.csproj --filter "FullyQualifiedName~SpaceMissions"
 ```
 
+### Golden Data Set (GDS)
+
+Ten Chatbot eval items live under **[`gds/`](../../../gds/)** ([`gds_space_missions_mcp.md`](../../../gds/gds_space_missions_mcp.md)). Regenerate MCP ground truth (no LLM):
+
+```powershell
+dotnet test tests/Chatbot.Tests --filter "FullyQualifiedName~GdsGroundTruth"
+```
+
+Run agent + LLM judge (Explicit; requires API key):
+
+```powershell
+dotnet test tests/Chatbot.Tests --filter "FullyQualifiedName~SpaceMissionsGdsIntegration" -- NUnit.ExplicitMode=On
+```
+
 Fixtures: **`tests/*/Fixtures/space_missions_sample.csv`** (20 rows).
 
 ## Related documentation
@@ -196,6 +210,7 @@ Fixtures: **`tests/*/Fixtures/space_missions_sample.csv`** (20 rows).
 | [Space missions data dictionary](../rag/space_missions_data_dictionary.md) | Column semantics |
 | [RAG guide](../rag/rag.md) | Chunked retrieval over the same CSV |
 | [RAG eval gold](../rag/rag_eval_space_missions_gold.md) | Scoring prefilled space-missions questions |
+| [Chatbot MCP GDS](../../../gds/gds_space_missions_mcp.md) | Ten-item golden set with MCP ground truth and LLM judge |
 | [Getting started](../../getting-started.md) | Chatbot user secrets and run commands |
 | [Overview](../../overview.md) | How this track fits beside RAG and Agent |
 

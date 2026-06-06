@@ -1,0 +1,137 @@
+{
+  "itemId": "gds-007",
+  "generatedUtc": "2026-06-06T13:55:20.3639077Z",
+  "mcpCalls": [
+    {
+      "tool": "aggregate_space_missions_by_launch_country",
+      "arguments": {},
+      "response": {
+        "groupByColumn": "LaunchCountry",
+        "derivationRule": "Country is the last comma-separated segment of Location after trimming whitespace; empty Location yields \u0027Unparseable / missing\u0027.",
+        "totalRows": 4630,
+        "buckets": [
+          {
+            "bucket": "USA",
+            "count": 1467,
+            "percentage": 31.68
+          },
+          {
+            "bucket": "Russia",
+            "count": 1416,
+            "percentage": 30.58
+          },
+          {
+            "bucket": "Kazakhstan",
+            "count": 719,
+            "percentage": 15.53
+          },
+          {
+            "bucket": "China",
+            "count": 365,
+            "percentage": 7.88
+          },
+          {
+            "bucket": "France",
+            "count": 318,
+            "percentage": 6.87
+          },
+          {
+            "bucket": "Japan",
+            "count": 130,
+            "percentage": 2.81
+          },
+          {
+            "bucket": "India",
+            "count": 82,
+            "percentage": 1.77
+          },
+          {
+            "bucket": "Pacific Ocean",
+            "count": 36,
+            "percentage": 0.78
+          },
+          {
+            "bucket": "New Zealand",
+            "count": 28,
+            "percentage": 0.6
+          },
+          {
+            "bucket": "Iran",
+            "count": 16,
+            "percentage": 0.35
+          },
+          {
+            "bucket": "Israel",
+            "count": 11,
+            "percentage": 0.24
+          },
+          {
+            "bucket": "Kenya",
+            "count": 9,
+            "percentage": 0.19
+          },
+          {
+            "bucket": "Australia",
+            "count": 6,
+            "percentage": 0.13
+          },
+          {
+            "bucket": "North Korea",
+            "count": 5,
+            "percentage": 0.11
+          },
+          {
+            "bucket": "South Korea",
+            "count": 5,
+            "percentage": 0.11
+          },
+          {
+            "bucket": "New Mexico",
+            "count": 4,
+            "percentage": 0.09
+          },
+          {
+            "bucket": "Barents Sea",
+            "count": 3,
+            "percentage": 0.06
+          },
+          {
+            "bucket": "Brazil",
+            "count": 3,
+            "percentage": 0.06
+          },
+          {
+            "bucket": "Yellow Sea",
+            "count": 3,
+            "percentage": 0.06
+          },
+          {
+            "bucket": "Gran Canaria",
+            "count": 2,
+            "percentage": 0.04
+          },
+          {
+            "bucket": "Pacific Missile Range Facility",
+            "count": 1,
+            "percentage": 0.02
+          },
+          {
+            "bucket": "Shahrud Missile Test Site",
+            "count": 1,
+            "percentage": 0.02
+          }
+        ],
+        "warnings": []
+      }
+    }
+  ],
+  "keyFacts": {
+    "derivationRule": "Country is the last comma-separated segment of Location after trimming whitespace; empty Location yields \u0027Unparseable / missing\u0027.",
+    "totalRows": 4630,
+    "usaBucket": {
+      "bucket": "USA",
+      "count": 1467,
+      "percentage": 31.68
+    }
+  }
+}

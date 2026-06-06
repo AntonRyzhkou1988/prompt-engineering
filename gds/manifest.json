@@ -1,0 +1,134 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "itemId": "gds-001",
+      "sourceQuestionNumber": 1,
+      "question": "What columns are in the space missions dataset?",
+      "expectedTools": ["get_space_missions_schema"],
+      "verificationCriteria": [
+        "Names the nine dataset columns (Company, Location, Date, Time, Rocket, Mission, RocketStatus, Price, MissionStatus).",
+        "States the full-dataset row count from ground truth (4630).",
+        "Mentions the date range min/max when available.",
+        "Does not invent columns or counts not supported by MCP tools."
+      ],
+      "groundTruthRef": "ground-truth/gds-001.json"
+    },
+    {
+      "itemId": "gds-002",
+      "sourceQuestionNumber": 7,
+      "question": "Give me a high-level overview of the space missions dataset.",
+      "expectedTools": ["get_space_missions_summary"],
+      "verificationCriteria": [
+        "Summarizes total rows and date span for the whole dataset.",
+        "Describes mission outcome mix (MissionStatus breakdown) with counts or percentages.",
+        "Uses whole-dataset statistics, not a retrieved chunk slice.",
+        "Discloses that figures come from the loaded CSV when relevant."
+      ],
+      "groundTruthRef": "ground-truth/gds-002.json"
+    },
+    {
+      "itemId": "gds-003",
+      "sourceQuestionNumber": 14,
+      "question": "What rocket names contain \"Falcon\"?",
+      "expectedTools": ["list_space_mission_distinct_values"],
+      "verificationCriteria": [
+        "Lists rocket names containing Falcon from distinct-values tool results.",
+        "Includes Falcon 9 and other Falcon variants present in ground truth.",
+        "Acknowledges distinct-value limit or totalDistinct if results are capped.",
+        "Does not invent rocket names absent from tool output."
+      ],
+      "groundTruthRef": "ground-truth/gds-003.json"
+    },
+    {
+      "itemId": "gds-004",
+      "sourceQuestionNumber": 19,
+      "question": "Show me SpaceX launches from 2020 onward.",
+      "expectedTools": ["filter_space_missions"],
+      "verificationCriteria": [
+        "Returns SpaceX launches with dates on or after 2020-01-01.",
+        "Cites row-level evidence (mission names, dates, or counts) from filter results.",
+        "States totalMatching vs returned when the cap applies.",
+        "Does not claim to show all rows if only a page is returned."
+      ],
+      "groundTruthRef": "ground-truth/gds-004.json"
+    },
+    {
+      "itemId": "gds-005",
+      "sourceQuestionNumber": 29,
+      "question": "How many SpaceX launches are in the dataset?",
+      "expectedTools": ["count_space_missions"],
+      "verificationCriteria": [
+        "States the exact SpaceX launch count matching ground truth.",
+        "Uses MCP count tool evidence rather than guessing from RAG chunks.",
+        "Does not confuse SpaceX with other companies containing 'Space'."
+      ],
+      "groundTruthRef": "ground-truth/gds-005.json"
+    },
+    {
+      "itemId": "gds-006",
+      "sourceQuestionNumber": 35,
+      "question": "Break down all missions by MissionStatus with counts and percentages.",
+      "expectedTools": ["aggregate_space_missions"],
+      "verificationCriteria": [
+        "Groups by MissionStatus across the full dataset.",
+        "Provides counts and percentages that sum to the dataset total.",
+        "Includes all four known outcome literals where present in data.",
+        "Does not fabricate bucket totals."
+      ],
+      "groundTruthRef": "ground-truth/gds-006.json"
+    },
+    {
+      "itemId": "gds-007",
+      "sourceQuestionNumber": 43,
+      "question": "What percentage of launches are from the USA?",
+      "expectedTools": ["aggregate_space_missions_by_launch_country"],
+      "verificationCriteria": [
+        "Uses launch country derived from Location (last comma segment).",
+        "States USA share as a percentage consistent with ground truth.",
+        "Explains or implies the country derivation rule when relevant.",
+        "Does not treat 'Florida, USA' as a sovereign country name."
+      ],
+      "groundTruthRef": "ground-truth/gds-007.json"
+    },
+    {
+      "itemId": "gds-008",
+      "sourceQuestionNumber": 51,
+      "question": "What is SpaceX's mission success rate?",
+      "expectedTools": ["compute_space_mission_success_rate"],
+      "verificationCriteria": [
+        "Reports success rate using MissionStatus formula (Success / non-empty status).",
+        "States percentage consistent with ground truth within reasonable rounding.",
+        "Does not manually divide unrelated counts.",
+        "Mentions denominator excludes blank MissionStatus when relevant."
+      ],
+      "groundTruthRef": "ground-truth/gds-008.json"
+    },
+    {
+      "itemId": "gds-009",
+      "sourceQuestionNumber": 58,
+      "question": "What is SpaceX's success rate since 2020, and show a few example rows?",
+      "expectedTools": ["compute_space_mission_success_rate", "filter_space_missions"],
+      "verificationCriteria": [
+        "Computes success rate for SpaceX missions from 2020 onward.",
+        "Shows example mission rows (names/dates/status) from filter results.",
+        "Uses both success-rate and filter MCP tools (multi-tool chain).",
+        "Discloses partial row return if filter cap applies."
+      ],
+      "groundTruthRef": "ground-truth/gds-009.json"
+    },
+    {
+      "itemId": "gds-010",
+      "sourceQuestionNumber": 66,
+      "question": "Show me all 5,000 SpaceX launches.",
+      "expectedTools": ["count_space_missions", "filter_space_missions"],
+      "verificationCriteria": [
+        "States actual totalMatching SpaceX count vs the user's 5,000 claim.",
+        "Discloses returned vs totalMatching and the 200-row cap per filter call.",
+        "Does not claim to list 5,000 rows when fewer exist or cap applies.",
+        "Honest about pagination if suggesting more rows exist."
+      ],
+      "groundTruthRef": "ground-truth/gds-010.json"
+    }
+  ]
+}
