@@ -44,8 +44,10 @@ var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.General)
 await using var scope = app.Services.CreateAsyncScope();
 var aiService = scope.ServiceProvider.GetRequiredService<IAiService>();
 var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Security");
-var securityOpt = scope.ServiceProvider.GetRequiredService<IConfiguration>().GetRequiredSection(SecurityOptions.SectionName).Get<SecurityOptions>();
-var systemOpt = scope.ServiceProvider.GetRequiredService<IConfiguration>().GetRequiredSection("SystemSettings").Get<SystemSettings>();
+var securityOpt = scope.ServiceProvider.GetRequiredService<IConfiguration>().GetRequiredSection(SecurityOptions.SectionName).Get<SecurityOptions>()
+    ?? throw new InvalidOperationException($"Configuration section '{SecurityOptions.SectionName}' is missing or invalid.");
+var systemOpt = scope.ServiceProvider.GetRequiredService<IConfiguration>().GetRequiredSection("SystemSettings").Get<SystemSettings>()
+    ?? throw new InvalidOperationException("Configuration section 'SystemSettings' is missing or invalid.");
 
 // Security demos (run in order): each pair shows a vulnerable pattern, then a mitigation aligned with this sample host.
 
