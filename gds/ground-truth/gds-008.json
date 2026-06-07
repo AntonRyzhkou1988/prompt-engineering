@@ -1,0 +1,27 @@
+{
+  "itemId": "gds-008",
+  "generatedUtc": "2026-06-07T12:10:00.2373281Z",
+  "mcpCalls": [
+    {
+      "tool": "compute_space_mission_success_rate",
+      "arguments": {
+        "company": "SpaceX"
+      },
+      "response": {
+        "totalMatching": 182,
+        "successCount": 172,
+        "denominator": 182,
+        "successRatePercent": 94.51,
+        "formula": "successRate = count(MissionStatus == \u0027Success\u0027) / count(non-empty MissionStatus); percentages use the filtered slice only.",
+        "warnings": []
+      }
+    }
+  ],
+  "keyFacts": {
+    "totalMatching": 182,
+    "successCount": 172,
+    "denominator": 182,
+    "successRatePercent": 94.51,
+    "formula": "successRate = count(MissionStatus == \u0027Success\u0027) / count(non-empty MissionStatus); percentages use the filtered slice only."
+  }
+}

@@ -1,6 +1,9 @@
-﻿using Chatbot.Services;
+﻿using System.Text.Json;
+using Chatbot.Cards;
+using Chatbot.Services;
 using Microsoft.Agents.Builder;
 using Microsoft.Agents.Builder.App;
+using Microsoft.Agents.Builder.App.AdaptiveCards;
 using Microsoft.Agents.Builder.State;
 using Microsoft.Agents.Core.Models;
 
@@ -24,6 +27,8 @@ public class EchoBot : AgentApplication
 
         OnConversationUpdate(ConversationUpdateEvents.MembersAdded, WelcomeMessageAsync);
         OnActivity(ActivityTypes.Message, OnMessageAsync);
+        AdaptiveCards.OnActionSubmit("acknowledge", OnAcknowledgeAsync);
+        AdaptiveCards.OnActionSubmit("feedback", OnFeedbackAsync);
     }
 
     protected async Task WelcomeMessageAsync(ITurnContext turnContext, ITurnState turnState, CancellationToken cancellationToken)
@@ -65,7 +70,10 @@ public class EchoBot : AgentApplication
             var answer = string.IsNullOrWhiteSpace(result.AnswerText)
                 ? "I could not produce an answer from the space missions data."
                 : result.AnswerText;
-            await turnContext.SendActivityAsync(MessageFactory.Text(answer), cancellationToken);
+
+            var correlationId = Guid.NewGuid().ToString("N");
+            var attachment = QuestionAnswerAdaptiveCardBuilder.CreateAttachment(question, answer, correlationId);
+            await turnContext.SendActivityAsync(MessageFactory.Attachment(attachment), cancellationToken);
         }
         catch (RagIndexNotReadyException ex)
         {
@@ -81,5 +89,51 @@ public class EchoBot : AgentApplication
                 MessageFactory.Text("Sorry, I could not answer that question right now. Please try again later."),
                 cancellationToken);
         }
+    }
+
+    protected async Task OnAcknowledgeAsync(
+        ITurnContext turnContext,
+        ITurnState turnState,
+        object data,
+        CancellationToken cancellationToken)
+    {
+        var correlationId = TryGetCorrelationId(data);
+        _logger.LogInformation("User acknowledged answer. CorrelationId={CorrelationId}", correlationId);
+
+        await turnContext.SendActivityAsync(
+            MessageFactory.Text("Thanks — marked as read."),
+            cancellationToken);
+    }
+
+    protected async Task OnFeedbackAsync(
+        ITurnContext turnContext,
+        ITurnState turnState,
+        object data,
+        CancellationToken cancellationToken)
+    {
+        var rating = TryGetStringProperty(data, "rating") ?? "unknown";
+        var correlationId = TryGetCorrelationId(data);
+        _logger.LogInformation(
+            "User submitted feedback. Rating={Rating}, CorrelationId={CorrelationId}",
+            rating,
+            correlationId);
+
+        await turnContext.SendActivityAsync(
+            MessageFactory.Text("Thanks for your feedback!"),
+            cancellationToken);
+    }
+
+    private static string? TryGetCorrelationId(object data) =>
+        TryGetStringProperty(data, "correlationId");
+
+    private static string? TryGetStringProperty(object data, string propertyName)
+    {
+        if (data is JsonElement element)
+            return element.TryGetProperty(propertyName, out var value) ? value.GetString() : null;
+
+        if (data is JsonDocument document && document.RootElement.TryGetProperty(propertyName, out var docValue))
+            return docValue.GetString();
+
+        return null;
     }
 }

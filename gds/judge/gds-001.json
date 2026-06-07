@@ -1,0 +1,11 @@
+{
+  "itemId": "gds-001",
+  "score": 0.5,
+  "passed": true,
+  "reasoning": "Correctly lists all nine column names exactly as in ground truth and does not invent extras. However, it omits two required verification items: the full dataset row count (4630) and the date range (1957-10-04 to 2022-07-29).",
+  "toolsInvoked": [
+    "get_space_missions_schema"
+  ],
+  "toolRoutingPassed": true,
+  "generatedUtc": "2026-06-07T12:10:30.9191058Z"
+}

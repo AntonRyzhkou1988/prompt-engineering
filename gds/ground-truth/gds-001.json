@@ -1,0 +1,83 @@
+{
+  "itemId": "gds-001",
+  "generatedUtc": "2026-06-07T12:10:00.1731194Z",
+  "mcpCalls": [
+    {
+      "tool": "get_space_missions_schema",
+      "arguments": {},
+      "response": {
+        "columns": [
+          {
+            "name": "Company",
+            "description": "Company responsible for the space mission."
+          },
+          {
+            "name": "Location",
+            "description": "Location of the launch."
+          },
+          {
+            "name": "Date",
+            "description": "Date of the launch (YYYY-MM-DD)."
+          },
+          {
+            "name": "Time",
+            "description": "Time of the launch (UTC)."
+          },
+          {
+            "name": "Rocket",
+            "description": "Name of the rocket used for the mission."
+          },
+          {
+            "name": "Mission",
+            "description": "Name of the space mission."
+          },
+          {
+            "name": "RocketStatus",
+            "description": "Status of the rocket as of August 2022 (typically Retired or Active in the dataset)."
+          },
+          {
+            "name": "Price",
+            "description": "Cost of the rocket in millions of US dollars."
+          },
+          {
+            "name": "MissionStatus",
+            "description": "Outcome: Success, Failure, Partial Failure, or Prelaunch Failure."
+          }
+        ],
+        "datasetRowCount": 4630,
+        "dateRange": {
+          "min": "1957-10-04",
+          "max": "2022-07-29"
+        },
+        "knownMissionStatusValues": [
+          "Success",
+          "Failure",
+          "Partial Failure",
+          "Prelaunch Failure"
+        ]
+      }
+    }
+  ],
+  "keyFacts": {
+    "datasetRowCount": 4630,
+    "dateRangeMin": "1957-10-04",
+    "dateRangeMax": "2022-07-29",
+    "columnNames": [
+      "Company",
+      "Location",
+      "Date",
+      "Time",
+      "Rocket",
+      "Mission",
+      "RocketStatus",
+      "Price",
+      "MissionStatus"
+    ],
+    "knownMissionStatusValues": [
+      "Success",
+      "Failure",
+      "Partial Failure",
+      "Prelaunch Failure"
+    ]
+  }
+}

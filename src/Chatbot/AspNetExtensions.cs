@@ -48,11 +48,11 @@ public static class AspNetExtensions
     /// `OpenIdMetadataUrl` can be omitted.  In which case default values in combination with `IsGov` is used.
     /// `AzureBotServiceTokenHandling` defaults to true and should always be true until Azure Bot Service sends Entra ID token.
     /// </remarks>
-    public static void AddBotAspNetAuthentication(this IServiceCollection services, IConfiguration configuration, string tokenValidationSectionName = "TokenValidation", ILogger logger = null)
+    public static void AddBotAspNetAuthentication(this IServiceCollection services, IConfiguration configuration, string tokenValidationSectionName = "TokenValidation", ILogger? logger = null)
     {
         IConfigurationSection tokenValidationSection = configuration.GetSection(tokenValidationSectionName);
-        List<string> validTokenIssuers = tokenValidationSection.GetSection("ValidIssuers").Get<List<string>>();
-        List<string> audiences = tokenValidationSection.GetSection("Audiences").Get<List<string>>();
+        List<string>? configuredIssuers = tokenValidationSection.GetSection("ValidIssuers").Get<List<string>>();
+        List<string>? configuredAudiences = tokenValidationSection.GetSection("Audiences").Get<List<string>>();
 
         if (!tokenValidationSection.Exists())
         {
@@ -61,7 +61,8 @@ public static class AspNetExtensions
         }
 
         // If ValidIssuers is empty, default for ABS Public Cloud
-        if (validTokenIssuers == null || validTokenIssuers.Count == 0)
+        List<string> validTokenIssuers;
+        if (configuredIssuers == null || configuredIssuers.Count == 0)
         {
             validTokenIssuers =
             [
@@ -74,34 +75,50 @@ public static class AspNetExtensions
                 "https://login.microsoftonline.com/69e9b82d-4842-4902-8d1e-abc5b98a55e8/v2.0",
             ];
 
-            string tenantId = tokenValidationSection["TenantId"];
+            string? tenantId = tokenValidationSection["TenantId"];
             if (!string.IsNullOrEmpty(tenantId))
             {
                 validTokenIssuers.Add(string.Format(CultureInfo.InvariantCulture, AuthenticationConstants.ValidTokenIssuerUrlTemplateV1, tenantId));
                 validTokenIssuers.Add(string.Format(CultureInfo.InvariantCulture, AuthenticationConstants.ValidTokenIssuerUrlTemplateV2, tenantId));
             }
         }
+        else
+        {
+            validTokenIssuers = configuredIssuers;
+        }
 
-        if (audiences == null || audiences.Count == 0)
+        if (configuredAudiences == null || configuredAudiences.Count == 0)
         {
             throw new ArgumentException($"{tokenValidationSectionName}:Audiences requires at least one value");
         }
+
+        List<string> audiences = configuredAudiences;
 
         bool isGov = tokenValidationSection.GetValue("IsGov", false);
         bool azureBotServiceTokenHandling = tokenValidationSection.GetValue("AzureBotServiceTokenHandling", true);
 
         // If the `AzureBotServiceOpenIdMetadataUrl` setting is not specified, use the default based on `IsGov`.  This is what is used to authenticate ABS tokens.
-        string azureBotServiceOpenIdMetadataUrl = tokenValidationSection["AzureBotServiceOpenIdMetadataUrl"];
-        if (string.IsNullOrEmpty(azureBotServiceOpenIdMetadataUrl))
+        string? configuredAzureBotServiceOpenIdMetadataUrl = tokenValidationSection["AzureBotServiceOpenIdMetadataUrl"];
+        string azureBotServiceOpenIdMetadataUrl;
+        if (string.IsNullOrEmpty(configuredAzureBotServiceOpenIdMetadataUrl))
         {
             azureBotServiceOpenIdMetadataUrl = isGov ? AuthenticationConstants.GovAzureBotServiceOpenIdMetadataUrl : AuthenticationConstants.PublicAzureBotServiceOpenIdMetadataUrl;
         }
+        else
+        {
+            azureBotServiceOpenIdMetadataUrl = configuredAzureBotServiceOpenIdMetadataUrl;
+        }
 
         // If the `OpenIdMetadataUrl` setting is not specified, use the default based on `IsGov`.  This is what is used to authenticate Entra ID tokens.
-        string openIdMetadataUrl = tokenValidationSection["OpenIdMetadataUrl"];
-        if (string.IsNullOrEmpty(openIdMetadataUrl))
+        string? configuredOpenIdMetadataUrl = tokenValidationSection["OpenIdMetadataUrl"];
+        string openIdMetadataUrl;
+        if (string.IsNullOrEmpty(configuredOpenIdMetadataUrl))
         {
             openIdMetadataUrl = isGov ? AuthenticationConstants.GovOpenIdMetadataUrl : AuthenticationConstants.PublicOpenIdMetadataUrl;
+        }
+        else
+        {
+            openIdMetadataUrl = configuredOpenIdMetadataUrl;
         }
 
         TimeSpan openIdRefreshInterval = tokenValidationSection.GetValue("OpenIdMetadataRefresh", BaseConfigurationManager.DefaultAutomaticRefreshInterval);
@@ -144,7 +161,7 @@ public static class AspNetExtensions
                         return;
                     }
 
-                    string[] parts = authorizationHeader?.Split(' ');
+                    string[] parts = authorizationHeader.Split(' ');
                     if (parts.Length != 2 || parts[0] != "Bearer")
                     {
                         // Default to AadTokenValidation handling
@@ -154,9 +171,9 @@ public static class AspNetExtensions
                     }
 
                     JwtSecurityToken token = new(parts[1]);
-                    string issuer = token.Claims.FirstOrDefault(claim => claim.Type == AuthenticationConstants.IssuerClaim)?.Value;
+                    string? issuer = token.Claims.FirstOrDefault(claim => claim.Type == AuthenticationConstants.IssuerClaim)?.Value;
 
-                    if (azureBotServiceTokenHandling && AuthenticationConstants.BotFrameworkTokenIssuer.Equals(issuer))
+                    if (azureBotServiceTokenHandling && issuer is not null && AuthenticationConstants.BotFrameworkTokenIssuer.Equals(issuer))
                     {
                         // Use the Bot Framework authority for this configuration manager
                         context.Options.TokenValidationParameters.ConfigurationManager = _openIdMetadataCache.GetOrAdd(azureBotServiceOpenIdMetadataUrl, key =>

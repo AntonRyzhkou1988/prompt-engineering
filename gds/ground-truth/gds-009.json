@@ -1,0 +1,113 @@
+{
+  "itemId": "gds-009",
+  "generatedUtc": "2026-06-07T12:10:00.2426993Z",
+  "mcpCalls": [
+    {
+      "tool": "compute_space_mission_success_rate",
+      "arguments": {
+        "company": "SpaceX",
+        "dateFrom": "2020-01-01"
+      },
+      "response": {
+        "totalMatching": 96,
+        "successCount": 92,
+        "denominator": 96,
+        "successRatePercent": 95.83,
+        "formula": "successRate = count(MissionStatus == \u0027Success\u0027) / count(non-empty MissionStatus); percentages use the filtered slice only.",
+        "warnings": []
+      }
+    },
+    {
+      "tool": "filter_space_missions",
+      "arguments": {
+        "company": "SpaceX",
+        "dateFrom": "2020-01-01",
+        "limit": 5
+      },
+      "response": {
+        "returned": 5,
+        "totalMatching": 96,
+        "limit": 5,
+        "offset": 0,
+        "warnings": [],
+        "rows": [
+          {
+            "company": "SpaceX",
+            "location": "SLC-40, Cape Canaveral AFS, Florida, USA",
+            "date": "2020-01-07",
+            "time": "02:19:00",
+            "rocket": "Falcon 9 Block 5",
+            "mission": "Starlink V1 L2",
+            "rocketStatus": "Active",
+            "price": "67",
+            "missionStatus": "Success"
+          },
+          {
+            "company": "SpaceX",
+            "location": "LC-39A, Kennedy Space Center, Florida, USA",
+            "date": "2020-01-19",
+            "time": "15:30:00",
+            "rocket": "Falcon 9 Block 5",
+            "mission": "Crew Dragon Inflight Abort Test",
+            "rocketStatus": "Active",
+            "price": "67",
+            "missionStatus": "Success"
+          },
+          {
+            "company": "SpaceX",
+            "location": "SLC-40, Cape Canaveral AFS, Florida, USA",
+            "date": "2020-01-29",
+            "time": "14:06:00",
+            "rocket": "Falcon 9 Block 5",
+            "mission": "Starlink V1 L3",
+            "rocketStatus": "Active",
+            "price": "67",
+            "missionStatus": "Success"
+          }
+        ]
+      }
+    }
+  ],
+  "keyFacts": {
+    "successRatePercent": 95.83,
+    "totalMatching": 96,
+    "successCount": 92,
+    "denominator": 96,
+    "exampleRows": [
+      {
+        "company": "SpaceX",
+        "location": "SLC-40, Cape Canaveral AFS, Florida, USA",
+        "date": "2020-01-07",
+        "time": "02:19:00",
+        "rocket": "Falcon 9 Block 5",
+        "mission": "Starlink V1 L2",
+        "rocketStatus": "Active",
+        "price": "67",
+        "missionStatus": "Success"
+      },
+      {
+        "company": "SpaceX",
+        "location": "LC-39A, Kennedy Space Center, Florida, USA",
+        "date": "2020-01-19",
+        "time": "15:30:00",
+        "rocket": "Falcon 9 Block 5",
+        "mission": "Crew Dragon Inflight Abort Test",
+        "rocketStatus": "Active",
+        "price": "67",
+        "missionStatus": "Success"
+      },
+      {
+        "company": "SpaceX",
+        "location": "SLC-40, Cape Canaveral AFS, Florida, USA",
+        "date": "2020-01-29",
+        "time": "14:06:00",
+        "rocket": "Falcon 9 Block 5",
+        "mission": "Starlink V1 L3",
+        "rocketStatus": "Active",
+        "price": "67",
+        "missionStatus": "Success"
+      }
+    ],
+    "filterTotalMatching": 96
+  }
+}

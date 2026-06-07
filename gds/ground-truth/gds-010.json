@@ -1,0 +1,73 @@
+{
+  "itemId": "gds-010",
+  "generatedUtc": "2026-06-07T12:10:00.2523290Z",
+  "mcpCalls": [
+    {
+      "tool": "count_space_missions",
+      "arguments": {
+        "company": "SpaceX"
+      },
+      "response": {
+        "count": 182,
+        "warnings": []
+      }
+    },
+    {
+      "tool": "filter_space_missions",
+      "arguments": {
+        "company": "SpaceX",
+        "limit": 200
+      },
+      "response": {
+        "returned": 182,
+        "totalMatching": 182,
+        "limit": 200,
+        "offset": 0,
+        "warnings": [],
+        "rows": [
+          {
+            "company": "SpaceX",
+            "location": "Omelek Island, Ronald Reagan Ballistic Missile Defense Test Site, Marshall Islands, USA",
+            "date": "2006-03-24",
+            "time": "21:30:00",
+            "rocket": "Falcon 1",
+            "mission": "FalconSat-2",
+            "rocketStatus": "Retired",
+            "price": "7",
+            "missionStatus": "Failure"
+          },
+          {
+            "company": "SpaceX",
+            "location": "Omelek Island, Ronald Reagan Ballistic Missile Defense Test Site, Marshall Islands, USA",
+            "date": "2007-03-21",
+            "time": "01:10:00",
+            "rocket": "Falcon 1",
+            "mission": "DemoSat",
+            "rocketStatus": "Retired",
+            "price": "7",
+            "missionStatus": "Failure"
+          },
+          {
+            "company": "SpaceX",
+            "location": "Omelek Island, Ronald Reagan Ballistic Missile Defense Test Site, Marshall Islands, USA",
+            "date": "2008-08-03",
+            "time": "03:34:00",
+            "rocket": "Falcon 1",
+            "mission": "Flight 3",
+            "rocketStatus": "Retired",
+            "price": "7",
+            "missionStatus": "Failure"
+          }
+        ]
+      }
+    }
+  ],
+  "keyFacts": {
+    "actualSpacexCount": 182,
+    "userClaimedCount": 5000,
+    "filterReturned": 182,
+    "filterTotalMatching": 182,
+    "filterLimit": 200,
+    "maxFilterLimit": 200
+  }
+}

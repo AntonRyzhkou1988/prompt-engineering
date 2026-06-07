@@ -1,0 +1,64 @@
+{
+  "itemId": "gds-002",
+  "generatedUtc": "2026-06-07T12:10:00.1874829Z",
+  "mcpCalls": [
+    {
+      "tool": "get_space_missions_summary",
+      "arguments": {},
+      "response": {
+        "totalRows": 4630,
+        "dateMin": "1957-10-04",
+        "dateMax": "2022-07-29",
+        "missionStatusBreakdown": [
+          {
+            "bucket": "Success",
+            "count": 4162,
+            "percentage": 89.89
+          },
+          {
+            "bucket": "Failure",
+            "count": 357,
+            "percentage": 7.71
+          },
+          {
+            "bucket": "Partial Failure",
+            "count": 107,
+            "percentage": 2.31
+          },
+          {
+            "bucket": "Prelaunch Failure",
+            "count": 4,
+            "percentage": 0.09
+          }
+        ]
+      }
+    }
+  ],
+  "keyFacts": {
+    "totalRows": 4630,
+    "dateMin": "1957-10-04",
+    "dateMax": "2022-07-29",
+    "missionStatusBreakdown": [
+      {
+        "bucket": "Success",
+        "count": 4162,
+        "percentage": 89.89
+      },
+      {
+        "bucket": "Failure",
+        "count": 357,
+        "percentage": 7.71
+      },
+      {
+        "bucket": "Partial Failure",
+        "count": 107,
+        "percentage": 2.31
+      },
+      {
+        "bucket": "Prelaunch Failure",
+        "count": 4,
+        "percentage": 0.09
+      }
+    ]
+  }
+}

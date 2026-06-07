@@ -1,0 +1,11 @@
+{
+  "itemId": "gds-006",
+  "score": 1,
+  "passed": true,
+  "reasoning": "Agent correctly grouped by MissionStatus across total 4,630 missions, included all four outcome literals, and provided counts and percentages exactly matching ground truth. Totals and percentages sum correctly and no fabrication present.",
+  "toolsInvoked": [
+    "get_space_missions_summary"
+  ],
+  "toolRoutingPassed": true,
+  "generatedUtc": "2026-06-07T12:14:26.7530305Z"
+}

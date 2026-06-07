@@ -1,0 +1,11 @@
+{
+  "itemId": "gds-002",
+  "score": 1,
+  "passed": true,
+  "reasoning": "Agent matches ground-truth exactly for totalRows (4630), dateMin/dateMax (1957-10-04 to 2022-07-29), and MissionStatus breakdown counts and percentages for all buckets. Provides a high-level description of what each row represents and indicates figures are derived from the dataset/tool summary, satisfying verification criteria.",
+  "toolsInvoked": [
+    "get_space_missions_summary"
+  ],
+  "toolRoutingPassed": true,
+  "generatedUtc": "2026-06-07T12:11:12.5867966Z"
+}

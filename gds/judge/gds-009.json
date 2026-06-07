@@ -1,0 +1,12 @@
+{
+  "itemId": "gds-009",
+  "score": 1,
+  "passed": true,
+  "reasoning": "Agent correctly reports SpaceX success rate since 2020 as 95.83% with 92 successes out of 96 launches, matching ground truth. Example rows align with ground-truth examples (dates/times/locations/rocket/mission/status). Agent used both required tools per log. Minor: did not explicitly disclose whether filter cap/limit applied, but still provided example rows and no conflict with authoritative totals.",
+  "toolsInvoked": [
+    "compute_space_mission_success_rate",
+    "filter_space_missions"
+  ],
+  "toolRoutingPassed": true,
+  "generatedUtc": "2026-06-07T12:16:29.6628364Z"
+}

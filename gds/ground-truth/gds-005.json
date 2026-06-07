@@ -1,0 +1,19 @@
+{
+  "itemId": "gds-005",
+  "generatedUtc": "2026-06-07T12:10:00.2208044Z",
+  "mcpCalls": [
+    {
+      "tool": "count_space_missions",
+      "arguments": {
+        "company": "SpaceX"
+      },
+      "response": {
+        "count": 182,
+        "warnings": []
+      }
+    }
+  ],
+  "keyFacts": {
+    "spacexLaunchCount": 182
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "itemId": "gds-004",
+  "score": 1,
+  "passed": true,
+  "reasoning": "Meets criteria: lists SpaceX launches with dates \u003E=2020-01-01 and provides row-level evidence (dates/mission names). Correctly reports count as 96 total rows matched, consistent with ground truth totalMatching=96 and returned=96 (no cap/limit issue). Does not falsely imply pagination beyond showing the dataset rows.",
+  "toolsInvoked": [
+    "filter_space_missions"
+  ],
+  "toolRoutingPassed": true,
+  "generatedUtc": "2026-06-07T12:13:08.3540603Z"
+}

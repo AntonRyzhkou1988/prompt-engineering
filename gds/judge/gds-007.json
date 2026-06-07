@@ -1,0 +1,11 @@
+{
+  "itemId": "gds-007",
+  "score": 1,
+  "passed": true,
+  "reasoning": "Agent answer matches ground truth: USA count 1,467 out of 4,630 and percentage 31.68%. It also states the derivation rule (last comma-separated segment of Location) and does not mis-handle \u0027Florida, USA\u0027 as a country.",
+  "toolsInvoked": [
+    "aggregate_space_missions_by_launch_country"
+  ],
+  "toolRoutingPassed": true,
+  "generatedUtc": "2026-06-07T12:15:04.6324355Z"
+}

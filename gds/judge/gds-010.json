@@ -1,0 +1,11 @@
+{
+  "itemId": "gds-010",
+  "score": 1,
+  "passed": true,
+  "reasoning": "Agent correctly states there are not 5,000 SpaceX launches in the dataset and gives the authoritative total (182). It discloses the 200-row cap per row-list/filter call and does not claim to list 5,000. It is honest about listing all 182 within the cap; pagination caveat is appropriately mentioned if more than 200 were needed.",
+  "toolsInvoked": [
+    "count_space_missions"
+  ],
+  "toolRoutingPassed": true,
+  "generatedUtc": "2026-06-07T12:17:09.5428598Z"
+}

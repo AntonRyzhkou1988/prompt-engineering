@@ -1,0 +1,11 @@
+{
+  "itemId": "gds-008",
+  "score": 1,
+  "passed": true,
+  "reasoning": "Agent reports 94.51% with 172 successes out of 182 missions with non-empty MissionStatus, matching ground-truth successRatePercent, successCount, and denominator, and correctly notes denominator excludes blanks.",
+  "toolsInvoked": [
+    "compute_space_mission_success_rate"
+  ],
+  "toolRoutingPassed": true,
+  "generatedUtc": "2026-06-07T12:15:43.8505443Z"
+}
