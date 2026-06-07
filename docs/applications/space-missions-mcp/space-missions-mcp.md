@@ -196,7 +196,7 @@ dotnet test tests/Chatbot.Tests --filter "FullyQualifiedName~GdsGroundTruth"
 Run agent + LLM judge (Explicit; requires API key):
 
 ```powershell
-dotnet test tests/Chatbot.Tests --filter "FullyQualifiedName~SpaceMissionsGdsIntegration" -- NUnit.ExplicitMode=On
+dotnet test tests/Chatbot.Tests --filter "FullyQualifiedName~SpaceMissionsGdsIntegration" -- NUnit.ExplicitMode=Explicit
 ```
 
 Fixtures: **`tests/*/Fixtures/space_missions_sample.csv`** (20 rows).

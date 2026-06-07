@@ -6,6 +6,6 @@
   "toolsInvoked": [
     "get_space_missions_summary"
   ],
-  "toolRoutingPassed": false,
+  "toolRoutingPassed": true,
   "generatedUtc": "2026-06-07T12:06:34.5354927Z"
 }

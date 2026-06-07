@@ -2,10 +2,10 @@
   "itemId": "gds-003",
   "score": 1,
   "passed": true,
-  "reasoning": "Answer lists exactly the 7 distinct rocket names containing \u0027Falcon\u0027 as returned by the tool/ground truth (Falcon 1; Falcon 9 v1.0; Falcon 9 v1.1; Falcon 9 Block 3/4/5; Falcon Heavy). No invented names. While it doesn\u2019t explicitly mention totalDistinct/returned, results are complete (7/7), so no cap acknowledgment needed.",
+  "reasoning": "Agent listed exactly the 7 rocket names containing \u0027Falcon\u0027 that appear in the ground-truth distinct-values output: Falcon 1; Falcon 9 v1.0; Falcon 9 v1.1; Falcon 9 Block 3/4/5; Falcon Heavy. No invented names. Although it didn\u0027t mention the distinct-values limit, returned=totalDistinct=7 so nothing was capped and omission is non-material.",
   "toolsInvoked": [
     "list_space_mission_distinct_values"
   ],
   "toolRoutingPassed": true,
-  "generatedUtc": "2026-06-07T12:04:10.3612255Z"
+  "generatedUtc": "2026-06-07T12:11:51.9321407Z"
 }

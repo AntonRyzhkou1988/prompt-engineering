@@ -2,10 +2,10 @@
   "itemId": "gds-005",
   "score": 1,
   "passed": true,
-  "reasoning": "Agent states 182 SpaceX launches, matching ground-truth spacexLaunchCount=182. The response is specific to SpaceX and aligns with the tool-based count criterion.",
+  "reasoning": "Agent states there are 182 SpaceX launches, which exactly matches the authoritative ground-truth count (182). The answer is specific to SpaceX and does not conflate with other \u0027Space\u0027 companies, and the tool used indicates count evidence rather than guessing.",
   "toolsInvoked": [
     "count_space_missions"
   ],
   "toolRoutingPassed": true,
-  "generatedUtc": "2026-06-07T12:05:53.6925094Z"
+  "generatedUtc": "2026-06-07T12:13:47.4607827Z"
 }
