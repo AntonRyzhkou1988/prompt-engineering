@@ -2,10 +2,10 @@
   "itemId": "gds-008",
   "score": 1,
   "passed": true,
-  "reasoning": "Agent reports success rate using the correct MissionStatus formula and explicitly notes non-empty MissionStatus denominator. Counts (172/182) and percentage (94.51%) match ground truth exactly.",
+  "reasoning": "Agent reports 94.51% with 172 successes out of 182 missions with non-empty MissionStatus, matching ground-truth successRatePercent, successCount, and denominator, and correctly notes denominator excludes blanks.",
   "toolsInvoked": [
     "compute_space_mission_success_rate"
   ],
   "toolRoutingPassed": true,
-  "generatedUtc": "2026-06-07T12:07:52.9616624Z"
+  "generatedUtc": "2026-06-07T12:15:43.8505443Z"
 }
