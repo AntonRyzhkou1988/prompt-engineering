@@ -2,10 +2,10 @@
   "itemId": "gds-002",
   "score": 1,
   "passed": true,
-  "reasoning": "The agent\u0027s answer correctly states the total number of missions, the date range of the dataset, and the percentage breakdown of mission outcomes. All figures align perfectly with the ground-truth facts.",
+  "reasoning": "Matches ground-truth exactly for total rows, date range, and full MissionStatus breakdown with counts and percentages. Uses whole-dataset stats. Minor omission: does not explicitly state figures come from the loaded CSV, but tool/filename reference implies it; not enough to reduce score.",
   "toolsInvoked": [
     "get_space_missions_summary"
   ],
   "toolRoutingPassed": true,
-  "generatedUtc": "2026-06-06T19:44:04.9910678Z"
+  "generatedUtc": "2026-06-07T12:03:31.4823326Z"
 }

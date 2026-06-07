@@ -1,0 +1,11 @@
+{
+  "itemId": "gds-007",
+  "score": 1,
+  "passed": true,
+  "reasoning": "Agent reports 31.68% with counts 1,467/4,630, matching ground truth. It correctly states the derivation rule: launch country parsed as the last comma-separated segment of Location. It uses \u0027USA\u0027 as the country bucket and does not treat \u0027Florida, USA\u0027 as a country.",
+  "toolsInvoked": [
+    "aggregate_space_missions_by_launch_country"
+  ],
+  "toolRoutingPassed": true,
+  "generatedUtc": "2026-06-07T12:07:13.6995712Z"
+}

@@ -24,6 +24,7 @@ internal sealed class GdsAnswerJudge(
         - 0 = incorrect, fabricated facts, or off-topic
         Set passed=true when score >= 0.5.
         Ground-truth facts override the agent answer when they conflict.
+        Ground-truth row samples may be truncated; treat totalMatching, returned, limit, and aggregate counts as authoritative.
         Reply with JSON only: {"score": number, "passed": boolean, "reasoning": string}
         """;
 
@@ -65,11 +66,14 @@ internal sealed class GdsAnswerJudge(
             .AddSystemMessage(SystemPrompt)
             .AddUserMessage(userPrompt);
 
-        var completion = await aiService.CompleteChatAsync(
-            instanceName,
-            request,
-            new MediaTypeHeaderValue("application/json"),
-            new JsonSerializerOptions(JsonSerializerDefaults.General),
+        var completion = await GdsLlmRetry.ExecuteAsync(
+            ct => aiService.CompleteChatAsync(
+                instanceName,
+                request,
+                new MediaTypeHeaderValue("application/json"),
+                new JsonSerializerOptions(JsonSerializerDefaults.General),
+                ct),
+            gdsOptions.Value.RateLimitMaxAttempts,
             cancellationToken).ConfigureAwait(false);
 
         var content = completion?.Choices?.FirstOrDefault()?.Message?.Content?.Trim()
@@ -110,11 +114,4 @@ internal sealed class GdsAnswerJudge(
 
         return content[start..(end + 1)];
     }
-}
-
-internal sealed class GdsJudgeOptions
-{
-    public const string SectionName = "Gds";
-
-    public string? JudgeInstanceName { get; set; }
 }

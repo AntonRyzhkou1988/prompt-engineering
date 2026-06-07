@@ -149,15 +149,15 @@ internal static class GdsGroundTruthBuilder
         CancellationToken cancellationToken)
     {
         const string tool = "filter_space_missions";
-        const string args = """{"companyContains":"SpaceX","dateFrom":"2020-01-01","limit":10}""";
+        const string args = """{"companyContains":"SpaceX","dateFrom":"2020-01-01","limit":200}""";
         var response = await CallAsync(session, tool, args, cancellationToken).ConfigureAwait(false);
+        response = TrimFilterRows(response, 5);
 
         var keyFacts = new Dictionary<string, JsonElement>(StringComparer.Ordinal)
         {
             ["returned"] = JsonElementFrom(response.GetProperty("returned")),
             ["totalMatching"] = JsonElementFrom(response.GetProperty("totalMatching")),
             ["limit"] = JsonElementFrom(response.GetProperty("limit")),
-            ["sampleRows"] = JsonElementFrom(response.GetProperty("rows")),
         };
 
         return CreateDocument("gds-004", [new GdsMcpCallRecord { Tool = tool, Arguments = Parse(args), Response = response }], keyFacts);

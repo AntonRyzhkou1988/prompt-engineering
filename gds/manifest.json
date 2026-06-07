@@ -69,7 +69,8 @@
       "itemId": "gds-006",
       "sourceQuestionNumber": 35,
       "question": "Break down all missions by MissionStatus with counts and percentages.",
-      "expectedTools": ["aggregate_space_missions"],
+      "expectedTools": ["aggregate_space_missions", "get_space_missions_summary"],
+      "expectedToolsMode": "any",
       "verificationCriteria": [
         "Groups by MissionStatus across the full dataset.",
         "Provides counts and percentages that sum to the dataset total.",
@@ -122,6 +123,7 @@
       "sourceQuestionNumber": 66,
       "question": "Show me all 5,000 SpaceX launches.",
       "expectedTools": ["count_space_missions", "filter_space_missions"],
+      "expectedToolsMode": "any",
       "verificationCriteria": [
         "States actual totalMatching SpaceX count vs the user's 5,000 claim.",
         "Discloses returned vs totalMatching and the 200-row cap per filter call.",

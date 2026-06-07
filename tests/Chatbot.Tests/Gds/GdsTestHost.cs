@@ -16,11 +16,21 @@ internal sealed class GdsTestHost : IAsyncDisposable
 {
     private readonly ServiceProvider _provider;
 
-    private GdsTestHost(ServiceProvider provider) => _provider = provider;
+    private readonly GdsJudgeOptions _gdsOptions;
+
+    private GdsTestHost(ServiceProvider provider, GdsJudgeOptions gdsOptions)
+    {
+        _provider = provider;
+        _gdsOptions = gdsOptions;
+    }
 
     public RagIndexStore RagIndexStore { get; private init; } = null!;
 
     public GdsManifest Manifest { get; private init; } = null!;
+
+    public int InterItemDelaySeconds => Math.Max(0, _gdsOptions.InterItemDelaySeconds);
+
+    public int RateLimitMaxAttempts => Math.Max(1, _gdsOptions.RateLimitMaxAttempts);
 
     public static async Task<GdsTestHost> CreateAsync(CancellationToken cancellationToken = default)
     {
@@ -36,16 +46,28 @@ internal sealed class GdsTestHost : IAsyncDisposable
         services.AddLogging(b => b.AddConsole().SetMinimumLevel(LogLevel.Warning));
         services.AddGenAi(configuration);
         services.AddRag(configuration);
-        services.Configure<GdsJudgeOptions>(configuration.GetSection(GdsJudgeOptions.SectionName));
+        var gdsSection = configuration.GetSection(GdsJudgeOptions.SectionName);
+        services.Configure<GdsJudgeOptions>(gdsSection);
         services.PostConfigure<RagSettings>(options =>
-            RagPathResolver.ApplyAbsolutePaths(options, Path.Combine(repoRoot, "src", "Chatbot")));
+        {
+            RagPathResolver.ApplyAbsolutePaths(options, Path.Combine(repoRoot, "src", "Chatbot"));
+            var ragInstance = gdsSection["RagInstanceName"];
+            if (!string.IsNullOrWhiteSpace(ragInstance))
+                options.InstanceName = ragInstance;
+        });
         services
             .AddOptions<SpaceMissionsAgentOptions>()
             .Bind(configuration.GetSection(SpaceMissionsAgentOptions.SectionName))
-            .PostConfigure(options => SpaceMissionsPathResolver.ApplyAbsolutePaths(
-                options,
-                Path.Combine(repoRoot, "src", "Chatbot"),
-                AppContext.BaseDirectory));
+            .PostConfigure(options =>
+            {
+                SpaceMissionsPathResolver.ApplyAbsolutePaths(
+                    options,
+                    Path.Combine(repoRoot, "src", "Chatbot"),
+                    AppContext.BaseDirectory);
+                var agentInstance = gdsSection["AgentInstanceName"];
+                if (!string.IsNullOrWhiteSpace(agentInstance))
+                    options.InstanceName = agentInstance;
+            });
         services.AddSingleton<RagIndexStore>();
         services.AddSingleton<ISpaceMissionsMcpAgentService, SpaceMissionsMcpAgentService>();
         services.AddScoped<SpaceMissionsAgentService>();
@@ -66,8 +88,9 @@ internal sealed class GdsTestHost : IAsyncDisposable
         }
 
         var manifest = GdsManifest.Load(GdsPaths.ManifestPath);
+        var gdsOptions = provider.GetRequiredService<IOptions<GdsJudgeOptions>>().Value;
 
-        return new GdsTestHost(provider)
+        return new GdsTestHost(provider, gdsOptions)
         {
             RagIndexStore = ragStore,
             Manifest = manifest,
@@ -76,9 +99,15 @@ internal sealed class GdsTestHost : IAsyncDisposable
 
     public async Task<SpaceMissionsAgentRunResult> RunAgentAsync(string question, CancellationToken cancellationToken)
     {
-        await using var scope = _provider.CreateAsyncScope();
-        var agent = scope.ServiceProvider.GetRequiredService<SpaceMissionsAgentService>();
-        return await agent.RunAsync(question, cancellationToken).ConfigureAwait(false);
+        return await GdsLlmRetry.ExecuteAsync(
+            async ct =>
+            {
+                await using var scope = _provider.CreateAsyncScope();
+                var agent = scope.ServiceProvider.GetRequiredService<SpaceMissionsAgentService>();
+                return await agent.RunAsync(question, ct).ConfigureAwait(false);
+            },
+            RateLimitMaxAttempts,
+            cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<GdsJudgeResult> JudgeAsync(
@@ -120,8 +149,12 @@ internal sealed class GdsTestHost : IAsyncDisposable
         if (item.ExpectedTools.Count == 0)
             return true;
 
-        return item.ExpectedTools.All(expected =>
-            toolsInvoked.Any(invoked => invoked.Equals(expected, StringComparison.OrdinalIgnoreCase)));
+        bool Matches(string expected) =>
+            toolsInvoked.Any(invoked => invoked.Equals(expected, StringComparison.OrdinalIgnoreCase));
+
+        return item.ExpectedToolsMode.Equals("any", StringComparison.OrdinalIgnoreCase)
+            ? item.ExpectedTools.Any(Matches)
+            : item.ExpectedTools.All(Matches);
     }
 
     public static string BuildAnswerDocument(

@@ -1,0 +1,12 @@
+{
+  "itemId": "gds-009",
+  "score": 1,
+  "passed": true,
+  "reasoning": "Agent\u2019s computed success rate (95.83%) and counts (92 successes / 96 launches since 2020 with non-empty MissionStatus) exactly match ground truth. Example rows shown are consistent with ground-truth examples (same dates/missions/statuses) and are valid from the filtered results. Agent indicates use of both tools. Minor omission: no explicit disclosure about any filter cap/partial return, but no cap issue is evidenced; core criteria satisfied.",
+  "toolsInvoked": [
+    "compute_space_mission_success_rate",
+    "filter_space_missions"
+  ],
+  "toolRoutingPassed": true,
+  "generatedUtc": "2026-06-07T12:08:35.7072078Z"
+}

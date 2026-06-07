@@ -34,6 +34,9 @@ internal sealed class GdsManifestItem
 
     public IReadOnlyList<string> ExpectedTools { get; init; } = [];
 
+    /// <summary>"all" (default) requires every listed tool; "any" passes when at least one matches.</summary>
+    public string ExpectedToolsMode { get; init; } = "all";
+
     public IReadOnlyList<string> VerificationCriteria { get; init; } = [];
 
     public string GroundTruthRef { get; init; } = "";

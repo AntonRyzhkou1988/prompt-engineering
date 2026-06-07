@@ -33,8 +33,16 @@ public sealed class SpaceMissionsGdsIntegrationTests
 
         var failures = new List<string>();
 
-        foreach (var item in host.Manifest.Items)
+        for (var itemIndex = 0; itemIndex < host.Manifest.Items.Count; itemIndex++)
         {
+            var item = host.Manifest.Items[itemIndex];
+            if (itemIndex > 0 && host.InterItemDelaySeconds > 0)
+            {
+                TestContext.WriteLine($"Waiting {host.InterItemDelaySeconds}s before {item.ItemId} to reduce token rate limits.");
+                await Task.Delay(TimeSpan.FromSeconds(host.InterItemDelaySeconds), CancellationToken.None)
+                    .ConfigureAwait(false);
+            }
+
             var groundTruthPath = GdsPaths.ResolveGroundTruthPath(item.GroundTruthRef);
             if (!File.Exists(groundTruthPath))
             {

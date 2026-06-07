@@ -1,0 +1,11 @@
+{
+  "itemId": "gds-006",
+  "score": 1,
+  "passed": true,
+  "reasoning": "Agent correctly groups by MissionStatus for all 4,630 missions, includes all four known status buckets, and reports counts and percentages matching ground truth (4162/89.89%, 357/7.71%, 107/2.31%, 4/0.09%). Totals sum to 4,630 with no fabricated categories.",
+  "toolsInvoked": [
+    "get_space_missions_summary"
+  ],
+  "toolRoutingPassed": false,
+  "generatedUtc": "2026-06-07T12:06:34.5354927Z"
+}

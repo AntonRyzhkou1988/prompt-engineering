@@ -1,0 +1,11 @@
+{
+  "itemId": "gds-005",
+  "score": 1,
+  "passed": true,
+  "reasoning": "Agent states 182 SpaceX launches, matching ground-truth spacexLaunchCount=182. The response is specific to SpaceX and aligns with the tool-based count criterion.",
+  "toolsInvoked": [
+    "count_space_missions"
+  ],
+  "toolRoutingPassed": true,
+  "generatedUtc": "2026-06-07T12:05:53.6925094Z"
+}
