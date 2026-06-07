@@ -1,6 +1,6 @@
 # Golden Data Set — Space Missions MCP (Chatbot)
 
-**[Repository README — Documentation](../README.md#documentation)** · [MCP questions](../docs/applications/space-missions-mcp/mcp-questions.md) · [Tool reference](../docs/applications/space-missions-mcp/space-missions-mcp-tools.md)
+**[Repository README — Golden Data Set (`gds/`)](../README.md#golden-data-set-gds)** · [MCP questions](../docs/applications/space-missions-mcp/mcp-questions.md) · [Tool reference](../docs/applications/space-missions-mcp/space-missions-mcp-tools.md)
 
 Ten curated natural-language questions for evaluating the **Chatbot** hybrid agent (`SpaceMissionsAgentService`: RAG + MCP tool loop). Each item includes expected MCP tools, verification criteria, and MCP-derived ground truth under `ground-truth/`.
 

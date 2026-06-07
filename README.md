@@ -63,10 +63,82 @@ Benchmark prompt and TRA definition: **[docs/applications/agent/agent-weather-ne
 - **Runtime:** In-memory CSV via **`PromptEngineering.SpaceMissions`**; child process receives **`SPACE_MISSIONS_DATASET_PATH`** from **`Chatbot`** path resolution.
 - **Configuration:** **`SpaceMissionsAgent`** in [`src/Chatbot/appsettings.json`](src/Chatbot/appsettings.json); LLM keys like other samples.
 - **Prerequisites:** **.NET 8** only for this MCP (unlike **Agent**, no **Node.js** / **`npx`**).
-- **GDS eval:** Ten-item golden data set under **`gds/`** — MCP-derived **`ground-truth/`**, agent **`answers/`**, LLM-as-judge **`judge/`** (ACS + tool routing). Run via **`tests/Chatbot.Tests`**; spec **[gds/gds_space_missions_mcp.md](gds/gds_space_missions_mcp.md)**.
+- **GDS eval:** Ten-item golden data set under **`gds/`** — see **[Golden Data Set (`gds/`)](#golden-data-set-gds)** below.
 - **Documentation:** **[docs/applications/space-missions-mcp/space-missions-mcp.md](docs/applications/space-missions-mcp/space-missions-mcp.md)** (architecture, run, Chatbot wiring) · **[tool reference](docs/applications/space-missions-mcp/space-missions-mcp-tools.md)**.
 
 ---
+
+## Golden Data Set (`gds/`)
+
+The **Golden Data Set (GDS)** evaluates the **Chatbot** hybrid agent (`SpaceMissionsAgentService`: RAG retrieval + MCP tool loop on the EchoBot path). Ten curated natural-language questions cover all eight **Space Missions MCP** tools, plus multi-tool chains and an honest-disclosure edge case. Each item defines **expected tools**, **verification criteria**, and **MCP-derived ground truth** so answers can be scored consistently.
+
+Human-readable spec: **[gds/gds_space_missions_mcp.md](gds/gds_space_missions_mcp.md)**. Machine-readable catalog: **[gds/manifest.json](gds/manifest.json)**.
+
+### Folder layout
+
+| Path | Role |
+| --- | --- |
+| **`gds/manifest.json`** | Versioned catalog of all ten eval items — questions, expected MCP tools, verification criteria, and pointers to ground-truth files. Consumed by **`tests/Chatbot.Tests`**. |
+| **`gds/ground-truth/`** | One JSON file per item (`gds-001.json` … `gds-010.json`). Each records the **actual MCP tool calls** and **`keyFacts`** extracted from **`dataset/space_missions.csv`**. Regenerated without an LLM via **`GdsGroundTruth`** tests. |
+| **`gds/answers/`** | Agent completions — one Markdown file per item (`gds-001.md` …). Written by the Explicit integration test when **`SpaceMissionsAgentService.RunAsync`** answers each manifest question (same path as EchoBot). |
+| **`gds/judge/`** | LLM-as-judge results — one JSON file per item. Each holds **Answer Correctness Score (ACS)** (0 / 0.5 / 1), pass/fail, reasoning, tools invoked, and tool-routing pass/fail. |
+| **`gds/gds_space_missions_mcp.md`** | Narrative guide: item table, ground-truth anchors, run commands, and last-run summary. |
+
+### `manifest.json` schema
+
+Root object:
+
+| Field | Meaning |
+| --- | --- |
+| **`version`** | Manifest format version (currently `1`). |
+| **`items`** | Array of eval items (ten entries: **`gds-001`** … **`gds-010`**). |
+
+Each item in **`items`**:
+
+| Field | Meaning |
+| --- | --- |
+| **`itemId`** | Stable id (`gds-001`, …) — matches filenames under **`ground-truth/`**, **`answers/`**, and **`judge/`**. |
+| **`sourceQuestionNumber`** | Index into **[mcp-questions.md](docs/applications/space-missions-mcp/mcp-questions.md)** (which of the 69 sample prompts this item derives from). |
+| **`question`** | Natural-language prompt sent to the agent. |
+| **`expectedTools`** | MCP tool names the agent should invoke (e.g. `filter_space_missions`). |
+| **`expectedToolsMode`** | Optional. Default **`all`** — every listed tool must be called. **`any`** — at least one listed tool suffices (used for **gds-006** and **gds-010** where multiple tools can answer correctly). |
+| **`verificationCriteria`** | Bullet list of facts the answer must satisfy; fed to the LLM judge alongside ground-truth **`keyFacts`**. |
+| **`groundTruthRef`** | Relative path to the ground-truth JSON (e.g. `ground-truth/gds-004.json`). |
+
+### Eval items (from `manifest.json`)
+
+| item_id | source # | question | expected_tools |
+| --- | --- | --- | --- |
+| gds-001 | 1 | What columns are in the space missions dataset? | `get_space_missions_schema` |
+| gds-002 | 7 | Give me a high-level overview of the space missions dataset. | `get_space_missions_summary` |
+| gds-003 | 14 | What rocket names contain "Falcon"? | `list_space_mission_distinct_values` |
+| gds-004 | 19 | Show me SpaceX launches from 2020 onward. | `filter_space_missions` |
+| gds-005 | 29 | How many SpaceX launches are in the dataset? | `count_space_missions` |
+| gds-006 | 35 | Break down all missions by MissionStatus with counts and percentages. | `aggregate_space_missions` or `get_space_missions_summary` (**any**) |
+| gds-007 | 43 | What percentage of launches are from the USA? | `aggregate_space_missions_by_launch_country` |
+| gds-008 | 51 | What is SpaceX's mission success rate? | `compute_space_mission_success_rate` |
+| gds-009 | 58 | What is SpaceX's success rate since 2020, and show a few example rows? | `compute_space_mission_success_rate`, `filter_space_missions` |
+| gds-010 | 66 | Show me all 5,000 SpaceX launches. | `count_space_missions` or `filter_space_missions` (**any**) |
+
+### Key ground-truth anchors (full CSV)
+
+| Fact | Value |
+| --- | --- |
+| Dataset rows | 4630 |
+| SpaceX launch count | 182 |
+| SpaceX launches from 2020+ | 96 |
+| USA launch share | 31.68% (1467 / 4630) |
+| Filter row cap | 200 per call |
+
+### How scoring works
+
+1. **Tool routing** — Host checks invoked MCP tools against **`expectedTools`** / **`expectedToolsMode`** in the manifest ([Tool Routing Accuracy](metrics/agent_tool_routing_accuracy.md) pattern).
+2. **LLM judge** — Separate completion compares the agent answer to **`keyFacts`** and **`verificationCriteria`**; scores with **[Answer Correctness Score (ACS)](metrics/answer_correctness_score.md)** (pass when score ≥ 0.5).
+3. **Artifacts** — Integration test writes **`gds/answers/{item_id}.md`** and **`gds/judge/{item_id}.json`** for review and regression diffs.
+
+Fixtures live in **`tests/Chatbot.Tests/Gds/`** (`GdsGroundTruthBuilder`, `GdsAnswerJudge`, `GdsTestHost`). Configure judge/agent instances under **`Gds`** in [`src/Chatbot/appsettings.json`](src/Chatbot/appsettings.json).
+
+Run commands: **[§4 Chatbot — GDS eval](#4-chatbot-space-missions-mcp)** below.
 
 ## Shared LLM layer
 
@@ -178,19 +250,19 @@ teamsapptester start --app-endpoint http://127.0.0.1:5130/api/messages
 
 Set bot **`ClientId`** / **`ClientSecret`** via user secrets when using the Bot Framework (see **[Getting started](docs/getting-started.md#user-secrets)**). Full guide: **[docs/applications/space-missions-mcp/space-missions-mcp.md](docs/applications/space-missions-mcp/space-missions-mcp.md)**.
 
-**GDS eval** (optional; writes artifacts under **`gds/`**):
+**GDS eval** (optional; see **[Golden Data Set (`gds/`)](#golden-data-set-gds)** for folder layout and **`manifest.json`** schema):
 
 ```powershell
 dotnet build src/SpaceMissions.McpServer/SpaceMissions.McpServer.csproj
 
-# MCP ground truth only (CI-safe, no LLM)
+# MCP ground truth only (CI-safe, no LLM) → gds/ground-truth/
 dotnet test tests/Chatbot.Tests --filter "FullyQualifiedName~GdsGroundTruth"
 
-# Agent + LLM judge (Explicit; requires API key — same Chatbot user secrets)
+# Agent + LLM judge (Explicit; requires API key) → gds/answers/ + gds/judge/
 dotnet test tests/Chatbot.Tests --filter "FullyQualifiedName~SpaceMissionsGdsIntegration" -- NUnit.ExplicitMode=Explicit
 ```
 
-See **[gds/gds_space_missions_mcp.md](gds/gds_space_missions_mcp.md)** for the ten-item manifest, verification criteria, and last-run results.
+Full item table, verification criteria, and last-run results: **[gds/gds_space_missions_mcp.md](gds/gds_space_missions_mcp.md)** · **[gds/manifest.json](gds/manifest.json)**.
 
 ### 5. Security samples
 
@@ -272,7 +344,7 @@ Eight stdio tools over **`dataset/space_missions.csv`**; **`Chatbot`** runs the 
 | [Space Missions MCP guide](docs/applications/space-missions-mcp/space-missions-mcp.md) | Architecture, dataset path, Chatbot configuration, evidence rules |
 | [Tool reference](docs/applications/space-missions-mcp/space-missions-mcp-tools.md) | All eight tools, filters, limits, JSON shapes |
 | [Sample user questions](docs/applications/space-missions-mcp/mcp-questions.md) | Chatbot smoke / eval prompts per tool |
-| [Chatbot MCP GDS (`gds/`)](gds/gds_space_missions_mcp.md) | Ten-item golden set: MCP ground truth, agent answers, LLM judge (ACS), tool routing |
+| [Chatbot MCP GDS (`gds/`)](gds/gds_space_missions_mcp.md) | Ten-item golden set — [`manifest.json`](gds/manifest.json), MCP ground truth, agent answers, LLM judge (ACS); see [Golden Data Set (`gds/`)](#golden-data-set-gds) in README |
 
 ### Security — `Security` (`docs/applications/security/`)
 
@@ -287,5 +359,5 @@ Paired **vulnerable / mitigated** chat completions for **prompt injection** and 
 | Resource | Role |
 | --- | --- |
 | [metrics/](metrics/) | Offline specs (e.g. [answer_correctness_score.md](metrics/answer_correctness_score.md), [agent_tool_routing_accuracy.md](metrics/agent_tool_routing_accuracy.md)); not ingested by **`Rag`** unless that text is inside **`Rag:DatasetPath`** |
-| [gds/gds_space_missions_mcp.md](gds/gds_space_missions_mcp.md) | Chatbot MCP golden data set — uses **ACS** and tool routing checks via **`tests/Chatbot.Tests`** |
+| [gds/gds_space_missions_mcp.md](gds/gds_space_missions_mcp.md) | Chatbot MCP golden data set — folder layout, **`manifest.json`**, ACS and tool routing via **`tests/Chatbot.Tests`**; see [Golden Data Set (`gds/`)](#golden-data-set-gds) |
 | [project-rules.mdc](.cursor/rules/project-rules.mdc) | ReAct / evidence standard for prompt authoring |
