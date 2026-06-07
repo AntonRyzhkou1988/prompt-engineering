@@ -63,6 +63,7 @@ Benchmark prompt and TRA definition: **[docs/applications/agent/agent-weather-ne
 - **Runtime:** In-memory CSV via **`PromptEngineering.SpaceMissions`**; child process receives **`SPACE_MISSIONS_DATASET_PATH`** from **`Chatbot`** path resolution.
 - **Configuration:** **`SpaceMissionsAgent`** in [`src/Chatbot/appsettings.json`](src/Chatbot/appsettings.json); LLM keys like other samples.
 - **Prerequisites:** **.NET 8** only for this MCP (unlike **Agent**, no **Node.js** / **`npx`**).
+- **GDS eval:** Ten-item golden data set under **`gds/`** — MCP-derived **`ground-truth/`**, agent **`answers/`**, LLM-as-judge **`judge/`** (ACS + tool routing). Run via **`tests/Chatbot.Tests`**; spec **[gds/gds_space_missions_mcp.md](gds/gds_space_missions_mcp.md)**.
 - **Documentation:** **[docs/applications/space-missions-mcp/space-missions-mcp.md](docs/applications/space-missions-mcp/space-missions-mcp.md)** (architecture, run, Chatbot wiring) · **[tool reference](docs/applications/space-missions-mcp/space-missions-mcp-tools.md)**.
 
 ---
@@ -177,6 +178,20 @@ teamsapptester start --app-endpoint http://127.0.0.1:5130/api/messages
 
 Set bot **`ClientId`** / **`ClientSecret`** via user secrets when using the Bot Framework (see **[Getting started](docs/getting-started.md#user-secrets)**). Full guide: **[docs/applications/space-missions-mcp/space-missions-mcp.md](docs/applications/space-missions-mcp/space-missions-mcp.md)**.
 
+**GDS eval** (optional; writes artifacts under **`gds/`**):
+
+```powershell
+dotnet build src/SpaceMissions.McpServer/SpaceMissions.McpServer.csproj
+
+# MCP ground truth only (CI-safe, no LLM)
+dotnet test tests/Chatbot.Tests --filter "FullyQualifiedName~GdsGroundTruth"
+
+# Agent + LLM judge (Explicit; requires API key — same Chatbot user secrets)
+dotnet test tests/Chatbot.Tests --filter "FullyQualifiedName~SpaceMissionsGdsIntegration" -- NUnit.ExplicitMode=Explicit
+```
+
+See **[gds/gds_space_missions_mcp.md](gds/gds_space_missions_mcp.md)** for the ten-item manifest, verification criteria, and last-run results.
+
 ### 5. Security samples
 
 Console demos for **prompt injection** and **sensitive information disclosure** (vulnerable pattern, then mitigation). Uses **`Security:InstanceName`** and **`Security:Temperature`** in [`src/Security/appsettings.json`](src/Security/appsettings.json). No MCP; chat only.
@@ -257,6 +272,7 @@ Eight stdio tools over **`dataset/space_missions.csv`**; **`Chatbot`** runs the 
 | [Space Missions MCP guide](docs/applications/space-missions-mcp/space-missions-mcp.md) | Architecture, dataset path, Chatbot configuration, evidence rules |
 | [Tool reference](docs/applications/space-missions-mcp/space-missions-mcp-tools.md) | All eight tools, filters, limits, JSON shapes |
 | [Sample user questions](docs/applications/space-missions-mcp/mcp-questions.md) | Chatbot smoke / eval prompts per tool |
+| [Chatbot MCP GDS (`gds/`)](gds/gds_space_missions_mcp.md) | Ten-item golden set: MCP ground truth, agent answers, LLM judge (ACS), tool routing |
 
 ### Security — `Security` (`docs/applications/security/`)
 
@@ -271,4 +287,5 @@ Paired **vulnerable / mitigated** chat completions for **prompt injection** and 
 | Resource | Role |
 | --- | --- |
 | [metrics/](metrics/) | Offline specs (e.g. [answer_correctness_score.md](metrics/answer_correctness_score.md), [agent_tool_routing_accuracy.md](metrics/agent_tool_routing_accuracy.md)); not ingested by **`Rag`** unless that text is inside **`Rag:DatasetPath`** |
+| [gds/gds_space_missions_mcp.md](gds/gds_space_missions_mcp.md) | Chatbot MCP golden data set — uses **ACS** and tool routing checks via **`tests/Chatbot.Tests`** |
 | [project-rules.mdc](.cursor/rules/project-rules.mdc) | ReAct / evidence standard for prompt authoring |
